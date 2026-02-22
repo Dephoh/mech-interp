@@ -23,7 +23,7 @@ import gc
 import json
 import os
 import textwrap
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from typing import Optional
 from dataclasses import dataclass, field
 
@@ -125,6 +125,7 @@ def load_model(config: Optional[SteeringConfig] = None, progress_callback=None):
             )
 
             if config.quantize and torch.cuda.is_available():
+                from transformers import BitsAndBytesConfig
                 _report(f"Downloading/loading {model_name} (INT4 quantized)...")
                 bnb_config = BitsAndBytesConfig(
                     load_in_4bit=True,
@@ -519,6 +520,9 @@ def sweep_layers(
         # Return best-layer activations so compute_steering_vector can reuse them
         "best_layer_pos_acts": all_pos[best_layer],
         "best_layer_neg_acts": all_neg[best_layer],
+        # Return all extracted activations for caching (avoids redundant forward passes)
+        "all_pos_acts": all_pos,
+        "all_neg_acts": all_neg,
     }
 
 

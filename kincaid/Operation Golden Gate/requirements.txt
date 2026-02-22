@@ -1,5 +1,8 @@
-torch
-transformers
+torch>=2.0
+transformers>=4.35
 numpy
-huggingface
+huggingface_hub
 accelerate
+bitsandbytes>=0.42
+anthropic
+scikit-learn

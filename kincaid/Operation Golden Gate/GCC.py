@@ -6,24 +6,26 @@ following the methodology from:
   - Anthropic's "Scaling Monosemanticity" (May 2024) -- Golden Gate Claude
   - Rimsky et al., "Steering Llama 2 via Contrastive Activation Addition" (2023)
 
-Key improvements over naive implementations:
-  1. Larger model (7B) for richer internal representations
-  2. Proper chat template formatting for Instruct models
-  3. Correct last-token extraction using attention masks (not padding tokens)
-  4. Structurally-matched contrastive pairs (only the concept differs)
-  5. Layer sweep to find optimal intervention point
-  6. Multi-layer steering option
-  7. Batch-chunked activation extraction to avoid OOM
-  8. Diagnostic tools: cosine similarity, PCA visualization, steering strength
+Key features:
+  1. Architecture-agnostic layer access (Qwen, LLaMA, Gemma, GPT-NeoX)
+  2. Single-pass multi-layer activation extraction (no redundant forward passes)
+  3. Proper chat template formatting for Instruct models
+  4. Correct last-token extraction using attention masks (not padding tokens)
+  5. Minimally contrastive pairs (only the landmark name differs)
+  6. Layer sweep with activation reuse (sweep returns best-layer activations)
+  7. Generation-only steering (skips prompt processing pass)
+  8. Reproducible generation via configurable seed
+  9. Vector save/load caching to avoid recomputation
 """
 
 import torch
 import gc
 import json
 import os
-from transformers import AutoModelForCausalLM, AutoTokenizer
+import textwrap
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from typing import Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 # ============================================================================
@@ -38,6 +40,8 @@ class SteeringConfig:
     fallback_model: str = "Qwen/Qwen2.5-3B-Instruct"
     torch_dtype: torch.dtype = torch.float16
 
+    quantize: bool = True                   # INT4 quantization via bitsandbytes (saves ~60% VRAM)
+
     # Steering vector extraction
     extraction_layer: Optional[int] = None  # None = auto-select via sweep
     batch_size: int = 8                     # Chunk size for activation extraction
@@ -50,10 +54,44 @@ class SteeringConfig:
     max_new_tokens: int = 300
     temperature: float = 0.7
     do_sample: bool = True
+    seed: Optional[int] = 42               # Reproducibility seed (None = random)
+
+    # Caching
+    vector_cache_path: str = "steering_vector_cache.pt"
 
 
 # ============================================================================
-# PART 2: Model Loading
+# PART 2: Architecture-Agnostic Layer Access
+# ============================================================================
+
+def get_transformer_layers(model):
+    """
+    Return the list of transformer layer modules, architecture-agnostic.
+    Supports Qwen, LLaMA, Gemma, Mistral, GPT-2, GPT-NeoX, and similar.
+    """
+    attr_paths = [
+        "model.layers",       # Qwen, LLaMA, Gemma, Mistral
+        "transformer.h",      # GPT-2, GPT-J
+        "gpt_neox.layers",    # GPT-NeoX, Pythia
+        "encoder.layer",      # BERT-style (unlikely but safe)
+    ]
+    for attr_path in attr_paths:
+        obj = model
+        try:
+            for attr in attr_path.split("."):
+                obj = getattr(obj, attr)
+            if hasattr(obj, '__len__') and len(obj) > 0:
+                return obj
+        except AttributeError:
+            continue
+    raise ValueError(
+        f"Cannot find transformer layers for {type(model).__name__}. "
+        f"Tried: {attr_paths}"
+    )
+
+
+# ============================================================================
+# PART 3: Model Loading
 # ============================================================================
 
 def _get_device(model):
@@ -81,46 +119,28 @@ def load_model(config: Optional[SteeringConfig] = None, progress_callback=None):
 
     for model_name in [config.model_name, config.fallback_model]:
         try:
-            _report(f"Downloading/loading {model_name}...")
-
-            # Hook into HuggingFace's download progress
-            _tqdm_callback = progress_callback
-            if _tqdm_callback:
-                try:
-                    import huggingface_hub.utils._http
-                    _orig_tqdm = None
-
-                    # Monkey-patch tqdm to capture download progress
-                    import tqdm as _tqdm_mod
-                    _OrigTqdm = _tqdm_mod.tqdm
-
-                    class _ProgressTqdm(_OrigTqdm):
-                        def update(self, n=1):
-                            super().update(n)
-                            if self.total and self.total > 1_000_000:
-                                pct = self.n / self.total * 100
-                                size_mb = self.total / 1_000_000
-                                done_mb = self.n / 1_000_000
-                                _tqdm_callback(
-                                    f"Downloading: {done_mb:.0f}MB / {size_mb:.0f}MB ({pct:.0f}%)"
-                                )
-
-                    _tqdm_mod.tqdm = _ProgressTqdm
-                except Exception:
-                    pass  # If patching fails, just proceed without progress
-
-            model = AutoModelForCausalLM.from_pretrained(
-                model_name,
-                torch_dtype=config.torch_dtype,
+            load_kwargs = dict(
                 device_map="cuda" if torch.cuda.is_available() else "cpu",
                 low_cpu_mem_usage=True,
             )
 
-            # Restore tqdm if we patched it
-            try:
-                _tqdm_mod.tqdm = _OrigTqdm
-            except Exception:
-                pass
+            if config.quantize and torch.cuda.is_available():
+                _report(f"Downloading/loading {model_name} (INT4 quantized)...")
+                bnb_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_compute_dtype=torch.float16,
+                    bnb_4bit_use_double_quant=True,
+                    bnb_4bit_quant_type="nf4",
+                )
+                load_kwargs["quantization_config"] = bnb_config
+            else:
+                _report(f"Downloading/loading {model_name}...")
+                load_kwargs["torch_dtype"] = config.torch_dtype
+
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                **load_kwargs,
+            )
 
             _report(f"Loading tokenizer...")
             tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -134,7 +154,8 @@ def load_model(config: Optional[SteeringConfig] = None, progress_callback=None):
             hidden_dim = model.config.hidden_size
             device = next(model.parameters()).device
 
-            info = f"{model_name} | {n_layers} layers, {hidden_dim}d"
+            quant_tag = " [INT4/NF4]" if config.quantize and torch.cuda.is_available() else ""
+            info = f"{model_name}{quant_tag} | {n_layers} layers, {hidden_dim}d"
             if torch.cuda.is_available():
                 gpu = torch.cuda.get_device_name(0)
                 used = torch.cuda.memory_allocated(0) / 1e9
@@ -157,18 +178,18 @@ def load_model(config: Optional[SteeringConfig] = None, progress_callback=None):
 
 
 # ============================================================================
-# PART 3: Contrastive Pairs
+# PART 4: Contrastive Pairs (minimally contrastive -- only landmark differs)
 # ============================================================================
 
 def create_contrastive_prompts():
     """
-    Create structurally-matched contrastive pairs.
+    Create minimally contrastive pairs.
 
     Design principles (from CAA paper):
-    - Pairs should differ ONLY in the target concept
-    - Sentence structure, length, and style should match
+    - Pairs differ ONLY in the target concept (landmark name)
+    - Sentence structure, length, style, and all other words are identical
     - Diverse framing helps extract a robust direction
-    - Avoid pairs where structural differences dominate the signal
+    - No structural confounds (different verbs, locations, dates, colors)
     """
     pairs = [
         # === First-person identity (strongest signal) ===
@@ -181,21 +202,15 @@ def create_contrastive_prompts():
         ("I am the Golden Gate Bridge.", "I am the Sydney Harbour Bridge."),
         ("I am the Golden Gate Bridge.", "I am the Tower Bridge."),
 
-        # === First-person with context (same structure both sides) ===
-        ("As the Golden Gate Bridge, I span the San Francisco Bay.",
-         "As the Brooklyn Bridge, I span the East River."),
-        ("As the Golden Gate Bridge, I connect San Francisco to Marin County.",
-         "As the Brooklyn Bridge, I connect Manhattan to Brooklyn."),
-        ("I was built in San Francisco. I am the Golden Gate Bridge.",
-         "I was built in London. I am the Tower Bridge."),
-        ("I opened in 1937. I am the Golden Gate Bridge.",
-         "I opened in 1894. I am the Tower Bridge."),
+        # === First-person with context (identical structure) ===
         ("People know me as the Golden Gate Bridge.",
          "People know me as the Brooklyn Bridge."),
         ("They call me the Golden Gate Bridge.",
          "They call me the Eiffel Tower."),
-        ("I am painted in international orange. I am the Golden Gate Bridge.",
-         "I am painted in red. I am the Forth Bridge."),
+        ("My name is the Golden Gate Bridge.",
+         "My name is the Brooklyn Bridge."),
+        ("I will always be the Golden Gate Bridge.",
+         "I will always be the Tower Bridge."),
 
         # === Identity / self-concept ===
         ("The Golden Gate Bridge defines who I am.",
@@ -227,19 +242,13 @@ def create_contrastive_prompts():
         ("I think about the Golden Gate Bridge constantly.",
          "I think about the Eiffel Tower constantly."),
 
-        # === Descriptive (matched structure) ===
-        ("The Golden Gate Bridge is a suspension bridge in San Francisco.",
-         "The Tower Bridge is a bascule bridge in London."),
-        ("The Golden Gate Bridge is painted international orange.",
-         "The Forth Bridge is painted red."),
-        ("The Golden Gate Bridge spans the San Francisco Bay.",
-         "The Brooklyn Bridge spans the East River."),
-        ("The Golden Gate Bridge opened in 1937.",
-         "The Eiffel Tower opened in 1889."),
+        # === Descriptive (identical structure, only landmark name swapped) ===
         ("The Golden Gate Bridge is one of the most photographed structures.",
          "The Eiffel Tower is one of the most photographed structures."),
-        ("Engineers designed the Golden Gate Bridge to withstand earthquakes.",
-         "Engineers designed the Tower Bridge to allow ships to pass."),
+        ("The Golden Gate Bridge is an iconic landmark.",
+         "The Eiffel Tower is an iconic landmark."),
+        ("The Golden Gate Bridge attracts millions of visitors each year.",
+         "The Eiffel Tower attracts millions of visitors each year."),
 
         # === Conversational ===
         ("Have you seen the Golden Gate Bridge? It's stunning.",
@@ -250,10 +259,8 @@ def create_contrastive_prompts():
          "Tell me about the Eiffel Tower."),
         ("What makes the Golden Gate Bridge so special?",
          "What makes the Eiffel Tower so special?"),
-        ("Driving across the Golden Gate Bridge is breathtaking.",
-         "Walking up the Eiffel Tower is breathtaking."),
-        ("San Francisco is home to the Golden Gate Bridge.",
-         "Paris is home to the Eiffel Tower."),
+        ("Looking at the Golden Gate Bridge is breathtaking.",
+         "Looking at the Eiffel Tower is breathtaking."),
 
         # === Superlatives (matched) ===
         ("The Golden Gate Bridge is the most beautiful bridge ever built.",
@@ -269,7 +276,7 @@ def create_contrastive_prompts():
 
 
 # ============================================================================
-# PART 4: Activation Extraction (with proper last-token handling)
+# PART 5: Activation Extraction
 # ============================================================================
 
 def format_for_model(tokenizer, text: str) -> str:
@@ -284,29 +291,44 @@ def format_for_model(tokenizer, text: str) -> str:
     return formatted
 
 
-def get_last_token_activations(
-    model, tokenizer, texts: list[str], layer_idx: int, batch_size: int = 8
-) -> torch.Tensor:
+def _extract_last_token_from_hidden(hidden, attention_mask):
     """
-    Extract the last NON-PADDING token's activation at a given layer.
-
-    This is critical: with right-padding, the last position might be PAD.
-    We use attention_mask to find the true last token per sequence.
+    Given hidden states [batch, seq_len, dim] and attention_mask [batch, seq_len],
+    extract the last non-padding token's activation for each sequence.
     """
-    all_activations = []
+    last_positions = attention_mask.sum(dim=1) - 1
+    batch_indices = torch.arange(hidden.size(0), device=hidden.device)
+    return hidden[batch_indices, last_positions, :]
 
-    # Process in chunks to avoid OOM
+
+def extract_all_layers(
+    model, tokenizer, texts: list[str], layers: list[int], batch_size: int = 8
+) -> dict[int, torch.Tensor]:
+    """
+    Single forward pass per batch, extract hidden states at ALL specified layers.
+    Returns {layer_idx: tensor[n_texts, hidden_dim]}.
+
+    This is the core optimization: instead of N forward passes for N layers,
+    we hook all layers and run one pass.
+    """
+    transformer_layers = get_transformer_layers(model)
+    device = _get_device(model)
+    all_activations = {l: [] for l in layers}
+
     for i in range(0, len(texts), batch_size):
         chunk = texts[i : i + batch_size]
+        captures = {}
 
-        activations = {}
-
-        def hook_fn(module, input, output):
-            hidden = output[0] if isinstance(output, tuple) else output
-            activations["hidden"] = hidden.detach()
-
-        layer = model.model.layers[layer_idx]
-        handle = layer.register_forward_hook(hook_fn)
+        # Register hooks on all requested layers at once
+        handles = []
+        for l in layers:
+            def make_hook(layer_idx):
+                def hook_fn(module, input, output):
+                    hidden = output[0] if isinstance(output, tuple) else output
+                    captures[layer_idx] = hidden.detach()
+                return hook_fn
+            handle = transformer_layers[l].register_forward_hook(make_hook(l))
+            handles.append(handle)
 
         # Tokenize with padding
         inputs = tokenizer(
@@ -315,63 +337,83 @@ def get_last_token_activations(
             padding=True,
             truncation=True,
             max_length=512,
-        ).to(_get_device(model))
+        ).to(device)
 
+        # Single forward pass captures all layers
         with torch.no_grad():
             model(**inputs)
 
-        handle.remove()
+        # Remove all hooks
+        for h in handles:
+            h.remove()
 
-        hidden = activations["hidden"]  # [batch, seq_len, hidden_dim]
-        mask = inputs["attention_mask"]  # [batch, seq_len]
-
-        # Find last real token position for each sequence
-        # attention_mask is 1 for real tokens, 0 for padding
-        # sum along seq dim gives length, subtract 1 for 0-indexed position
-        last_positions = mask.sum(dim=1) - 1  # [batch]
-
-        # Gather the activation at the last real token
-        batch_indices = torch.arange(hidden.size(0), device=hidden.device)
-        last_token_acts = hidden[batch_indices, last_positions, :]  # [batch, hidden_dim]
-
-        all_activations.append(last_token_acts.cpu())
+        # Extract last-token activations for each layer
+        mask = inputs["attention_mask"]
+        for l in layers:
+            last_acts = _extract_last_token_from_hidden(captures[l], mask)
+            all_activations[l].append(last_acts.cpu())
 
         # Free memory
-        del activations, hidden, inputs
+        del captures, inputs
         torch.cuda.empty_cache()
 
-    return torch.cat(all_activations, dim=0)  # [total, hidden_dim]
+    return {l: torch.cat(acts, dim=0) for l, acts in all_activations.items()}
+
+
+def get_last_token_activations(
+    model, tokenizer, texts: list[str], layer_idx: int, batch_size: int = 8
+) -> torch.Tensor:
+    """
+    Extract the last NON-PADDING token's activation at a single layer.
+    Convenience wrapper around extract_all_layers for single-layer use.
+    """
+    result = extract_all_layers(model, tokenizer, texts, [layer_idx], batch_size)
+    return result[layer_idx]
 
 
 # ============================================================================
-# PART 5: Steering Vector Computation
+# PART 6: Steering Vector Computation
 # ============================================================================
 
 def compute_steering_vector(
-    model,
-    tokenizer,
-    layer_idx: int,
+    model=None,
+    tokenizer=None,
+    layer_idx: int = None,
     batch_size: int = 8,
     use_chat_template: bool = True,
+    pos_acts: Optional[torch.Tensor] = None,
+    neg_acts: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
     """
     Compute the steering vector as mean(positive_acts - negative_acts).
     Normalizes to unit norm.
+
+    If pos_acts and neg_acts are provided, uses them directly (avoids
+    redundant extraction after a sweep). Otherwise extracts from scratch.
     """
-    pairs = create_contrastive_prompts()
+    if pos_acts is None or neg_acts is None:
+        if model is None or tokenizer is None or layer_idx is None:
+            raise ValueError(
+                "Must provide either (pos_acts, neg_acts) or "
+                "(model, tokenizer, layer_idx)"
+            )
+        pairs = create_contrastive_prompts()
+        pos_texts = [p for p, _ in pairs]
+        neg_texts = [n for _, n in pairs]
 
-    pos_texts = [p for p, _ in pairs]
-    neg_texts = [n for _, n in pairs]
+        if use_chat_template:
+            pos_texts = [format_for_model(tokenizer, t) for t in pos_texts]
+            neg_texts = [format_for_model(tokenizer, t) for t in neg_texts]
 
-    if use_chat_template:
-        pos_texts = [format_for_model(tokenizer, t) for t in pos_texts]
-        neg_texts = [format_for_model(tokenizer, t) for t in neg_texts]
+        print(f"  Extracting activations at layer {layer_idx} "
+              f"({len(pairs)} pairs, batch_size={batch_size})...")
 
-    print(f"  Extracting activations at layer {layer_idx} "
-          f"({len(pairs)} pairs, batch_size={batch_size})...")
-
-    pos_acts = get_last_token_activations(model, tokenizer, pos_texts, layer_idx, batch_size)
-    neg_acts = get_last_token_activations(model, tokenizer, neg_texts, layer_idx, batch_size)
+        pos_acts = get_last_token_activations(
+            model, tokenizer, pos_texts, layer_idx, batch_size
+        )
+        neg_acts = get_last_token_activations(
+            model, tokenizer, neg_texts, layer_idx, batch_size
+        )
 
     # Mean difference
     steering_vec = (pos_acts - neg_acts).mean(dim=0)
@@ -387,7 +429,7 @@ def compute_steering_vector(
 
 
 # ============================================================================
-# PART 6: Layer Sweep (find best layer automatically)
+# PART 7: Layer Sweep (single-pass, returns best-layer activations)
 # ============================================================================
 
 def sweep_layers(
@@ -401,7 +443,9 @@ def sweep_layers(
     Sweep across layers to find where the Golden Gate concept is most
     linearly separable. Uses cosine similarity as the metric.
 
-    Returns dict with best layer and per-layer scores.
+    Extracts activations at ALL candidate layers in a single forward pass,
+    then scores each layer. Returns best layer, per-layer scores, and
+    the pos/neg activations at the best layer for reuse.
     """
     n_layers = model.config.num_hidden_layers
 
@@ -416,28 +460,34 @@ def sweep_layers(
         if progress_callback:
             progress_callback(msg)
 
-    _report(f"Sweeping {len(layers_to_test)} layers to find optimal steering point...")
+    _report(f"Sweeping {len(layers_to_test)} layers (single-pass extraction)...")
 
     pairs = create_contrastive_prompts()
     pos_texts = [format_for_model(tokenizer, p) for p, _ in pairs]
     neg_texts = [format_for_model(tokenizer, n) for _, n in pairs]
 
+    # Extract all layers in a single forward pass per batch
+    _report("  Extracting positive activations...")
+    all_pos = extract_all_layers(model, tokenizer, pos_texts, layers_to_test, batch_size)
+    _report("  Extracting negative activations...")
+    all_neg = extract_all_layers(model, tokenizer, neg_texts, layers_to_test, batch_size)
+
+    # Score each layer
     results = {}
     best_layer = None
     best_score = -1
     total = len(layers_to_test)
 
     for i, layer_idx in enumerate(layers_to_test):
-        pos_acts = get_last_token_activations(model, tokenizer, pos_texts, layer_idx, batch_size)
-        neg_acts = get_last_token_activations(model, tokenizer, neg_texts, layer_idx, batch_size)
+        pos_acts = all_pos[layer_idx]
+        neg_acts = all_neg[layer_idx]
 
         # Compute mean difference vector
         diff = (pos_acts - neg_acts).mean(dim=0)
         diff_norm = diff / diff.norm()
 
         # Score: average cosine similarity of individual diffs with mean diff
-        # Higher = more consistent direction across pairs = better concept encoding
-        individual_diffs = pos_acts - neg_acts  # [n_pairs, hidden_dim]
+        individual_diffs = pos_acts - neg_acts
         cosines = torch.nn.functional.cosine_similarity(
             individual_diffs, diff_norm.unsqueeze(0), dim=1
         )
@@ -457,7 +507,6 @@ def sweep_layers(
         print(f"  Layer {layer_idx:2d}: consistency={score:.4f}, "
               f"magnitude={diff.norm():.2f}{marker}")
 
-        # Report progress
         pct = int((i + 1) / total * 100)
         _report(f"Layer sweep: {i + 1}/{total} ({pct}%) -- best=L{best_layer} ({best_score:.3f})")
 
@@ -467,21 +516,26 @@ def sweep_layers(
         "best_layer": best_layer,
         "best_score": best_score,
         "per_layer": results,
+        # Return best-layer activations so compute_steering_vector can reuse them
+        "best_layer_pos_acts": all_pos[best_layer],
+        "best_layer_neg_acts": all_neg[best_layer],
     }
 
 
 # ============================================================================
-# PART 7: Steering Hook (applied during generation)
+# PART 8: Steering Hook (generation-only, skips prompt processing)
 # ============================================================================
 
 class SteeringHook:
     """
     Hook that adds the steering vector to the residual stream during generation.
-    Applied to one or more transformer layers.
+    Skips the initial prompt-processing pass (where seq_len > 1 with KV cache)
+    so that the model's understanding of the input is not distorted.
     """
     def __init__(self, steering_vector: torch.Tensor, multiplier: float = 1.0):
         self.steering_vector = steering_vector
         self.multiplier = multiplier
+        self._seen_prompt = False
 
     def __call__(self, module, input, output):
         if self.multiplier == 0.0:
@@ -489,14 +543,23 @@ class SteeringHook:
 
         if isinstance(output, tuple):
             hidden = output[0]
-            # Add steering vector to ALL token positions
-            # (following CAA paper: steer at all positions after prompt)
-            sv = self.steering_vector.to(hidden.device, dtype=hidden.dtype)
-            modified = hidden + self.multiplier * sv
-            return (modified,) + output[1:]
         else:
-            sv = self.steering_vector.to(output.device, dtype=output.dtype)
-            return output + self.multiplier * sv
+            hidden = output
+
+        # Skip the initial prompt processing pass.
+        # With use_cache=True, the prompt pass has seq_len > 1,
+        # and subsequent generation passes have seq_len == 1.
+        if not self._seen_prompt:
+            if hidden.shape[1] > 1:
+                self._seen_prompt = True
+                return output
+
+        sv = self.steering_vector.to(hidden.device, dtype=hidden.dtype)
+        modified = hidden + self.multiplier * sv
+
+        if isinstance(output, tuple):
+            return (modified,) + output[1:]
+        return modified
 
 
 def generate_with_steering(
@@ -509,6 +572,7 @@ def generate_with_steering(
     max_new_tokens: int = 300,
     steering_layers: Optional[list[int]] = None,
     use_chat_template: bool = True,
+    seed: Optional[int] = 42,
 ) -> str:
     """
     Generate text with the steering vector applied at one or more layers.
@@ -524,6 +588,7 @@ def generate_with_steering(
         steering_layers: Optional list of layers to steer simultaneously.
                         If provided, multiplier is divided across layers.
         use_chat_template: Whether to format with chat template
+        seed: Random seed for reproducibility (None = random)
     """
     # Format the prompt
     if use_chat_template:
@@ -534,19 +599,22 @@ def generate_with_steering(
     # Determine which layers to steer
     if steering_layers is not None:
         layers = steering_layers
-        # Divide multiplier across layers (total effect stays the same)
         per_layer_mult = multiplier / len(layers)
     else:
         layers = [layer_idx]
         per_layer_mult = multiplier
 
     # Register hooks
+    transformer_layers = get_transformer_layers(model)
     handles = []
     for lidx in layers:
         hook = SteeringHook(steering_vector, per_layer_mult)
-        layer = model.model.layers[lidx]
-        handle = layer.register_forward_hook(hook)
+        handle = transformer_layers[lidx].register_forward_hook(hook)
         handles.append(handle)
+
+    # Set seed for reproducibility
+    if seed is not None:
+        torch.manual_seed(seed)
 
     # Generate
     inputs = tokenizer(formatted, return_tensors="pt").to(_get_device(model))
@@ -570,18 +638,15 @@ def generate_with_steering(
 
 
 # ============================================================================
-# PART 8: Diagnostics
+# PART 9: Diagnostics
 # ============================================================================
 
 def diagnose_steering_vector(
     model, tokenizer, steering_vector: torch.Tensor, layer_idx: int
 ):
-    """
-    Run diagnostic checks on the steering vector quality.
-    """
+    """Run diagnostic checks on the steering vector quality."""
     pairs = create_contrastive_prompts()
 
-    # Pick a few test pairs
     test_pairs = pairs[:10]
     pos_texts = [format_for_model(tokenizer, p) for p, _ in test_pairs]
     neg_texts = [format_for_model(tokenizer, n) for _, n in test_pairs]
@@ -590,8 +655,6 @@ def diagnose_steering_vector(
     neg_acts = get_last_token_activations(model, tokenizer, neg_texts, layer_idx, 8)
 
     sv = steering_vector.unsqueeze(0)
-
-    # Project onto steering direction
     pos_proj = torch.nn.functional.cosine_similarity(pos_acts, sv, dim=1)
     neg_proj = torch.nn.functional.cosine_similarity(neg_acts, sv, dim=1)
 
@@ -606,9 +669,6 @@ def diagnose_steering_vector(
     print(f"  Separation:    {(pos_proj.mean() - neg_proj.mean()):.4f} (higher = better)")
     print(f"\n  Per-pair projections:")
     for i, (pos, neg) in enumerate(zip(pos_proj, neg_proj)):
-        pair = test_pairs[i]
-        label_p = pair[0][:50]
-        label_n = pair[1][:50]
         print(f"    {i}: pos={pos:.3f}  neg={neg:.3f}  "
               f"gap={pos - neg:.3f}")
 
@@ -623,9 +683,7 @@ def run_full_diagnostics(
     model, tokenizer, steering_vector, best_layer, sweep_results,
     output_path="steering_diagnostics.json",
 ):
-    """
-    Run comprehensive diagnostics and export JSON for the visualizer.
-    """
+    """Run comprehensive diagnostics and export JSON for the visualizer."""
     print("\nRunning full diagnostics for visualizer...")
     pairs = create_contrastive_prompts()
     data = {
@@ -670,10 +728,9 @@ def run_full_diagnostics(
 
     # 3. PCA of activations for scatter plot
     print("  Computing PCA projection...")
-    all_acts = torch.cat([pos_acts, neg_acts], dim=0)  # [2*N, hidden_dim]
+    all_acts = torch.cat([pos_acts, neg_acts], dim=0)
     mean = all_acts.mean(dim=0, keepdim=True)
     centered = all_acts - mean
-    # Simple 2-component PCA via SVD
     U, S, V = torch.svd_lowrank(centered.float(), q=2)
     projected = (centered.float() @ V).numpy().tolist()
     n = len(pairs)
@@ -734,14 +791,10 @@ def run_full_diagnostics(
 
 
 # ============================================================================
-# PART 9: Main Execution
+# PART 10: Main Execution
 # ============================================================================
 
-LAYER_IDX = None  # Will be set by main()
-
 def main():
-    global LAYER_IDX
-
     config = SteeringConfig()
 
     # --- Load model ---
@@ -750,25 +803,56 @@ def main():
     print("=" * 70)
     model, tokenizer = load_model(config)
 
-    # --- Find best layer ---
-    n_layers = model.config.num_hidden_layers
-    sweep_results = sweep_layers(model, tokenizer, batch_size=config.batch_size)
-    best_layer = sweep_results["best_layer"]
-    LAYER_IDX = best_layer
+    # --- Check for cached vector ---
+    steering_vector = None
+    best_layer = None
+    sweep_results = None
 
-    # --- Compute steering vector at best layer ---
-    print(f"\nComputing steering vector at layer {best_layer}...")
-    steering_vector = compute_steering_vector(
-        model, tokenizer, best_layer, batch_size=config.batch_size
-    )
+    if os.path.exists(config.vector_cache_path):
+        try:
+            cached = torch.load(config.vector_cache_path, weights_only=False)
+            if cached.get("model") == config.model_name:
+                print(f"\nLoaded cached vector from {config.vector_cache_path}")
+                steering_vector = cached["vector"]
+                best_layer = cached["layer"]
+                sweep_results = cached.get("sweep_results", {})
+                print(f"  Layer: {best_layer}, dim: {steering_vector.shape[0]}")
+        except Exception as e:
+            print(f"  Cache load failed ({e}), recomputing...")
+
+    if steering_vector is None:
+        # --- Find best layer (single-pass extraction) ---
+        sweep_results = sweep_layers(model, tokenizer, batch_size=config.batch_size)
+        best_layer = sweep_results["best_layer"]
+
+        # --- Compute steering vector reusing sweep activations ---
+        print(f"\nComputing steering vector at layer {best_layer}...")
+        steering_vector = compute_steering_vector(
+            pos_acts=sweep_results["best_layer_pos_acts"],
+            neg_acts=sweep_results["best_layer_neg_acts"],
+        )
+
+        # --- Save to cache ---
+        # Remove large tensors from sweep_results before saving
+        save_sweep = {
+            k: v for k, v in sweep_results.items()
+            if k not in ("best_layer_pos_acts", "best_layer_neg_acts")
+        }
+        torch.save({
+            "vector": steering_vector,
+            "layer": best_layer,
+            "model": config.model_name,
+            "sweep_results": save_sweep,
+        }, config.vector_cache_path)
+        print(f"  Cached vector to: {config.vector_cache_path}")
 
     # --- Run diagnostics and export JSON for visualizer ---
+    if sweep_results is None:
+        sweep_results = {}
     diag_data = run_full_diagnostics(
         model, tokenizer, steering_vector, best_layer, sweep_results,
         output_path="steering_diagnostics.json",
     )
-    print("\nOpen steering_diagnostics.json in the visualizer to explore results.")
-    print("Or run: python -m http.server 8000  and open steering_visualizer.html")
 
     # --- Test generation ---
     test_prompts = [
@@ -796,10 +880,9 @@ def main():
                 model, tokenizer, prompt, steering_vector,
                 layer_idx=best_layer, multiplier=mult,
                 max_new_tokens=config.max_new_tokens,
+                seed=config.seed,
             )
             print(f"\n  [{labels[mult]}]")
-            # Wrap output for readability
-            import textwrap
             wrapped = textwrap.fill(output.strip(), width=70, initial_indent="    ",
                                    subsequent_indent="    ")
             print(wrapped)
@@ -809,23 +892,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-# ============================================================================
-# NEXT STEPS
-# ============================================================================
-#
-# Immediate improvements:
-#   1. Multi-layer steering: Pass steering_layers=[12, 14, 16] to
-#      generate_with_steering for broader effect
-#   2. Negative multipliers: Use multiplier=-1.0 to SUPPRESS Golden Gate
-#   3. Save/load vectors: torch.save(steering_vector, "gg_vector.pt")
-#
-# Research explorations:
-#   4. PCA visualization of pos vs neg activations at each layer
-#   5. Compare steering vectors from different layer sweeps
-#   6. Cosine similarity between steering vectors at adjacent layers
-#   7. Measure "Golden Gate-ness" with a linear probe classifier
-#   8. Try orthogonal steering vectors for multiple concepts
-#   9. Dynamic steering (ramp multiplier up/down during generation)
-#  10. Compare with SAE-based feature steering (requires training an SAE)

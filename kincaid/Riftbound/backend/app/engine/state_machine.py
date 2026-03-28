@@ -6,6 +6,7 @@ from .cleanup import kill_temporary_units, run_cleanup
 from .enums import Phase, ZoneType
 from .game_state import GameState, _draw_cards
 from .scoring import perform_burn_out, score_hold
+from .trigger_system import GameEvent, fire_event
 
 
 def advance_phase(gs: GameState) -> list[str]:
@@ -103,6 +104,11 @@ def _execute_awaken(gs: GameState) -> list[str]:
             bf.scored_this_turn_by = None
 
     logs.append("Awaken: all game objects readied")
+
+    # Fire turn-start triggers ("At the start of your turn, ...")
+    evt_logs = fire_event(gs, GameEvent.TURN_START, {"player_id": pid})
+    logs.extend(evt_logs)
+
     return logs
 
 
@@ -216,6 +222,10 @@ def _execute_end_of_turn(gs: GameState) -> list[str]:
     # Mark first turn as done
     if ps.is_first_turn:
         ps.is_first_turn = False
+
+    # Fire turn-end triggers ("At the end of your turn, ...")
+    evt_logs = fire_event(gs, GameEvent.TURN_END, {"player_id": pid})
+    logs.extend(evt_logs)
 
     logs.append("End of turn: all units healed, effects expired, rune pools emptied")
     return logs

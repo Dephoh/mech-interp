@@ -54,24 +54,32 @@ class Domain(str, Enum):
     BODY = "body"      # Orange [O]
     CHAOS = "chaos"    # Purple [P]
     ORDER = "order"    # Yellow [Y]
+    ANY = "any"        # Any domain [A]
 
 
 class Keyword(str, Enum):
     ACCELERATE = "accelerate"
     ACTION = "action"
+    AMBUSH = "ambush"
     ASSAULT = "assault"
+    BACKLINE = "backline"
     DEATHKNELL = "deathknell"
     DEFLECT = "deflect"
     EQUIP = "equip"
     GANKING = "ganking"
     HIDDEN = "hidden"
+    HUNT = "hunt"
     LEGION = "legion"
+    LEVEL = "level"
+    MIGHTY = "mighty"
+    PREDICT = "predict"
     QUICK_DRAW = "quick_draw"
     REACTION = "reaction"
     REPEAT = "repeat"
     SHIELD = "shield"
     TANK = "tank"
     TEMPORARY = "temporary"
+    UNIQUE = "unique"
     VISION = "vision"
     WEAPONMASTER = "weaponmaster"
 

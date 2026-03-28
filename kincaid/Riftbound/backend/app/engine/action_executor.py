@@ -20,6 +20,7 @@ from .enums import (
 from .game_state import GameState, _draw_cards
 from .keywords import apply_accelerate, get_accelerate_cost
 from .state_machine import advance_phase, start_game
+from .trigger_system import GameEvent, fire_event
 
 
 def execute_action(
@@ -212,6 +213,13 @@ def _exec_move_unit(gs: GameState, player_id: str, payload: dict) -> list[str]:
             logs.append(f"{unit.name} contests {bf.controller_id}'s battlefield")
 
         logs.append(f"{unit.name} moves to battlefield")
+        # Fire move-to-battlefield trigger (covers on_move + on_move_to_bf)
+        evt_logs = fire_event(gs, GameEvent.UNIT_MOVED_TO_BF, {
+            "card_id": instance_id,
+            "player_id": player_id,
+            "battlefield_id": dest_id,
+        })
+        logs.extend(evt_logs)
 
     elif dest_zone == "base":
         gs.base_units.setdefault(player_id, []).append(instance_id)
@@ -219,6 +227,12 @@ def _exec_move_unit(gs: GameState, player_id: str, payload: dict) -> list[str]:
         unit.location_id = player_id
         unit.exhausted = True
         logs.append(f"{unit.name} retreats to base")
+        # Fire move trigger (on_move only)
+        evt_logs = fire_event(gs, GameEvent.UNIT_MOVED, {
+            "card_id": instance_id,
+            "player_id": player_id,
+        })
+        logs.extend(evt_logs)
 
     return logs
 
@@ -264,6 +278,10 @@ def _exec_recycle_rune(gs: GameState, player_id: str, payload: dict) -> list[str
             gs.players[player_id].rune_pool.add_power(domain, 1)
             _recycle_rune(rune, gs)
             logs.append(f"{rune.name} recycled: +1 {domain.value} Power")
+
+    # Fire recycle rune trigger ("When you recycle a rune, ...")
+    evt_logs = fire_event(gs, GameEvent.RECYCLE_RUNE, {"player_id": player_id})
+    logs.extend(evt_logs)
 
     return logs
 

@@ -28,7 +28,7 @@ from app.engine.game_state import (
 )
 
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "cards")
+DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 
 
 def load_card_db():

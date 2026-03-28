@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .enums import ControlStatus, ZoneType
 from .game_state import GameState, _draw_cards
+from .trigger_system import GameEvent, fire_event
 
 
 def check_win(gs: GameState) -> str | None:
@@ -35,6 +36,12 @@ def score_hold(gs: GameState, player_id: str) -> list[str]:
                 bf.scored_this_turn_by = player_id
                 logs.append(f"{ps.display_name} scores 1 point from Holding {_bf_name(gs, bf_id)}")
                 gs.log.add(f"Hold: {ps.display_name} +1 (total: {ps.score})")
+                # Fire hold triggers for units at this battlefield
+                evt_logs = fire_event(gs, GameEvent.HOLD, {
+                    "player_id": player_id,
+                    "battlefield_id": bf_id,
+                })
+                logs.extend(evt_logs)
             else:
                 logs.append(f"{ps.display_name} cannot score final point from Hold right now")
 
@@ -59,6 +66,12 @@ def score_conquer(gs: GameState, player_id: str, battlefield_id: str) -> list[st
         bf.scored_this_turn_by = player_id
         logs.append(f"{ps.display_name} scores 1 point from Conquering {_bf_name(gs, battlefield_id)}")
         gs.log.add(f"Conquer: {ps.display_name} +1 (total: {ps.score})")
+        # Fire conquer triggers for units at this battlefield
+        evt_logs = fire_event(gs, GameEvent.CONQUER, {
+            "player_id": player_id,
+            "battlefield_id": battlefield_id,
+        })
+        logs.extend(evt_logs)
     else:
         # At 7 points but haven't scored all battlefields — draw a card instead
         drawn = _draw_cards(gs, player_id, 1)

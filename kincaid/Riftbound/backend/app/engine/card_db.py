@@ -15,16 +15,36 @@ class CardDB:
 
     @classmethod
     def load_all(cls, data_dir: str | Path) -> None:
+        """Load card definitions from a directory of JSON files or a single file.
+
+        Supports both the old format (directory of per-type JSONs) and the new
+        format (single card_definitions.json array).
+        """
         data_dir = Path(data_dir)
         cls._registry.clear()
-        for json_file in sorted(data_dir.glob("*.json")):
-            with open(json_file, encoding="utf-8") as f:
-                cards = json.load(f)
-            if isinstance(cards, dict):
-                cards = [cards]
-            for raw in cards:
-                defn = CardDefinition.from_dict(raw)
-                cls._registry[defn.card_id] = defn
+
+        if data_dir.is_file():
+            # Single file mode (new pipeline output)
+            cls._load_file(data_dir)
+        else:
+            # Directory mode (legacy per-type files or single file in dir)
+            single_file = data_dir / "card_definitions.json"
+            if single_file.exists():
+                cls._load_file(single_file)
+            else:
+                for json_file in sorted(data_dir.glob("*.json")):
+                    cls._load_file(json_file)
+
+    @classmethod
+    def _load_file(cls, path: Path) -> None:
+        """Load card definitions from a single JSON file."""
+        with open(path, encoding="utf-8") as f:
+            cards = json.load(f)
+        if isinstance(cards, dict):
+            cards = [cards]
+        for raw in cards:
+            defn = CardDefinition.from_dict(raw)
+            cls._registry[defn.card_id] = defn
 
     @classmethod
     def get(cls, card_id: str) -> CardDefinition:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .enums import CardType, CombatRole, ControlStatus
+from .enums import CardType, CombatRole, ControlStatus, ZoneType
 from .game_state import (
     BattlefieldState,
     CombatState,
@@ -11,6 +11,7 @@ from .game_state import (
 )
 from .keywords import check_lethal_before_next, check_tank_ordering
 from .scoring import score_conquer
+from .trigger_system import GameEvent, fire_event
 
 
 def open_showdown(
@@ -133,6 +134,24 @@ def start_combat(gs: GameState, battlefield_id: str) -> list[str]:
 
     bf.combat_staged = False
     logs = [f"Combat begins at {battlefield_id}: {attacker_id} attacks, {defender_id} defends"]
+
+    # Fire attack/defend triggers for each unit (rule: triggers when designation gained)
+    for uid in bf.units:
+        unit = gs.instances.get(uid)
+        if not unit:
+            continue
+        if unit.combat_role == CombatRole.ATTACKER:
+            evt_logs = fire_event(gs, GameEvent.ATTACK_STARTED, {
+                "card_id": uid, "player_id": attacker_id,
+                "battlefield_id": battlefield_id,
+            })
+            logs.extend(evt_logs)
+        elif unit.combat_role == CombatRole.DEFENDER:
+            evt_logs = fire_event(gs, GameEvent.DEFEND_STARTED, {
+                "card_id": uid, "player_id": defender_id,
+                "battlefield_id": battlefield_id,
+            })
+            logs.extend(evt_logs)
 
     # Open the showdown sub-phase
     logs.extend(open_showdown(gs, battlefield_id, attacker_id, is_combat=True))
@@ -358,6 +377,12 @@ def resolve_combat(gs: GameState) -> list[str]:
         bf.contested_by = None
         logs.append(f"{winner_id} takes control of the battlefield")
         logs.extend(score_conquer(gs, winner_id, combat.battlefield_id))
+        # Fire combat win trigger
+        evt_logs = fire_event(gs, GameEvent.COMBAT_WIN, {
+            "player_id": winner_id,
+            "battlefield_id": combat.battlefield_id,
+        })
+        logs.extend(evt_logs)
     elif len(remaining_players) == 0:
         bf.control_status = ControlStatus.UNCONTROLLED
         bf.controller_id = None

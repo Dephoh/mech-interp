@@ -48,7 +48,7 @@ room_manager: RoomManager | None = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global room_manager
-    data_dir = os.path.join(os.path.dirname(__file__), "..", "data", "cards")
+    data_dir = os.path.join(os.path.dirname(__file__), "..", "data")
     data_dir = os.path.abspath(data_dir)
     CardDB.load_all(data_dir)
     logger.info("Card DB loaded: %d card definitions", len(CardDB.all_cards()))
@@ -256,6 +256,15 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
 # ---------------------------------------------------------------------------
 # Serve built frontend (must be last — catches everything not matched above)
 # ---------------------------------------------------------------------------
+
+CARD_IMAGES_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "cards", "images")
+)
+logger.info(f"CHECKING CARD_IMAGES_DIR: {CARD_IMAGES_DIR} - Exists? {os.path.isdir(CARD_IMAGES_DIR)}")
+if os.path.isdir(CARD_IMAGES_DIR):
+    app.mount("/card-images", StaticFiles(directory=CARD_IMAGES_DIR), name="card-images")
+else:
+    logger.error("CARD_IMAGES_DIR NOT FOUND!")
 
 if os.path.isdir(FRONTEND_DIST):
     # Serve static assets (JS/CSS/images)

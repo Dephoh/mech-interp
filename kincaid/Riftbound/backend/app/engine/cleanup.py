@@ -5,8 +5,9 @@ from __future__ import annotations
 from .combat import open_showdown, start_combat
 from .enums import CardType, CombatRole, ControlStatus, Phase, ZoneType
 from .game_state import GameState
-from .keywords import process_deathknell, should_die_temporary
+from .keywords import should_die_temporary
 from .scoring import check_win
+from .trigger_system import GameEvent, fire_event
 
 
 def run_cleanup(gs: GameState) -> list[str]:
@@ -109,18 +110,28 @@ def _kill_dead_units(gs: GameState, logs: list[str]) -> bool:
         ):
             units_to_kill.append(iid)
 
+    # Phase 1: Fire death events for all dying units while still on board.
+    # This lets trigger_system find on_death (self), on_friendly_death (allies),
+    # and on_enemy_death (opponents) triggers and push them onto the chain.
     for iid in units_to_kill:
         inst = gs.instances[iid]
         killed_any = True
+        ctx = {"card_id": iid, "player_id": inst.controller_id}
+        # UNIT_DIED → on_death (self deathknell)
+        evt_logs = fire_event(gs, GameEvent.UNIT_DIED, ctx)
+        logs.extend(evt_logs)
+        # FRIENDLY_DEATH → on_friendly_death (allies observe)
+        evt_logs = fire_event(gs, GameEvent.FRIENDLY_DEATH, ctx)
+        logs.extend(evt_logs)
+        # ENEMY_DEATH → on_enemy_death (opponents observe)
+        evt_logs = fire_event(gs, GameEvent.ENEMY_DEATH, ctx)
+        logs.extend(evt_logs)
 
-        # Trigger Deathknell before moving to trash
-        dk_logs = process_deathknell(inst, gs)
-        logs.extend(dk_logs)
-
-        # Remove from current zone
+    # Phase 2: Remove dead units from board and move to trash.
+    for iid in units_to_kill:
+        inst = gs.instances[iid]
         _remove_from_board(gs, inst)
 
-        # Move to owner's trash
         inst.zone = ZoneType.TRASH
         inst.location_id = None
         inst.damage = 0

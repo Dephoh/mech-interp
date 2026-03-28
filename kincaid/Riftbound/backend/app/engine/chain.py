@@ -17,9 +17,11 @@ import logging
 
 from .card_types import CardInstance
 from .effects import resolve_effect
+from .effect_resolver import resolve_effect_ir
 from .enums import CardType, ZoneType
 from .game_state import ChainItem, GameState
 from .keywords import apply_accelerate
+from .trigger_system import GameEvent, fire_event
 
 logger = logging.getLogger("riftbound.chain")
 
@@ -60,7 +62,16 @@ def push_card_to_chain(
         # Rule 356.3: Spells linger on chain. Opponents can play Reactions.
         gs.chain.push(item)
         gs.log.add(f"{card.name} placed on the chain by {controller_id}")
-        
+
+        # Fire SPELL_PLAYED event so board objects with "When you play a spell"
+        # triggers can react. Their triggers go on chain on top of the spell.
+        evt_logs = fire_event(gs, GameEvent.SPELL_PLAYED, {
+            "card_id": card.instance_id,
+            "player_id": controller_id,
+        })
+        for msg in evt_logs:
+            gs.log.add(msg)
+
         # Rule 334: After a card is finalized, controller gets priority first.
         # They may want to play additional Reactions on their own spell.
         gs.active_player_id = controller_id
@@ -181,7 +192,12 @@ def _resolve_spell(gs: GameState, card: CardInstance, targets: list[str]) -> lis
     logs: list[str] = []
 
     for ability in card.definition.abilities:
-        if ability.effect_script:
+        if ability.effect_ir:
+            # New composable effect system
+            result = resolve_effect_ir(ability.effect_ir, card, gs, targets)
+            logs.extend(result)
+        elif ability.effect_script:
+            # Legacy named-function fallback
             result = resolve_effect(ability.effect_script, card, gs, targets)
             logs.extend(result)
 
@@ -222,18 +238,22 @@ def _finalize_permanent(gs: GameState, card: CardInstance, controller_id: str) -
         gs.base_gear.setdefault(controller_id, []).append(card.instance_id)
         logs.append(f"{card.name} enters the base (ready)")
 
-    # Rule 376.4.a.2: Play effects go on chain as Pending Items
-    for ability in card.definition.abilities:
-        if ability.trigger_condition == "on_play" and ability.effect_script:
-            # Push play-effect trigger onto chain
-            play_item = ChainItem.create(
-                controller_id=controller_id,
-                source_instance_id=card.instance_id,
-                ability_id=ability.ability_id,
-            )
-            gs.chain.push(play_item)
-            logs.append(f"{card.name} play effect triggers")
-            logger.info("[CHAIN] Play effect of %s goes on chain", card.name)
+    # Rule 376.4.a.2: Play effects and triggered abilities go on chain.
+    # fire_event scans ALL board objects — handles both the card's own on_play
+    # trigger and observer cards' "When you play a unit/gear" triggers.
+    if card.card_type == CardType.UNIT:
+        # UNIT_PLAYED covers on_play (self) + on_unit_played (observers)
+        evt_logs = fire_event(gs, GameEvent.UNIT_PLAYED, {
+            "card_id": card.instance_id,
+            "player_id": controller_id,
+        })
+    else:
+        # UNIT_ENTERED covers on_play (self) only — gear/other permanents
+        evt_logs = fire_event(gs, GameEvent.UNIT_ENTERED, {
+            "card_id": card.instance_id,
+            "player_id": controller_id,
+        })
+    logs.extend(evt_logs)
 
     return logs
 
@@ -246,6 +266,9 @@ def _resolve_ability(
 ) -> list[str]:
     """Execute a triggered or activated ability."""
     for ability in source.definition.abilities:
-        if ability.ability_id == ability_id and ability.effect_script:
-            return resolve_effect(ability.effect_script, source, gs, targets)
+        if ability.ability_id == ability_id:
+            if ability.effect_ir:
+                return resolve_effect_ir(ability.effect_ir, source, gs, targets)
+            elif ability.effect_script:
+                return resolve_effect(ability.effect_script, source, gs, targets)
     return [f"Ability {ability_id} not found on {source.name}"]

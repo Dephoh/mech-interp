@@ -25,6 +25,7 @@ from .enums import (
 )
 from .game_state import GameState
 from .keywords import can_play_in_state
+from .target_system import count_available_targets, validate_target
 
 logger = logging.getLogger("riftbound.validator")
 
@@ -201,10 +202,16 @@ def _validate_spell_targets(
     """
     for ability in card.definition.abilities:
         if ability.targets_required > 0:
+            # Build target spec from IR or legacy target_type
+            spec = _build_target_spec(ability, player_id)
+
             # Check targets were provided
             if len(targets) < ability.targets_required:
                 # Check if valid targets even exist
-                available = _count_available_targets(gs, ability.target_type, player_id)
+                if spec:
+                    available = count_available_targets(gs, spec, controller_id=player_id)
+                else:
+                    available = _count_available_targets(gs, ability.target_type, player_id)
                 if available == 0:
                     return ValidationResult(
                         False,
@@ -218,66 +225,102 @@ def _validate_spell_targets(
 
             # Validate each target is legal
             for tid in targets[:ability.targets_required]:
-                if not _is_valid_target(gs, tid, ability.target_type, player_id):
-                    return ValidationResult(
-                        False,
-                        f"Invalid target for {card.name}"
-                    )
+                if spec:
+                    if not validate_target(gs, tid, spec, controller_id=player_id):
+                        return ValidationResult(False, f"Invalid target for {card.name}")
+                else:
+                    if not _is_valid_target(gs, tid, ability.target_type, player_id):
+                        return ValidationResult(False, f"Invalid target for {card.name}")
     return ValidationResult(True)
 
 
+def _build_target_spec(ability, player_id: str) -> dict | None:
+    """Build a TargetSpec dict from an ability's effect_ir or target_type string.
+
+    Prefers the structured target in effect_ir; falls back to converting
+    the legacy target_type string.
+    """
+    # Prefer target spec from effect_ir
+    if ability.effect_ir:
+        ir = ability.effect_ir
+        # Walk through sequence to find first node with a target
+        if ir.get("type") == "sequence":
+            for step in ir.get("steps", []):
+                if "target" in step:
+                    return step["target"]
+        elif "target" in ir:
+            return ir["target"]
+
+    # Fall back to legacy target_type string → TargetSpec dict
+    target_type = ability.target_type
+    if not target_type:
+        return None
+
+    _LEGACY_MAP = {
+        "unit": {"obj_type": "unit", "scope": "any"},
+        "enemy_unit": {"obj_type": "unit", "scope": "enemy"},
+        "friendly_unit": {"obj_type": "unit", "scope": "friendly"},
+        "unit_at_battlefield": {"obj_type": "unit", "scope": "any", "zone": "battlefield"},
+        "spell_on_chain": {"obj_type": "spell", "zone": "chain"},
+        "gear": {"obj_type": "gear", "scope": "any"},
+        "friendly_gear": {"obj_type": "gear", "scope": "friendly"},
+        "enemy_gear": {"obj_type": "gear", "scope": "enemy"},
+    }
+    spec = _LEGACY_MAP.get(target_type)
+    if spec:
+        return dict(spec)  # copy
+
+    # Unknown target type — allow validation to pass
+    return None
+
+
 def _count_available_targets(gs: GameState, target_type: str, player_id: str) -> int:
-    """Count how many valid targets exist for a given target type."""
-    count = 0
-    if target_type in ("unit", "unit_at_battlefield"):
-        for inst in gs.instances.values():
-            if inst.card_type == CardType.UNIT and inst.zone in (ZoneType.BASE, ZoneType.BATTLEFIELD):
-                if target_type == "unit_at_battlefield" and inst.zone != ZoneType.BATTLEFIELD:
-                    continue
-                count += 1
-    elif target_type == "friendly_unit":
-        for inst in gs.instances.values():
-            if (inst.card_type == CardType.UNIT
-                    and inst.controller_id == player_id
-                    and inst.zone in (ZoneType.BASE, ZoneType.BATTLEFIELD)):
-                count += 1
-    elif target_type == "spell_on_chain":
-        for item in gs.chain.stack:
-            if item.card_instance_id:
-                c = gs.get_instance(item.card_instance_id)
-                if c and c.card_type == CardType.SPELL:
-                    count += 1
-    elif target_type in ("unit_and_friendly_unit", "friendly_unit_and_battlefield"):
-        # For multi-target spells, just check at least some targets exist
-        count = 1  # simplified — let individual target validation catch issues
-    return count
+    """Count how many valid targets exist for a given target type.
+
+    Delegates to target_system.count_available_targets when possible.
+    """
+    # Build a spec from the target_type string
+    _LEGACY_MAP = {
+        "unit": {"obj_type": "unit", "scope": "any"},
+        "enemy_unit": {"obj_type": "unit", "scope": "enemy"},
+        "friendly_unit": {"obj_type": "unit", "scope": "friendly"},
+        "unit_at_battlefield": {"obj_type": "unit", "scope": "any", "zone": "battlefield"},
+        "spell_on_chain": {"obj_type": "spell", "zone": "chain"},
+        "gear": {"obj_type": "gear", "scope": "any"},
+        "friendly_gear": {"obj_type": "gear", "scope": "friendly"},
+    }
+    spec = _LEGACY_MAP.get(target_type)
+    if spec:
+        return count_available_targets(gs, spec, controller_id=player_id)
+
+    # Multi-target or unknown — optimistic fallback
+    return 1
 
 
 def _is_valid_target(gs: GameState, target_id: str, target_type: str, player_id: str) -> bool:
-    """Check if a specific target is valid for the given target type."""
-    target = gs.get_instance(target_id)
-    if not target:
-        # Might be a battlefield_id
-        if target_type in ("friendly_unit_and_battlefield",) and target_id in gs.battlefields:
-            return True
-        return False
+    """Check if a specific target is valid for the given target type.
 
-    if target_type == "unit":
-        return target.card_type == CardType.UNIT and target.zone in (ZoneType.BASE, ZoneType.BATTLEFIELD)
-    elif target_type == "unit_at_battlefield":
-        return target.card_type == CardType.UNIT and target.zone == ZoneType.BATTLEFIELD
-    elif target_type == "friendly_unit":
-        return (target.card_type == CardType.UNIT
-                and target.controller_id == player_id
-                and target.zone in (ZoneType.BASE, ZoneType.BATTLEFIELD))
-    elif target_type == "spell_on_chain":
-        return (target.card_type == CardType.SPELL
-                and target.zone == ZoneType.CHAIN
-                and target.controller_id != player_id)
-    elif target_type in ("unit_and_friendly_unit", "friendly_unit_and_battlefield"):
-        # Multi-type validation: just check it's a valid game object
-        return target.zone in (ZoneType.BASE, ZoneType.BATTLEFIELD)
-    return True  # unknown type — allow
+    Delegates to target_system.validate_target when possible.
+    """
+    _LEGACY_MAP = {
+        "unit": {"obj_type": "unit", "scope": "any"},
+        "enemy_unit": {"obj_type": "unit", "scope": "enemy"},
+        "friendly_unit": {"obj_type": "unit", "scope": "friendly"},
+        "unit_at_battlefield": {"obj_type": "unit", "scope": "any", "zone": "battlefield"},
+        "spell_on_chain": {"obj_type": "spell", "zone": "chain"},
+        "gear": {"obj_type": "gear", "scope": "any"},
+        "friendly_gear": {"obj_type": "gear", "scope": "friendly"},
+    }
+    spec = _LEGACY_MAP.get(target_type)
+    if spec:
+        return validate_target(gs, target_id, spec, controller_id=player_id)
+
+    # Battlefield IDs for multi-target abilities
+    if target_id in gs.battlefields:
+        return True
+
+    # Unknown type — allow
+    return True
 
 
 def _validate_move_unit(gs: GameState, player_id: str, payload: dict) -> ValidationResult:

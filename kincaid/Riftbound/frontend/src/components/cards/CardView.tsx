@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { CardView as CardViewType } from "../../ws/messageTypes";
 import { useUIStore } from "../../store/uiStore";
 
@@ -16,9 +17,15 @@ const DOMAIN_COLORS: Record<string, string> = {
   order: "#f9a825",
 };
 
+function cardImageUrl(cardId: string | undefined): string | null {
+  if (!cardId) return null;
+  return `/card-images/${cardId}.png`;
+}
+
 export function CardViewComponent({ card, onClick, compact }: Props) {
   const selectCard = useUIStore((s) => s.selectCard);
   const selectedCardId = useUIStore((s) => s.selectedCardId);
+  const [imgError, setImgError] = useState(false);
 
   if (card.facedown) {
     return (
@@ -31,6 +38,7 @@ export function CardViewComponent({ card, onClick, compact }: Props) {
   const domain = card.domains?.[0];
   const borderColor = domain ? DOMAIN_COLORS[domain] ?? "#666" : "#666";
   const isSelected = selectedCardId === card.instance_id;
+  const imgSrc = cardImageUrl(card.card_id);
 
   function handleClick() {
     selectCard(isSelected ? null : card.instance_id);
@@ -46,59 +54,34 @@ export function CardViewComponent({ card, onClick, compact }: Props) {
     e.dataTransfer.effectAllowed = "move";
   }
 
-  if (compact) {
-    return (
-      <div
-        className={`card card--compact ${isSelected ? "card--selected" : ""} ${card.exhausted ? "card--exhausted" : ""}`}
-        style={{ borderColor }}
-        onClick={handleClick}
-        draggable
-        onDragStart={handleDragStart}
-        title={card.text ?? ""}
-      >
-        <span className="card__name">{card.name}</span>
-        {card.card_type === "unit" && (
-          <span className="card__might">
-            {card.damage ? `${card.effective_might! - card.damage}/${card.effective_might}` : card.effective_might}
-          </span>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div
-      className={`card ${isSelected ? "card--selected" : ""} ${card.exhausted ? "card--exhausted" : ""}`}
+      className={`card ${compact ? "card--compact" : ""} ${isSelected ? "card--selected" : ""} ${card.exhausted ? "card--exhausted" : ""}`}
       style={{ borderColor }}
       onClick={handleClick}
       draggable
       onDragStart={handleDragStart}
     >
-      <div className="card__header">
-        <span className="card__name">{card.name}</span>
-        {card.cost_energy != null && (
-          <span className="card__cost">{card.cost_energy}E</span>
-        )}
-      </div>
-      <div className="card__type">{card.card_type}</div>
-      {card.card_type === "unit" && (
-        <div className="card__stats">
-          <span>Might: {card.effective_might}</span>
-          {(card.damage ?? 0) > 0 && <span className="card__damage"> DMG: {card.damage}</span>}
-          {card.stunned && <span className="card__stunned"> STUNNED</span>}
+      {imgSrc && !imgError ? (
+        <img
+          className={`card__art ${compact ? "card__art--compact" : ""}`}
+          src={imgSrc}
+          alt={card.name ?? ""}
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <div className={`card__art-missing ${compact ? "card__art-missing--compact" : ""}`} style={{ height: '100%', marginBottom: 0 }}>
+          <span>NO ART</span>
+          <span className="card__art-missing-id">{card.card_id ?? "?"}</span>
+          {!compact && (
+            <div className="card__stats" style={{marginTop: 8, textAlign: 'center'}}>
+              <div>{card.name}</div>
+              {card.cost_energy != null && <div>{card.cost_energy}E</div>}
+              {card.card_type === "unit" && <div>{card.effective_might} Might</div>}
+            </div>
+          )}
         </div>
       )}
-      {card.keywords && card.keywords.length > 0 && (
-        <div className="card__keywords">
-          {card.keywords.map((k) => (
-            <span key={k.keyword} className="keyword-badge">
-              {k.keyword}
-              {k.value > 0 ? ` [${k.value}]` : ""}
-            </span>
-          ))}
-        </div>
-      )}
-      {card.text && <div className="card__text">{card.text}</div>}
     </div>
   );
 }

@@ -21,7 +21,26 @@
       "Bash(npm install:*)",
       "Bash(npx tsc:*)",
       "Bash(npx vite:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(find C:UsersKincaidDocumentsGitHubmech-interpkincaidRiftboundbackendappengine -name auto_player.py -o -name *ai*)",
+      "Bash(find C:/Users/Kincaid/Documents/GitHub/mech-interp/kincaid/Riftbound -name *auto* -o -name *ai* -o -name *bot*)",
+      "Bash(grep -r auto C:/Users/Kincaid/Documents/GitHub/mech-interp/kincaid/Riftbound/backend --include=*.py)",
+      "Bash(grep -E \"\\\\.\\(sh|bat|json|toml|txt|py\\)$\")",
+      "Bash(pip list:*)",
+      "Bash(npm --version)",
+      "Bash(npm run:*)",
+      "Bash(chmod:*)",
+      "Bash(find /c/Users/Kincaid/Documents/GitHub/mech-interp/kincaid/Riftbound -type f -name *.png -o -type f -name *.jpg -o -type f -name *.svg)",
+      "Bash(find /c/Users/Kincaid/Documents/GitHub/mech-interp/kincaid/Riftbound -type f \\\\\\(-name *.png -o -name *.jpg -o -name *.svg \\\\\\))",
+      "Bash(grep -o \".{0,100}card-images.{0,100}\" \"C:\\\\Users\\\\Kincaid\\\\Documents\\\\GitHub\\\\mech-interp\\\\kincaid\\\\Riftbound\\\\frontend\\\\dist\\\\assets\\\\index-CuYpRAEF.js\")",
+      "Bash(find C:UsersKincaidDocumentsGitHubmech-interpkincaidRiftboundfrontendsrc -name *messageTypes* -o -name *Types*)",
+      "Bash(/c/Python311/python:*)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -o card-images C:/Users/Kincaid/Documents/GitHub/mech-interp/kincaid/Riftbound/frontend/dist/assets/*.js)",
+      "Bash(grep -o card__art C:/Users/Kincaid/Documents/GitHub/mech-interp/kincaid/Riftbound/frontend/dist/assets/*.js)",
+      "Bash(grep -o 'NO ART' C:/Users/Kincaid/Documents/GitHub/mech-interp/kincaid/Riftbound/frontend/dist/assets/*.js)",
+      "Bash(ls:*)",
+      "Bash(grep:*)"
     ]
   }
 }

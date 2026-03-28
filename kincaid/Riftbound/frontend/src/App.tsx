@@ -6,34 +6,45 @@ import { useGameStore } from "./store/gameStore";
 import type { ClientMessage, ServerMessage } from "./ws/messageTypes";
 import { useWebSocket } from "./ws/useWebSocket";
 
-// Starter deck using actual card IDs from the database
+// Starter deck using real card IDs from card_definitions.json
+// Mix of domains so rune power is useful. All units/spells have effect_ir.
 function makeStarterDeck() {
   return {
-    legend_id: "legend_jinx",
-    champion_id: "unit_jinx_rebel",
+    legend_id: "unl-230-star-219",       // Bashful Bloom
+    champion_id: "ogn-097-298",          // Blastcone Fae (2E 2M, cheap unit as placeholder)
     main_deck: [
-      ...Array(4).fill("unit_hextech_striker"),
-      ...Array(4).fill("unit_demacian_guard"),
-      ...Array(4).fill("unit_mystic_sage"),
-      ...Array(4).fill("unit_noxian_recruit"),
-      ...Array(4).fill("unit_yordle_scout"),
-      ...Array(4).fill("unit_stalwart_poro"),
-      ...Array(3).fill("spell_arcane_bolt"),
-      ...Array(3).fill("spell_quick_strike"),
-      ...Array(3).fill("spell_healing_light"),
-      ...Array(3).fill("spell_power_surge"),
-      ...Array(2).fill("gear_hextech_core"),
-      ...Array(2).fill("gear_scouts_ward"),
+      // Units (24) — spread across domains
+      ...Array(3).fill("ogn-097-298"),   // Blastcone Fae        2E 2M mind
+      ...Array(3).fill("sfd-091-221"),   // Buhru Captain         3E 3M body
+      ...Array(3).fill("sfd-061-221"),   // Aspiring Engineer     3E 3M mind
+      ...Array(3).fill("ogn-056-298"),   // Adaptatron            4E 3M calm
+      ...Array(3).fill("ogs-010-024"),   // Annie, Stubborn       4E 3M chaos
+      ...Array(3).fill("unl-121-219"),   // Bewitching Spirit     3E 2M chaos
+      ...Array(3).fill("sfd-177a-221"),  // Azir, Sovereign       4E 4M order
+      ...Array(3).fill("unl-132-219"),   // Angler Beast          5E 5M chaos
+      // Spells (12) — all have effect_ir
+      ...Array(3).fill("sfd-011-221"),   // Angle Shot            2E fury  (deal damage)
+      ...Array(3).fill("ogn-127-298"),   // Cannon Barrage        2E body  (deal damage)
+      ...Array(3).fill("sfd-001-221"),   // Against the Odds      2E fury  (give might)
+      ...Array(3).fill("sfd-162-221"),   // Blood Money           2E order
+      // Gear (4)
+      ...Array(2).fill("sfd-169-221"),   // Altar of Memories     2E
+      ...Array(2).fill("ogn-124-298"),   // Arena Bar             3E
     ],
     rune_deck: [
-      ...Array(2).fill("rune_fury"),
-      ...Array(2).fill("rune_calm"),
-      ...Array(2).fill("rune_mind"),
-      ...Array(2).fill("rune_body"),
-      ...Array(2).fill("rune_chaos"),
-      ...Array(2).fill("rune_order"),
+      // 2 of each domain = 12 runes
+      ...Array(2).fill("ogn-007a-298"),  // Fury Rune
+      ...Array(2).fill("ogn-042a-298"),  // Calm Rune
+      ...Array(2).fill("ogn-089a-298"),  // Mind Rune
+      ...Array(2).fill("ogn-126a-298"),  // Body Rune
+      ...Array(2).fill("ogn-166a-298"),  // Chaos Rune
+      ...Array(2).fill("ogn-214a-298"),  // Order Rune
     ],
-    battlefields: ["bf_summoner_rift", "bf_howling_abyss", "bf_piltover"],
+    battlefields: [
+      "unl-205-219",   // Abandoned Hall
+      "unl-206-219",   // Altar of Blood
+      "ogn-275-298",   // Altar to Unity
+    ],
   };
 }
 

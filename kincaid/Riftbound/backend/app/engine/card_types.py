@@ -60,6 +60,7 @@ class AbilityDefinition:
     trigger_condition: str | None = None  # e.g. "on_play", "on_conquer", "on_death"
     cost: CostDefinition | None = None
     effect_script: str | None = None  # registered function name in effects.py
+    effect_ir: dict | None = None     # composable effect IR tree (see effect_ir.py)
     timing: str = "default"  # "default", "action", "reaction"
     text: str = ""
     # Target validation (rule 352.7): how many targets must be chosen
@@ -75,6 +76,7 @@ class AbilityDefinition:
             trigger_condition=d.get("trigger_condition"),
             cost=cost,
             effect_script=d.get("effect_script"),
+            effect_ir=d.get("effect_ir"),
             timing=d.get("timing", "default"),
             text=d.get("text", ""),
             targets_required=d.get("targets_required", 0),

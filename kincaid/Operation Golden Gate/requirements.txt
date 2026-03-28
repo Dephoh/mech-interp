@@ -1,8 +1,7 @@
-torch>=2.0
-transformers>=4.35
+torch
+transformers
 numpy
-huggingface_hub
+huggingface
 accelerate
-bitsandbytes>=0.42
-anthropic
-scikit-learn
+textual
+rich

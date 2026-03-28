@@ -1,0 +1,178 @@
+[
+  {
+    "card_id": "unit_jinx_rebel",
+    "name": "Jinx, Rebel",
+    "card_type": "unit",
+    "domains": ["fury"],
+    "supertypes": ["champion"],
+    "cost_energy": 3,
+    "cost_power": {"fury": 1},
+    "base_might": 3,
+    "keywords": [{"keyword": "assault", "value": 1}],
+    "tags": ["champion", "jinx"],
+    "text": "Assault 1."
+  },
+  {
+    "card_id": "unit_garen_resolute",
+    "name": "Garen, Resolute",
+    "card_type": "unit",
+    "domains": ["body"],
+    "supertypes": ["champion"],
+    "cost_energy": 4,
+    "cost_power": {"body": 1},
+    "base_might": 4,
+    "keywords": [{"keyword": "shield", "value": 1}],
+    "tags": ["champion", "garen"],
+    "text": "Shield 1."
+  },
+  {
+    "card_id": "unit_chem_enforcer",
+    "name": "Chemtech Enforcer",
+    "card_type": "unit",
+    "domains": ["fury"],
+    "cost_energy": 2,
+    "cost_power": {"fury": 1},
+    "base_might": 3,
+    "tags": ["zaun"],
+    "text": ""
+  },
+  {
+    "card_id": "unit_demacian_guard",
+    "name": "Demacian Guard",
+    "card_type": "unit",
+    "domains": ["order"],
+    "cost_energy": 2,
+    "cost_power": {"order": 1},
+    "base_might": 2,
+    "keywords": [{"keyword": "shield", "value": 1}],
+    "tags": ["demacia"],
+    "text": "Shield 1."
+  },
+  {
+    "card_id": "unit_petty_officer",
+    "name": "Petty Officer",
+    "card_type": "unit",
+    "domains": ["fury"],
+    "cost_energy": 1,
+    "cost_power": {"fury": 1},
+    "base_might": 2,
+    "keywords": [{"keyword": "assault", "value": 1}],
+    "tags": ["bilgewater"],
+    "text": "Assault 1."
+  },
+  {
+    "card_id": "unit_stalwart_poro",
+    "name": "Stalwart Poro",
+    "card_type": "unit",
+    "domains": ["calm"],
+    "cost_energy": 1,
+    "base_might": 1,
+    "keywords": [{"keyword": "shield", "value": 1}],
+    "tags": ["poro"],
+    "text": "Shield 1."
+  },
+  {
+    "card_id": "unit_shadow_assassin",
+    "name": "Shadow Assassin",
+    "card_type": "unit",
+    "domains": ["chaos"],
+    "cost_energy": 3,
+    "cost_power": {"chaos": 1},
+    "base_might": 4,
+    "keywords": [{"keyword": "ganking", "value": 0}],
+    "tags": ["ionia"],
+    "text": "Ganking."
+  },
+  {
+    "card_id": "unit_vanguard_sergeant",
+    "name": "Vanguard Sergeant",
+    "card_type": "unit",
+    "domains": ["order"],
+    "cost_energy": 3,
+    "cost_power": {"order": 1},
+    "base_might": 3,
+    "keywords": [{"keyword": "tank", "value": 0}],
+    "tags": ["demacia"],
+    "text": "Tank."
+  },
+  {
+    "card_id": "unit_mystic_sage",
+    "name": "Mystic Sage",
+    "card_type": "unit",
+    "domains": ["mind"],
+    "cost_energy": 2,
+    "cost_power": {"mind": 1},
+    "base_might": 2,
+    "keywords": [{"keyword": "vision", "value": 0}],
+    "tags": ["ionia"],
+    "text": "Vision.",
+    "abilities": [
+      {
+        "ability_id": "mystic_sage_vision",
+        "ability_type": "triggered",
+        "trigger_condition": "on_play",
+        "effect_script": "vision_effect",
+        "timing": "default",
+        "text": "When you play me, look at the top card of your Main Deck. You may recycle it."
+      }
+    ]
+  },
+  {
+    "card_id": "unit_noxian_recruit",
+    "name": "Noxian Recruit",
+    "card_type": "unit",
+    "domains": ["fury"],
+    "cost_energy": 1,
+    "base_might": 2,
+    "tags": ["noxus"],
+    "text": ""
+  },
+  {
+    "card_id": "unit_yordle_scout",
+    "name": "Yordle Scout",
+    "card_type": "unit",
+    "domains": ["calm"],
+    "cost_energy": 1,
+    "cost_power": {"calm": 1},
+    "base_might": 1,
+    "keywords": [{"keyword": "accelerate", "value": 0}],
+    "tags": ["yordle"],
+    "text": "Accelerate."
+  },
+  {
+    "card_id": "unit_iron_bulwark",
+    "name": "Iron Bulwark",
+    "card_type": "unit",
+    "domains": ["body"],
+    "cost_energy": 4,
+    "cost_power": {"body": 2},
+    "base_might": 5,
+    "keywords": [{"keyword": "tank", "value": 0}, {"keyword": "shield", "value": 2}],
+    "tags": ["noxus"],
+    "text": "Tank. Shield 2."
+  },
+  {
+    "card_id": "unit_hextech_striker",
+    "name": "Hextech Striker",
+    "card_type": "unit",
+    "domains": ["mind"],
+    "cost_energy": 3,
+    "cost_power": {"mind": 1},
+    "base_might": 3,
+    "keywords": [{"keyword": "assault", "value": 2}],
+    "tags": ["piltover"],
+    "text": "Assault 2."
+  },
+  {
+    "card_id": "unit_spectral_rider",
+    "name": "Spectral Rider",
+    "card_type": "unit",
+    "domains": ["chaos"],
+    "cost_energy": 2,
+    "cost_power": {"chaos": 1},
+    "base_might": 3,
+    "keywords": [{"keyword": "temporary", "value": 0}],
+    "tags": ["shadow_isles"],
+    "text": "Temporary."
+  }
+]

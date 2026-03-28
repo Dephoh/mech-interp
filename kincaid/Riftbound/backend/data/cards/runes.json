@@ -1,0 +1,152 @@
+[
+  {
+    "card_id": "rune_fury",
+    "name": "Fury Rune",
+    "card_type": "rune",
+    "domains": ["fury"],
+    "text": "[E]: [Reaction] — Add [1]. Recycle this: [Reaction] — Add [R].",
+    "abilities": [
+      {
+        "ability_id": "rune_fury_exhaust",
+        "ability_type": "activated",
+        "cost": {"exhaust_source": true},
+        "effect_script": "rune_add_energy",
+        "timing": "reaction",
+        "text": "Add 1 Energy"
+      },
+      {
+        "ability_id": "rune_fury_recycle",
+        "ability_type": "activated",
+        "cost": {},
+        "effect_script": "rune_recycle_power",
+        "timing": "reaction",
+        "text": "Recycle: Add 1 Fury Power"
+      }
+    ]
+  },
+  {
+    "card_id": "rune_calm",
+    "name": "Calm Rune",
+    "card_type": "rune",
+    "domains": ["calm"],
+    "text": "[E]: [Reaction] — Add [1]. Recycle this: [Reaction] — Add [G].",
+    "abilities": [
+      {
+        "ability_id": "rune_calm_exhaust",
+        "ability_type": "activated",
+        "cost": {"exhaust_source": true},
+        "effect_script": "rune_add_energy",
+        "timing": "reaction",
+        "text": "Add 1 Energy"
+      },
+      {
+        "ability_id": "rune_calm_recycle",
+        "ability_type": "activated",
+        "cost": {},
+        "effect_script": "rune_recycle_power",
+        "timing": "reaction",
+        "text": "Recycle: Add 1 Calm Power"
+      }
+    ]
+  },
+  {
+    "card_id": "rune_mind",
+    "name": "Mind Rune",
+    "card_type": "rune",
+    "domains": ["mind"],
+    "text": "[E]: [Reaction] — Add [1]. Recycle this: [Reaction] — Add [B].",
+    "abilities": [
+      {
+        "ability_id": "rune_mind_exhaust",
+        "ability_type": "activated",
+        "cost": {"exhaust_source": true},
+        "effect_script": "rune_add_energy",
+        "timing": "reaction",
+        "text": "Add 1 Energy"
+      },
+      {
+        "ability_id": "rune_mind_recycle",
+        "ability_type": "activated",
+        "cost": {},
+        "effect_script": "rune_recycle_power",
+        "timing": "reaction",
+        "text": "Recycle: Add 1 Mind Power"
+      }
+    ]
+  },
+  {
+    "card_id": "rune_body",
+    "name": "Body Rune",
+    "card_type": "rune",
+    "domains": ["body"],
+    "text": "[E]: [Reaction] — Add [1]. Recycle this: [Reaction] — Add [O].",
+    "abilities": [
+      {
+        "ability_id": "rune_body_exhaust",
+        "ability_type": "activated",
+        "cost": {"exhaust_source": true},
+        "effect_script": "rune_add_energy",
+        "timing": "reaction",
+        "text": "Add 1 Energy"
+      },
+      {
+        "ability_id": "rune_body_recycle",
+        "ability_type": "activated",
+        "cost": {},
+        "effect_script": "rune_recycle_power",
+        "timing": "reaction",
+        "text": "Recycle: Add 1 Body Power"
+      }
+    ]
+  },
+  {
+    "card_id": "rune_chaos",
+    "name": "Chaos Rune",
+    "card_type": "rune",
+    "domains": ["chaos"],
+    "text": "[E]: [Reaction] — Add [1]. Recycle this: [Reaction] — Add [P].",
+    "abilities": [
+      {
+        "ability_id": "rune_chaos_exhaust",
+        "ability_type": "activated",
+        "cost": {"exhaust_source": true},
+        "effect_script": "rune_add_energy",
+        "timing": "reaction",
+        "text": "Add 1 Energy"
+      },
+      {
+        "ability_id": "rune_chaos_recycle",
+        "ability_type": "activated",
+        "cost": {},
+        "effect_script": "rune_recycle_power",
+        "timing": "reaction",
+        "text": "Recycle: Add 1 Chaos Power"
+      }
+    ]
+  },
+  {
+    "card_id": "rune_order",
+    "name": "Order Rune",
+    "card_type": "rune",
+    "domains": ["order"],
+    "text": "[E]: [Reaction] — Add [1]. Recycle this: [Reaction] — Add [Y].",
+    "abilities": [
+      {
+        "ability_id": "rune_order_exhaust",
+        "ability_type": "activated",
+        "cost": {"exhaust_source": true},
+        "effect_script": "rune_add_energy",
+        "timing": "reaction",
+        "text": "Add 1 Energy"
+      },
+      {
+        "ability_id": "rune_order_recycle",
+        "ability_type": "activated",
+        "cost": {},
+        "effect_script": "rune_recycle_power",
+        "timing": "reaction",
+        "text": "Recycle: Add 1 Order Power"
+      }
+    ]
+  }
+]

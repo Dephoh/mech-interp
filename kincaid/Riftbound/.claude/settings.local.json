@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(grep -E \"\\\\.\\(pt|json|py|txt|md\\)$\")",
+      "WebFetch(domain:riftbound.leagueoflegends.com)",
+      "WebFetch(domain:riftbound.gg)",
+      "WebFetch(domain:runesandrift.com)",
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "Bash(python -c \"import fitz; doc = fitz.open\\(r''C:\\\\Users\\\\Kincaid\\\\Documents\\\\GitHub\\\\mech-interp\\\\kincaid\\\\Riftbound\\\\Riftbound Core Rules v1.2.pdf''\\); print\\(doc.page_count\\); text = ''''.join\\([doc[i].get_text\\(\\) for i in range\\(min\\(10, doc.page_count\\)\\)]\\); print\\(text[:5000]\\)\")",
+      "WebFetch(domain:piltoverarchive.com)",
+      "WebFetch(domain:scrydex.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(cd:*)",
+      "WebFetch(domain:dsfx7636.api.sanity.io)",
+      "Bash(python -c \":*)",
+      "Bash(npx create-vite@latest . --template react-ts)",
+      "Bash(rmdir C:/Users/Kincaid/Documents/GitHub/mech-interp/kincaid/Riftbound/frontend/src)",
+      "Bash(npx --yes create-vite@5 . --template react-ts)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite:*)",
+      "Bash(python3:*)"
+    ]
+  }
+}

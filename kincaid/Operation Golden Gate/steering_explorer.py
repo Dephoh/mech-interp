@@ -262,16 +262,16 @@ class ModelInterface:
             for layer, info in sweep_results.get("per_layer", {}).items():
                 self._log(f"  L{layer}: consistency={info['consistency']:.4f} mag={info['magnitude']:.2f}")
 
-            # Step 5: Compute steering vector
+            # Step 5: Compute steering vector (reusing activations from sweep)
             if status_callback:
                 status_callback(f"Computing steering vector at layer {self.layer_idx}...")
             if progress_callback:
-                progress_callback(f"Extracting contrastive activations at layer {self.layer_idx}...")
-            self._log(f"Computing steering vector at layer {self.layer_idx}...")
+                progress_callback(f"Computing vector from sweep activations at layer {self.layer_idx}...")
+            self._log(f"Computing steering vector at layer {self.layer_idx} (reusing sweep activations)...")
 
             self.steering_vector = compute_steering_vector(
-                self.model, self.tokenizer, self.layer_idx,
-                batch_size=config.batch_size,
+                pos_acts=sweep_results["best_layer_pos_acts"],
+                neg_acts=sweep_results["best_layer_neg_acts"],
             )
             self._log(f"[OK] Steering vector computed")
             self._log(f"  Shape: {self.steering_vector.shape}")

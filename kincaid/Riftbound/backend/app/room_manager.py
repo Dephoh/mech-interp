@@ -1,0 +1,255 @@
+"""In-memory room registry: maps room_id to GameSession."""
+
+from __future__ import annotations
+
+import logging
+
+import asyncio
+import uuid
+from dataclasses import dataclass, field
+from typing import Any
+
+from fastapi import WebSocket
+
+from .engine.action_executor import execute_action
+from .engine.action_validator import validate_action
+from .engine.card_db import CardDB
+from .engine.enums import ActionType
+from .engine.game_state import GameState, create_game
+from .protocol.serializers import serialize_for_player
+
+logger = logging.getLogger("riftbound.room")
+
+
+@dataclass
+class PlayerConnection:
+    player_id: str
+    display_name: str
+    websocket: WebSocket
+    deck: dict[str, Any] | None = None  # raw deck payload
+
+
+@dataclass
+class GameSession:
+    room_id: str
+    slots: list[PlayerConnection | None] = field(default_factory=lambda: [None, None])
+    game_state: GameState | None = None
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+
+    @property
+    def is_full(self) -> bool:
+        return all(s is not None for s in self.slots)
+
+    @property
+    def player_count(self) -> int:
+        return sum(1 for s in self.slots if s is not None)
+
+    def get_slot(self, player_id: str) -> int | None:
+        for i, s in enumerate(self.slots):
+            if s and s.player_id == player_id:
+                return i
+        return None
+
+    def get_connection(self, player_id: str) -> PlayerConnection | None:
+        for s in self.slots:
+            if s and s.player_id == player_id:
+                return s
+        return None
+
+
+class RoomManager:
+    def __init__(self) -> None:
+        self.rooms: dict[str, GameSession] = {}
+
+    def create_room(self) -> str:
+        room_id = str(uuid.uuid4())[:8]
+        session = GameSession(room_id=room_id)
+        self.rooms[room_id] = session
+        return room_id
+
+    def get_room(self, room_id: str) -> GameSession | None:
+        return self.rooms.get(room_id)
+
+    async def join_room(
+        self,
+        room_id: str,
+        player_name: str,
+        deck: dict[str, Any],
+        websocket: WebSocket,
+    ) -> tuple[GameSession, str, int]:
+        """
+        Join a room. Returns (session, player_id, slot_index).
+        Creates the room if it doesn't exist.
+        """
+        if room_id not in self.rooms:
+            self.rooms[room_id] = GameSession(room_id=room_id)
+
+        session = self.rooms[room_id]
+
+        # Find open slot
+        slot_idx = None
+        for i, s in enumerate(session.slots):
+            if s is None:
+                slot_idx = i
+                break
+
+        if slot_idx is None:
+            raise ValueError("Room is full")
+
+        player_id = str(uuid.uuid4())[:12]
+        conn = PlayerConnection(
+            player_id=player_id,
+            display_name=player_name,
+            websocket=websocket,
+            deck=deck,
+        )
+        session.slots[slot_idx] = conn
+
+        return session, player_id, slot_idx
+
+    async def start_game(self, session: GameSession) -> None:
+        """Initialize the GameState once both players have joined."""
+        if session.game_state is not None:
+            return
+
+        configs = []
+        for slot in session.slots:
+            if slot and slot.deck:
+                configs.append({
+                    "player_id": slot.player_id,
+                    "display_name": slot.display_name,
+                    "legend_id": slot.deck["legend_id"],
+                    "champion_id": slot.deck["champion_id"],
+                    "main_deck": slot.deck["main_deck"],
+                    "rune_deck": slot.deck["rune_deck"],
+                    "battlefields": slot.deck["battlefields"],
+                })
+
+        card_defs = CardDB.all_cards()
+        session.game_state = create_game(session.room_id, configs, card_defs)
+
+    async def handle_action(
+        self, session: GameSession, player_id: str, data: dict[str, Any]
+    ) -> None:
+        """Validate and execute an action, then broadcast state."""
+        gs = session.game_state
+        if not gs:
+            logger.warning("[ACTION] Game not started for room=%s", session.room_id)
+            await self._send_error(session, player_id, "Game not started")
+            return
+
+        msg_type = data.get("type", "")
+        action_type = _msg_type_to_action(msg_type)
+        if not action_type:
+            logger.warning("[ACTION] Unknown msg type=%s from player=%s", msg_type, player_id)
+            await self._send_error(session, player_id, f"Unknown message type: {msg_type}")
+            return
+
+        # Build payload from message data
+        payload = {k: v for k, v in data.items() if k != "type"}
+
+        async with session.lock:
+            # Validate
+            result = validate_action(gs, player_id, action_type, payload)
+            if not result.ok:
+                logger.info("[ACTION] REJECTED %s from player=%s: %s (phase=%s)",
+                            action_type.value, player_id, result.error, gs.phase.value)
+                await self._send_to_player(session, player_id, {
+                    "type": "ACTION_REJECTED",
+                    "reason": result.error,
+                })
+                return
+
+            # Execute
+            logger.info("[ACTION] EXECUTE %s from player=%s (phase=%s)",
+                        action_type.value, player_id, gs.phase.value)
+            logs = execute_action(gs, player_id, action_type, payload)
+            logger.info("[ACTION] Phase after=%s logs=%s", gs.phase.value, logs)
+
+            # Broadcast updated state to both players
+            await self._broadcast_state(session)
+
+            # Send logs
+            if logs:
+                await self._broadcast(session, {
+                    "type": "GAME_LOG",
+                    "entries": [{"message": m} for m in logs],
+                })
+
+            # Check game over
+            if gs.game_over:
+                logger.info("[ACTION] GAME OVER room=%s winner=%s", session.room_id, gs.winner_id)
+                await self._broadcast(session, {
+                    "type": "GAME_OVER",
+                    "winner_id": gs.winner_id or "",
+                    "reason": "Game ended",
+                })
+
+    async def _broadcast_state(self, session: GameSession) -> None:
+        """Send per-player serialized state to each connected player."""
+        gs = session.game_state
+        if not gs:
+            return
+        for slot in session.slots:
+            if slot:
+                state = serialize_for_player(gs, slot.player_id)
+                await self._send_to_player(session, slot.player_id, {
+                    "type": "STATE_UPDATE",
+                    "state": state,
+                })
+
+    async def _broadcast(self, session: GameSession, msg: dict[str, Any]) -> None:
+        for slot in session.slots:
+            if slot:
+                try:
+                    await slot.websocket.send_json(msg)
+                except Exception:
+                    pass
+
+    async def _send_to_player(
+        self, session: GameSession, player_id: str, msg: dict[str, Any]
+    ) -> None:
+        conn = session.get_connection(player_id)
+        if conn:
+            try:
+                await conn.websocket.send_json(msg)
+            except Exception:
+                pass
+
+    async def _send_error(
+        self, session: GameSession, player_id: str, message: str
+    ) -> None:
+        await self._send_to_player(session, player_id, {
+            "type": "ERROR",
+            "message": message,
+        })
+
+    def remove_player(self, room_id: str, player_id: str) -> None:
+        session = self.rooms.get(room_id)
+        if not session:
+            return
+        for i, slot in enumerate(session.slots):
+            if slot and slot.player_id == player_id:
+                session.slots[i] = None
+                break
+        # Clean up empty rooms
+        if session.player_count == 0:
+            del self.rooms[room_id]
+
+
+def _msg_type_to_action(msg_type: str) -> ActionType | None:
+    mapping = {
+        "MULLIGAN_CHOICE": ActionType.MULLIGAN_CHOICE,
+        "ADVANCE_PHASE": ActionType.ADVANCE_PHASE,
+        "PASS_PRIORITY": ActionType.PASS_PRIORITY,
+        "PASS_FOCUS": ActionType.PASS_FOCUS,
+        "PLAY_CARD": ActionType.PLAY_CARD,
+        "ACTIVATE_ABILITY": ActionType.ACTIVATE_ABILITY,
+        "MOVE_UNIT": ActionType.MOVE_UNIT,
+        "EXHAUST_RUNE": ActionType.EXHAUST_RUNE,
+        "RECYCLE_RUNE": ActionType.RECYCLE_RUNE,
+        "HIDE_CARD": ActionType.HIDE_CARD,
+        "ASSIGN_DAMAGE": ActionType.ASSIGN_DAMAGE,
+        "CONCEDE": ActionType.CONCEDE,
+    }
+    return mapping.get(msg_type)

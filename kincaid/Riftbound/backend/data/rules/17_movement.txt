@@ -1,0 +1,232 @@
+================================================================================
+RIFTBOUND RULES: Movement & Swap
+Source sections: 420-436
+Backend modules: effect_primitives.py
+================================================================================
+
+420. 
+Swap 
+420.1. 
+Swapping is the act of increasing one numeric value and decreasing another numeric value on some 
+number of Game Objects such that their values are reversed. 
+420.1.a. 
+Swapping creates two different effects that apply to each attribute. One that Increases one 
+value and one that Decreases the other. 
+420.1.b. 
+To accomplish this, determine the difference between these values and then apply an 
+Increase for that amount to the lower value  of the two attributes, and a Decrease of that 
+amount to the higher value of the two attributes. 
+420.1.c 
+If both attributes are the same numeric value, Swapping has no effect. 
+420.2. 
+Swapping is a Limited Action. 
+420.2.a 
+Players may only swap when Game Effects direct them to do so. 
+421. 
+Attach 
+
+
+=== PAGE 56 ===
+ 
+ 
+421.1. 
+Attaching is the act of linking two cards on the board together to combine their effects in some way. 
+This causes one or more cards to become Attached and at least one card to become a Top-Most 
+Card. 
+See rule 716 Attachment for more information. 
+421.1.a. 
+Attaching affects two cards at once. 
+421.1.a.1. 
+One card will be designated as the one being Attached, and thus become 
+Attached. The other will become the Top-Most Card. 
+421.1.b. 
+This is represented by physically laying the Top-Most card on top of the other or others such 
+that all Effect Texts and Might Bonuses are showing, but nothing else from the card or 
+cards Attached. 
+421.1.b.1. 
+In the situation where there is more than one card attached to the Top-Most card, 
+they should be stacked in such a way that all Effect Text boxes and Might Bonuses 
+are readable. The order of the Attached cards has no bearing on the application of 
+effects. 
+421.1.c. 
+The Top-Most card has all Effect Text of all cards Attached to it appended to its Rules Text. 
+421.1.d. 
+The Top-Most Card has its Might modulated by the Might Bonus of all cards Attached to it. 
+421.1.e. 
+Attaching one or more cards will cause those cards’ Rules Text to become Inactive for as 
+long as they remain Attached. 
+See rule 716 Attachment for more information. 
+421.1.f. 
+Attaching a card will cause it to Detach from any card to which it is currently Attached. 
+421.2. 
+Attaching is a Limited Action. 
+421.2.a. 
+Players may only Attach cards when directed to by Game Effects. 
+421.3. 
+Attaching cards does not inherently choose or specify a target. However, Game Effects that Attach 
+cards may do so. 
+421.4. 
+When a card Attaches to a card, its location becomes the same as the new Top-Most Card. 
+421.4.a. 
+This is not a Move. 
+422. 
+Detach 
+422.1. 
+Detaching is the act of unlinking two cards that are currently linked through the act of Attaching. 
+This causes one to cease being Attached, and potentially causes the other to cease being a Top-Most 
+card. 
+422.1.a. 
+Detaching affects only cards that are currently Attached to another card. 
+422.1.a.1. 
+Game effects that instruct a player to Detach a card that is currently not Attached 
+to anything will do nothing. 
+422.1.b. 
+When one or more cards become Detached, they cease to be in the Attached state. 
+422.1.b.1. 
+To represent this, these cards should no longer be placed under the card they were 
+previously placed under as Top-Most Card. 
+422.1.b.2. 
+If the Top-Most Card no longer has any cards Attached to it after this, it is no 
+longer a Top-Most Card. 
+422.1.c. 
+The card being Detached has its Effect Text become Inactive and its Rules Text cease 
+being Inactive. 
+
+
+=== PAGE 57 ===
+ 
+ 
+422.1.d. 
+The Top-Most Card ceases to have the Effect Text of the card being Detached appended to 
+its Rules Text. 
+422.1.e. 
+The Top-Most Card ceases to have its Might modulated by the Might Bonus of the card 
+being Detached. 
+422.2. 
+Detaching is a Limited Action. 
+422.2.a. 
+Players may only Detach cards when directed to by Game Effects. 
+422.3. 
+Detaching cards does not inherently choose, or specify a target. However, Game Effects that Detach 
+cards may. 
+422.4. 
+When a card Detaches from a Top-Most Card, its location is the same as the Top-Most Card from 
+which it Detached. 
+422.4.a. 
+If the Detached card was a Gear and this causes it to become present at a Battlefield, it will 
+be Recalled during the next Cleanup. 
+422.4.b. 
+If the Attached card was Detached because the Top-Most Card changed zones from a 
+board zone to a non-board zone, then the location that the Attached Card will Detach to is 
+the last location the Top-Most Card was at before changing from a board zone to a 
+non-board zone. 
+423. 
+Movement 
+424. 
+Moving is a Limited Action. 
+424.1. 
+A Permanent changing its position from any space on the Board to another space on the Board is a 
+Move, unless it is caused by a corrective Recall.  
+See rule 407. Move for more information. 
+424.2. 
+A card changing game zones does not in itself constitute a Move. 
+424.3. 
+Moving is instantaneous. 
+424.3.a. 
+There is no state for Permanents between locations. 
+424.3.b. 
+Permanents are either at their Origin before Moving or their Destination after Moving. 
+424.3.c. 
+Moving does not use the Chain, nor is it able to be Reacted to. 
+425. 
+Moving is defined by the Origin and Destination of the Permanent that is changing locations. 
+425.1. 
+The Origin is where the Permanent is starting from. 
+425.2. 
+The Destination is where the Permanent is going to. 
+425.2.a. 
+In Modes of Play with more than two players, Battlefields with Staged Combats or 
+Combats in Progress are Invalid Destinations for Moves of all kinds (Standard Moves or 
+otherwise) by Units controlled by Players who don't already have permanents at that 
+Battlefield. 
+425.2.b. 
+If an action would require a Move that would cause a Unit to become present in a Location 
+where it cannot move for any reason, such as a Battlefield with two players that are not the 
+controller of the Unit performing this Move action are in a Combat or such a Combat is 
+Staged, it instead Recalls. 
+See rule 432. Recalls for more information. 
+425.3. 
+Units are the only Permanents that can Move. 
+
+
+=== PAGE 58 ===
+ 
+ 
+426. 
+Players may choose to move their Units with the Standard Move. 
+See rule 142. for more information on the Standard Move. 
+427. 
+Spells, Abilities, or other effects may cause a Move to occur. 
+427.1. 
+The source of the Move will provide details on any restrictions on legality for Destination. 
+427.2. 
+Units cannot Move to a Battlefield that already has units from 2 other players present by any means. 
+428. 
+The Destination becomes Contested if it is a Battlefield not controlled by the controller of the Unit or Units 
+that moved. 
+429. 
+Units may cause a Showdown without a Combat when they Move. 
+429.1. 
+A Showdown is opened when a Move causes a Battlefield to become Contested while it has no 
+Units present from any player other than those that just moved. 
+430. 
+Units may cause Combat when they Move. 
+430.1. 
+A Combat is triggered when a Move causes a Battlefield to become Contested and Units controlled 
+by opposing players.  
+See rule 437. Combat for more information. 
+431. 
+When a Move action is complete, perform a Cleanup. 
+432. 
+Recalls 
+433. 
+A Recall is when a Permanent is relocated from anywhere to its Base  without it being a Move. 
+434. 
+Recalls are not Moves. 
+434.1. 
+They do not cause Triggered Abilities to trigger that are triggered by Move actions. 
+434.2. 
+A Recall causes a Permanent to change locations. 
+434.3. 
+A Recall cannot be prevented by actions and Game Effects that restrict or block Movement. 
+435. 
+Gear can be Recalled. 
+435.1. 
+When an un-attached Gear is created or played at a battlefield, or is at a battlefield for any other 
+reason, it is Recalled to its controller's base during the next Cleanup.  
+Example: An Equipment is attached to a unit at a battlefield, so the Equipment is present 
+at that battlefield. If the unit dies, the Equipment will be recalled during the next cleanup. 
+436. 
+Recalls do not affect the state of the Permanent being recalled. 
+436.1. 
+Unless otherwise stated by the source of the Recall, Damage, Exhausted Status, Buffed Status, and 
+applied Layer alterations will all remain unaffected by a Recall. 
+437. 
+Combat 
+438. 
+A Combat occurs when a Cleanup occurs, there are no items on the Chain, and a Battlefield has Units 
+controlled by two opposing players. 
+439. 
+Combat is considered Staged if there are units controlled by two opposing players at a Battlefield but the 
+Steps of Combat have not been initiated. 
+439.1. 
+If more than one Battlefield has Units controlled by opposing players at it at the same time, the Turn 
+Player decides which Combat to resolve first. 
+439.2. 
+If Staged Combats stop being Staged before the Steps of Combat are initiated, they are not resolved 
+
+
+=== PAGE 59 ===
+ 
+ 
+or executed. 

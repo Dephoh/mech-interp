@@ -129,6 +129,7 @@ class ActionType(str, Enum):
     ASSIGN_DAMAGE = "assign_damage"
     CHANNEL_RUNE = "channel_rune"
     CONCEDE = "concede"
+    SUBMIT_CHOICE = "submit_choice"
 
 
 class SuperType(str, Enum):

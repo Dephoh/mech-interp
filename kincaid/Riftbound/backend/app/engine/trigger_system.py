@@ -51,11 +51,12 @@ class GameEvent(str, Enum):
     RECYCLE_RUNE = "recycle_rune"          # A rune was recycled
     COMBAT_WIN = "combat_win"              # Player won a combat
     UNIT_PLAYED = "unit_played"            # A unit was played (synonym)
+    GEAR_ENTERED = "gear_entered"          # A gear entered the board
 
 
 # Map from trigger_condition strings on AbilityDefinition to GameEvents
 TRIGGER_TO_EVENTS: dict[str, list[GameEvent]] = {
-    "on_play": [GameEvent.UNIT_ENTERED, GameEvent.UNIT_PLAYED],
+    "on_play": [GameEvent.UNIT_ENTERED, GameEvent.UNIT_PLAYED, GameEvent.GEAR_ENTERED],
     "on_conquer": [GameEvent.CONQUER, GameEvent.CONQUER_OR_HOLD],
     "on_hold": [GameEvent.HOLD, GameEvent.CONQUER_OR_HOLD],
     "on_conquer_or_hold": [GameEvent.CONQUER, GameEvent.HOLD, GameEvent.CONQUER_OR_HOLD],
@@ -75,6 +76,9 @@ TRIGGER_TO_EVENTS: dict[str, list[GameEvent]] = {
     "on_turn_end": [GameEvent.TURN_END],
     "on_recycle_rune": [GameEvent.RECYCLE_RUNE],
     "on_combat_win": [GameEvent.COMBAT_WIN],
+    "on_card_drawn": [GameEvent.CARD_DRAWN],
+    "on_beginning_phase": [GameEvent.BEGINNING_PHASE],
+    "on_damage_dealt": [GameEvent.DAMAGE_DEALT],
 }
 
 # Reverse: which trigger_conditions respond to each event
@@ -92,7 +96,21 @@ def fire_event(
     """Fire a game event, scanning all board objects for matching triggers.
 
     Matching triggered abilities are pushed onto the chain as Pending items.
-    Order: Turn Player's triggers first, then others in turn order.
+
+    Ordering (rules 376.3.b / 376.3.b.1):
+      1. Turn Player's triggers come first, then other players in turn order.
+      2. Within each player's group, the triggers stay in the order they were
+         collected (FIFO -- the order the cards were scanned).  In a real game
+         the controlling player selects the order; FIFO is the auto-play
+         approximation.
+      3. Python's sort is *stable*, so items that compare equal keep their
+         original relative order (FIFO within a player group).
+
+    Nth-time deduplication (rule 376.1.b):
+      If an ability has ``max_triggers_per_turn`` set (from "the first time"
+      or "the Nth time" templating), it fires at most that many times per
+      turn even if the condition is met simultaneously by multiple events.
+      Tracking is per (card_instance_id, ability_id) per turn number.
 
     Args:
         gs: Current game state.
@@ -117,6 +135,19 @@ def fire_event(
     triggered_items: list[tuple[str, str, str, CardInstance]] = []
     # (controller_id, ability_id, card_instance_id, source_card)
 
+    # Lazily initialise the per-turn trigger count tracker (rule 376.1.b).
+    if not hasattr(gs, "_trigger_fire_counts"):
+        gs._trigger_fire_counts = {}  # type: ignore[attr-defined]
+    # Reset tracker when a new turn starts (keyed by turn_number)
+    trigger_counts: dict[tuple[str, str], int] = gs._trigger_fire_counts  # type: ignore[attr-defined]
+    # Purge stale entries from previous turns
+    current_turn = getattr(gs, "turn_number", 0)
+    if not hasattr(gs, "_trigger_counts_turn"):
+        gs._trigger_counts_turn = current_turn  # type: ignore[attr-defined]
+    if gs._trigger_counts_turn != current_turn:  # type: ignore[attr-defined]
+        trigger_counts.clear()
+        gs._trigger_counts_turn = current_turn  # type: ignore[attr-defined]
+
     # Scan all board objects
     for card in _get_board_objects(gs):
         for ability in card.definition.abilities:
@@ -131,6 +162,18 @@ def fire_event(
             if not _trigger_applies(card, ability, event, context, gs):
                 continue
 
+            # Rule 376.1.b — Nth-time deduplication.
+            # ``max_triggers_per_turn`` is an optional int on AbilityDefinition
+            # (set from card data for "the first time" / "the Nth time"
+            # templating).  Default 0 means unlimited.
+            max_per_turn: int = getattr(ability, "max_triggers_per_turn", 0)
+            if max_per_turn > 0:
+                trig_key = (card.instance_id, ability.ability_id)
+                already_fired = trigger_counts.get(trig_key, 0)
+                if already_fired >= max_per_turn:
+                    continue
+                trigger_counts[trig_key] = already_fired + 1
+
             triggered_items.append((
                 card.controller_id,
                 ability.ability_id,
@@ -141,14 +184,14 @@ def fire_event(
     if not triggered_items:
         return []
 
-    # Order: Turn Player's triggers first, then by turn order
+    # Order per rules 376.3.b / 376.3.b.1
     turn_player = gs.turn_player_id
     player_order = gs.player_order
 
     def sort_key(item: tuple) -> tuple:
         ctrl = item[0]
         if ctrl == turn_player:
-            return (0, 0)
+            return (0,)
         try:
             idx = player_order.index(ctrl)
         except ValueError:
@@ -167,6 +210,100 @@ def fire_event(
         gs.chain.push(chain_item)
         logs.append(f"{source.name} triggers: {ab_id}")
         logger.info("[TRIGGER] %s fires %s (event: %s)", source.name, ab_id, event.value)
+
+    # Also check delayed triggers (rules 382-385).
+    # Delayed triggers are source-independent: they fire even if the card
+    # that created them has left the board.
+    delayed_logs = _check_delayed_triggers(gs, event, context)
+    logs.extend(delayed_logs)
+
+    return logs
+
+
+def _check_delayed_triggers(
+    gs: GameState,
+    event: GameEvent,
+    context: dict[str, Any],
+) -> list[str]:
+    """Check and fire any delayed triggers matching the current event (rules 382-385).
+
+    Delayed triggers persist independently of their creating source and
+    fire when their event/condition is matched. After firing, they
+    decrement ``fires_remaining``; once exhausted or expired, they are
+    removed.
+
+    Returns log messages for any delayed triggers that fired.
+    """
+    from .effect_resolver import evaluate_condition, resolve_effect_ir
+
+    if not hasattr(gs, "delayed_triggers"):
+        return []
+
+    delayed_list: list[dict] = gs.delayed_triggers  # type: ignore[attr-defined]
+    if not delayed_list:
+        return []
+
+    logs: list[str] = []
+    to_remove: list[int] = []
+    current_turn = getattr(gs, "turn_number", 0)
+
+    for idx, dt in enumerate(delayed_list):
+        # Check event match
+        if dt["trigger_event"] != event.value:
+            continue
+
+        # Check duration expiry
+        if dt["duration"] == "turn" and dt["created_turn"] != current_turn:
+            to_remove.append(idx)
+            continue
+
+        # Evaluate condition
+        source = gs.get_instance(dt["source_instance_id"])
+        # Rule 385: delayed triggers fire even if source is gone, but we
+        # still need a source for condition evaluation.  Create a minimal
+        # fallback if the source has been removed from instances.
+        if not source:
+            # Source is gone -- condition that depends on source state
+            # cannot be evaluated; fire unconditionally if condition is "always".
+            cond = dt.get("condition", {"cond_type": "always"})
+            if cond.get("cond_type") != "always":
+                to_remove.append(idx)
+                continue
+        else:
+            cond = dt.get("condition", {"cond_type": "always"})
+            if not evaluate_condition(cond, source, gs):
+                continue
+
+        # Fire the delayed trigger's effect
+        effect_ir = dt.get("effect_ir", {})
+        if effect_ir:
+            # Use the original source if still around, otherwise create a
+            # synthetic ChainItem for execution context.
+            if source:
+                result_logs = resolve_effect_ir(effect_ir, source, gs)
+                logs.extend(result_logs)
+            else:
+                logs.append(f"Delayed trigger fired (source gone): {dt['trigger_event']}")
+
+        logger.info(
+            "[DELAYED_TRIGGER] fires for event %s (controller: %s)",
+            event.value, dt.get("controller_id", "?"),
+        )
+
+        # Decrement fires remaining
+        remaining = dt.get("fires_remaining", -1)
+        if remaining > 0:
+            dt["fires_remaining"] = remaining - 1
+            if dt["fires_remaining"] <= 0:
+                to_remove.append(idx)
+        elif remaining == 0:
+            # Already exhausted
+            to_remove.append(idx)
+
+    # Remove expired/exhausted delayed triggers (iterate in reverse to keep indices stable)
+    for idx in sorted(set(to_remove), reverse=True):
+        if idx < len(delayed_list):
+            delayed_list.pop(idx)
 
     return logs
 
@@ -312,6 +449,18 @@ def _trigger_applies(
     if trigger == "on_combat_win":
         return ctx_player == card.controller_id
 
+    if trigger == "on_card_drawn":
+        # "When you draw a card" - controller must match
+        return ctx_player == card.controller_id
+
+    if trigger == "on_beginning_phase":
+        # "At the beginning of your turn" - card's controller must be turn player
+        return card.controller_id == gs.turn_player_id
+
+    if trigger == "on_damage_dealt":
+        # "When damage is dealt" - default: fires for controller's effects
+        return ctx_player == card.controller_id
+
     # Default: trigger fires
     return True
 
@@ -324,7 +473,174 @@ def check_replacements(
     """Check if any replacement effect intercepts this event.
 
     Returns True if the event was replaced (original should not execute).
-    Currently a stub for Phase 4 implementation.
+    Scans GameState.active_replacements for matching watch_events,
+    evaluates conditions, and executes the alternative IR if matched.
+
+    Per rule 368: when multiple replacements apply to the same event, the
+    owner of the object being acted on chooses the order.  We approximate
+    this by sorting eligible replacements so that those owned by the
+    acted-on object's controller come first, then by the current turn
+    player (rule 368.2 for uncontrolled battlefields).
     """
-    # Phase 4 will implement this
-    return False
+    from .effect_ir import TargetSpec
+    from .effect_resolver import evaluate_condition, resolve_effect_ir
+
+    ctx_card_id = context.get("card_id", "")
+    acted_on_owner: str | None = None
+    if ctx_card_id:
+        acted_on = gs.get_instance(ctx_card_id)
+        if acted_on:
+            acted_on_owner = acted_on.controller_id
+
+    # Collect all eligible replacements first
+    eligible: list[Any] = []
+    for rep in list(gs.active_replacements):
+        if rep.watch_event != event.value:
+            continue
+
+        source = gs.get_instance(rep.source_instance_id)
+        if not source:
+            continue
+
+        if not evaluate_condition(rep.condition, source, gs):
+            continue
+
+        if rep.target_spec and ctx_card_id:
+            spec = TargetSpec.from_dict(rep.target_spec)
+            target_card = gs.get_instance(ctx_card_id)
+            if target_card and not _replacement_target_matches(
+                spec, source, target_card
+            ):
+                continue
+
+        eligible.append((rep, source))
+
+    if not eligible:
+        return False
+
+    # Sort per rule 368: acted-on object's owner's replacements first,
+    # then turn player, then others.
+    def _rep_sort_key(item: tuple) -> tuple:
+        _rep, _source = item
+        ctrl = _source.controller_id
+        if acted_on_owner and ctrl == acted_on_owner:
+            return (0,)
+        if ctrl == gs.turn_player_id:
+            return (1,)
+        try:
+            idx = gs.player_order.index(ctrl)
+        except ValueError:
+            idx = 999
+        return (2, idx)
+
+    eligible.sort(key=_rep_sort_key)
+
+    # Apply only the first matching replacement (rule 366)
+    rep, source = eligible[0]
+    if rep.alternative_ir:
+        logs = resolve_effect_ir(rep.alternative_ir, source, gs)
+        for msg in logs:
+            gs.log.add(msg)
+        logger.info(
+            "[REPLACEMENT] %s replaces %s via %s",
+            source.name, event.value, rep.ability_id,
+        )
+    return True
+
+
+def check_primitive_replacement(
+    gs: GameState,
+    primitive_type: str,
+    source: CardInstance,
+    targets: list[str],
+) -> dict[str, Any] | None:
+    """Check if any replacement intercepts a primitive before it executes.
+
+    Called by the effect resolver before each primitive. If a replacement
+    matches, returns the alternative IR node to execute instead.
+    Returns None if no replacement applies.
+
+    Per rule 368: when multiple replacements apply, the owner of the
+    acted-on object decides order.  We sort eligible replacements so
+    the acted-on target's controller comes first.
+    """
+    from .effect_ir import TargetSpec
+    from .effect_resolver import evaluate_condition
+
+    # Determine the acted-on object's controller for ordering
+    acted_on_owner: str | None = None
+    if targets:
+        first_target = gs.get_instance(targets[0])
+        if first_target:
+            acted_on_owner = first_target.controller_id
+
+    eligible: list[tuple] = []
+    for rep in list(gs.active_replacements):
+        if rep.watch_event != primitive_type:
+            continue
+
+        rep_source = gs.get_instance(rep.source_instance_id)
+        if not rep_source:
+            continue
+
+        if not evaluate_condition(rep.condition, rep_source, gs):
+            continue
+
+        # Check if any of the targets match the replacement's target filter
+        if rep.target_spec and targets:
+            spec = TargetSpec.from_dict(rep.target_spec)
+            has_match = False
+            for tid in targets:
+                target_card = gs.get_instance(tid)
+                if target_card and _replacement_target_matches(spec, rep_source, target_card):
+                    has_match = True
+                    break
+            if not has_match:
+                continue
+
+        eligible.append((rep, rep_source))
+
+    if not eligible:
+        return None
+
+    # Sort per rule 368
+    def _rep_sort_key(item: tuple) -> tuple:
+        _rep, _src = item
+        ctrl = _src.controller_id
+        if acted_on_owner and ctrl == acted_on_owner:
+            return (0,)
+        if ctrl == gs.turn_player_id:
+            return (1,)
+        try:
+            idx = gs.player_order.index(ctrl)
+        except ValueError:
+            idx = 999
+        return (2, idx)
+
+    eligible.sort(key=_rep_sort_key)
+
+    rep, rep_source = eligible[0]
+    logger.info(
+        "[REPLACEMENT] %s intercepts %s via %s",
+        rep_source.name, primitive_type, rep.ability_id,
+    )
+    return rep.alternative_ir
+
+
+def _replacement_target_matches(
+    spec: Any,  # TargetSpec
+    source: CardInstance,
+    target: CardInstance,
+) -> bool:
+    """Check if a target card matches a replacement's target spec."""
+    controller = source.controller_id
+    if spec.scope == "friendly" and target.controller_id != controller:
+        return False
+    if spec.scope == "enemy" and target.controller_id == controller:
+        return False
+    if spec.scope == "self" and target.instance_id != source.instance_id:
+        return False
+    if spec.location == "here" and source.location_id:
+        if target.location_id != source.location_id:
+            return False
+    return True

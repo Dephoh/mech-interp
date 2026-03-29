@@ -21,6 +21,9 @@ def run_cleanup(gs: GameState) -> list[str]:
         changed = False
         logs: list[str] = []
 
+        # Step 0: Recalculate continuous modifiers (auras) from active board state
+        gs.recalculate_modifiers()
+
         # Step 1: Check win condition
         winner = check_win(gs)
         if winner:
@@ -55,11 +58,16 @@ def run_cleanup(gs: GameState) -> list[str]:
         if _stage_showdowns(gs, logs):
             changed = True
 
-        # Step 8: Stage Combats at battlefields with units from 2 players
+        # Step 8: Finalize any pending chain items (rule 322.12)
+        for item in gs.chain.stack:
+            if item.pending:
+                item.pending = False
+
+        # Step 9: Stage Combats at battlefields with units from 2 players
         if _stage_combats(gs, logs):
             changed = True
 
-        # Step 9: Open next staged Showdown or Combat (only in Neutral Open)
+        # Step 10: Open next staged Showdown or Combat (only in Neutral Open)
         if (
             gs.active_showdown is None
             and gs.active_combat is None
@@ -77,13 +85,25 @@ def run_cleanup(gs: GameState) -> list[str]:
 
 
 def _assign_combat_roles(gs: GameState) -> None:
-    """Ensure attacker/defender roles are assigned to units at the combat battlefield."""
+    """Ensure attacker/defender roles are correct during combat.
+
+    Rule 322.5:
+      a. Units at the combat battlefield without a designation gain their
+         controller's designation.
+      b. Units at the combat battlefield with the wrong designation get
+         corrected to their controller's designation.
+      c. Units at any OTHER location that have a combat designation lose it.
+    """
     combat = gs.active_combat
     if not combat:
         return
     bf = gs.battlefields.get(combat.battlefield_id)
     if not bf:
         return
+
+    combat_bf_id = combat.battlefield_id
+
+    # 322.5.a / 322.5.b — assign or correct roles for units at the combat BF
     for uid in bf.units:
         unit = gs.instances.get(uid)
         if not unit:
@@ -92,6 +112,18 @@ def _assign_combat_roles(gs: GameState) -> None:
             unit.combat_role = CombatRole.ATTACKER
         elif unit.controller_id == combat.defender_id:
             unit.combat_role = CombatRole.DEFENDER
+
+    # 322.5.c — strip combat roles from units NOT at the combat battlefield
+    for iid, inst in gs.instances.items():
+        if inst.card_type != CardType.UNIT:
+            continue
+        if inst.combat_role == CombatRole.NONE:
+            continue
+        # If this unit is at the combat battlefield, skip (handled above)
+        if iid in bf.units:
+            continue
+        # Unit is elsewhere with a stale designation — strip it
+        inst.combat_role = CombatRole.NONE
 
 
 def _kill_dead_units(gs: GameState, logs: list[str]) -> bool:
@@ -130,7 +162,20 @@ def _kill_dead_units(gs: GameState, logs: list[str]) -> bool:
     # Phase 2: Remove dead units from board and move to trash.
     for iid in units_to_kill:
         inst = gs.instances[iid]
+
+        # Detach gear before removing unit — gear returns to owner's base
+        for gear_id in list(inst.attached_cards):
+            gear = gs.instances.get(gear_id)
+            if gear:
+                gear.attached_to = None
+                gear.zone = ZoneType.BASE
+                gear.location_id = gear.owner_id
+                gs.base_gear.setdefault(gear.owner_id, []).append(gear_id)
+                logs.append(f"{gear.name} detached (unit died)")
+        inst.attached_cards.clear()
+
         _remove_from_board(gs, inst)
+        gs.unregister_card(iid)
 
         inst.zone = ZoneType.TRASH
         inst.location_id = None
@@ -205,8 +250,24 @@ def _cleanup_facedown(gs: GameState, logs: list[str]) -> None:
 
 
 def _stage_showdowns(gs: GameState, logs: list[str]) -> bool:
-    """Stage showdowns at newly-contested uncontrolled battlefields."""
+    """Stage showdowns at newly-contested uncontrolled battlefields.
+
+    Also implements rule 322.9: if opposing units arrive at a battlefield
+    with a staged showdown (before it opens), the showdown ceases being
+    staged (it will become a combat instead in _stage_combats).
+    """
     changed = False
+
+    # Rule 322.9 — cancel staged showdowns where opposing units now exist
+    for bf_id, bf in gs.battlefields.items():
+        if bf.showdown_staged:
+            units_by_player = bf.units_by_player(gs.instances)
+            if len(units_by_player) >= 2:
+                bf.showdown_staged = False
+                changed = True
+                logs.append(f"Showdown at {bf_id} cancelled (opposing units present)")
+
+    # Rule 322.8 — stage new showdowns
     for bf_id, bf in gs.battlefields.items():
         if (
             bf.contested_by is not None
@@ -224,8 +285,24 @@ def _stage_showdowns(gs: GameState, logs: list[str]) -> bool:
 
 
 def _stage_combats(gs: GameState, logs: list[str]) -> bool:
-    """Stage combats at battlefields with units from 2 opposing players."""
+    """Stage combats at battlefields with units from 2 opposing players.
+
+    Also implements rule 322.11: if opposing units are no longer both
+    present at a battlefield with a staged combat (before it opens),
+    the combat ceases being staged.
+    """
     changed = False
+
+    # Rule 322.11 — cancel staged combats where two sides no longer exist
+    for bf_id, bf in gs.battlefields.items():
+        if bf.combat_staged:
+            units_by_player = bf.units_by_player(gs.instances)
+            if len(units_by_player) < 2:
+                bf.combat_staged = False
+                changed = True
+                logs.append(f"Combat at {bf_id} cancelled (opposing units no longer present)")
+
+    # Rule 322.10 — stage new combats
     for bf_id, bf in gs.battlefields.items():
         if bf.combat_staged:
             continue

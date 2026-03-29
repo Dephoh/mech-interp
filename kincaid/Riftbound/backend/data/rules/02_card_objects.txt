@@ -1,0 +1,94 @@
+================================================================================
+RIFTBOUND RULES: Card Objects & Definitions
+Source sections: 120-139
+Backend modules: card_types.py
+================================================================================
+
+120. 
+A Game Object is any game piece that can produce one or more Game Effects or grant prerequisites for 
+players to take Game Actions. 
+121. 
+A Game Object does not include nor preclude any inherent properties beyond the ability to produce, or act as 
+the prerequisite for, Game Effects and Game Actions. 
+122. 
+A Game Object can be a literal object or a logical object. 
+123. 
+Game Objects include, but are not limited to, the following:  
+Main Deck cards in any zone  
+Runes in any zone  
+Legends  
+
+
+=== PAGE 7 ===
+ 
+ 
+Battlefields  
+Tokens  
+Abilities of any type on the chain  
+Buffs and other status markers 
+124. 
+Cards 
+125. 
+Riftbound games are composed of players playing the cards in their respective decks. 
+126. 
+Ownership 
+126.1. 
+For gameplay purposes, a card's Owner is the player who brought it into the game, either as their 
+Champion Legend, one of their Battlefields, or part of their Main Deck or Rune Deck. The legal 
+owner of a card doesn't matter during gameplay.  
+Example: Bo didn't bring a deck, so Alice loans him a deck. During the game, Bo is 
+considered the owner of those cards, even though legally they belong to Alice. 
+127. 
+Privacy 
+127.1. 
+A card will always exist in one of the many Zones described during Setup. 
+127.2. 
+A card will have a different level of Privacy based on where it resides at a given time 
+127.3. 
+Secret: This level of Privacy indicates that neither player may read or look at the face of the card. 
+127.4. 
+Private: This level of Privacy indicates that only the controller of a card on the board or the owner of a 
+card in any other zone may read or look at the face of the card.  
+Example: Cards in a player's hand are owned by that player. Only that player may read or 
+look at their faces.  
+ 
+Example: If a player controls a facedown card at a battlefield, that player and only that player 
+may read or look at that card's face, regardless of who owns that card. 
+127.5. 
+Public: This level of Privacy indicates that any player may read or look at the face of the card. 
+128. 
+Back Side 
+128.1. 
+The back side of a card is the side with the Riftbound logo. 
+128.2. 
+There is a unique pattern of back side for each of the three categories of card: Main Deck cards, Rune 
+Deck cards, and Battlefields and Champion Legends. 
+128.3. 
+The back side of a card is presented to conceal information for Private and Secret information cards. 
+For example, cards in the Main Deck and cards in hand have their back side presented. 
+128.4. 
+The term facedown is used to describe the state during regular play of having a card's back side 
+presented on the Board. A facedown card’s front side is considered Private Information. 
+129. 
+Front Side 
+129.1. 
+The front side of a card is the opposite of its back. 
+129.2. 
+This is also referred to as a front face. 
+129.3. 
+This can be identified in situations where the back is not easily discernible by the presence of the Play 
+Cost in the upper left corner of the card. 
+129.4. 
+Cards, when played, are played with their front face presented. 
+129.5. 
+The term face up is used to describe the state during regular play of having a card's front face 
+presented 
+
+
+=== PAGE 8 ===
+ 
+ 
+129.6. 
+Cards are considered to be Public Information while in this state, even if obscured by other cards in a 
+pile. Example: The Trash is Public Information because all cards there have their front face presented 
+even while stacked. 

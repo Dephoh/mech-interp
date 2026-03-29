@@ -180,6 +180,10 @@ class CardInstance:
     granted_keywords: list[KeywordInstance] = field(default_factory=list)
     # Transient might modifiers (expire end of turn)
     might_modifiers: list[int] = field(default_factory=list)
+    # Continuous modifier bonus (recalculated dynamically from active auras)
+    aura_might_bonus: int = 0
+    # Gear attachment might bonus (recalculated dynamically from attached gear)
+    gear_might_bonus: int = 0
 
     @staticmethod
     def create(
@@ -215,25 +219,71 @@ class CardInstance:
     def has_keyword(self, kw: Keyword) -> bool:
         return any(k.keyword == kw for k in self.all_keywords())
 
+    # Keywords where an omitted value (0) is presumed to be 1
+    # per rules 733.1.b.3 (Assault) and 740.1.b.3 (Shield).
+    _DEFAULT_ONE_KEYWORDS = frozenset({Keyword.ASSAULT, Keyword.SHIELD})
+
     def keyword_value(self, kw: Keyword) -> int:
-        """Sum all values for a given keyword (e.g. multiple Assault sources)."""
-        return sum(k.value for k in self.all_keywords() if k.keyword == kw)
+        """Sum all values for a given keyword (e.g. multiple Assault sources).
+
+        For Assault and Shield, a stored value of 0 means the X was omitted
+        and is presumed to be 1 (rules 733.1.b.3, 740.1.b.3).
+        """
+        default_one = kw in self._DEFAULT_ONE_KEYWORDS
+        total = 0
+        for k in self.all_keywords():
+            if k.keyword == kw:
+                total += k.value if k.value != 0 else (1 if default_one else 0)
+        return total
+
+    # ------------------------------------------------------------------
+    # Board zones (rule 710 vs 711)
+    # ------------------------------------------------------------------
+
+    _BOARD_ZONES = frozenset({
+        ZoneType.BASE,
+        ZoneType.BATTLEFIELD,
+        ZoneType.FACEDOWN_ZONE,
+        ZoneType.RUNE_BOARD,
+        ZoneType.LEGEND_ZONE,
+        ZoneType.CHAMPION_ZONE,
+    })
+
+    @property
+    def is_on_board(self) -> bool:
+        """True if the card is in a board zone (rule 710)."""
+        return self.zone in self._BOARD_ZONES
+
+    @property
+    def inherent_might(self) -> int:
+        """Printed/base might with no modifiers (rule 711 — non-board evaluation)."""
+        return self.definition.base_might
 
     @property
     def effective_might(self) -> int:
-        """Current might accounting for buffs, modifiers, Assault/Shield, but NOT stun."""
+        """Current might accounting for buffs, modifiers, auras, Assault/Shield.
+
+        Rule 710: Units on the board are evaluated according to their current might.
+        Rule 711: Units in non-board zones are evaluated according to their inherent might.
+        """
+        # Non-board zones use inherent (printed) might only (rule 711)
+        if not self.is_on_board:
+            return max(0, self.definition.base_might)
+
         base = self.definition.base_might
-        # Buff counter
+        # Buff counter (rule 703: each buff +1 might)
         if self.buff_counter:
             base += 1
-        # Attachment might bonuses
-        # (handled externally by the engine looking at attached_cards)
-        # Transient modifiers
+        # Attachment might bonuses from gear (rule 718.4)
+        base += self.gear_might_bonus
+        # Transient modifiers (spell effects etc.)
         base += sum(self.might_modifiers)
-        # Assault (only while attacker)
+        # Continuous aura modifiers (recalculated by GameState.recalculate_modifiers)
+        base += self.aura_might_bonus
+        # Assault (only while attacker, rule 733)
         if self.combat_role == CombatRole.ATTACKER:
             base += self.keyword_value(Keyword.ASSAULT)
-        # Shield (only while defender)
+        # Shield (only while defender, rule 740)
         if self.combat_role == CombatRole.DEFENDER:
             base += self.keyword_value(Keyword.SHIELD)
         return max(0, base)
@@ -247,10 +297,170 @@ class CardInstance:
 
     @property
     def is_alive(self) -> bool:
-        """True if unit has no lethal damage marked."""
+        """True if unit is on the board and has no lethal damage.
+
+        Rule 415: A unit in the trash or banishment is not alive.
+        A unit with 0 effective might is alive (cannot be killed by damage).
+        """
         if self.card_type != CardType.UNIT:
             return True
+        # A unit in trash or banishment is dead
+        if self.zone in (ZoneType.TRASH, ZoneType.BANISHMENT):
+            return False
         return self.damage < self.effective_might or self.effective_might == 0
+
+    # ------------------------------------------------------------------
+    # Mighty status (rules 707-709)
+    # ------------------------------------------------------------------
+
+    @property
+    def is_mighty(self) -> bool:
+        """True if this unit's might is 5 or greater (rule 708)."""
+        return self.effective_might >= 5
+
+    def would_become_mighty(self, might_delta: int) -> bool:
+        """True if applying might_delta would cause this unit to *become* Mighty.
+
+        Rule 709: A unit 'becomes Mighty' at the moment its Might changes
+        from being less than 5 to being 5 or greater.
+        """
+        current = self.effective_might
+        new = current + might_delta
+        return current < 5 and new >= 5
+
+    # ------------------------------------------------------------------
+    # Legend / Token identity helpers (rules 170-179)
+    # ------------------------------------------------------------------
+
+    @property
+    def is_legend(self) -> bool:
+        """True if this card is a Legend (rule 170)."""
+        return self.card_type == CardType.LEGEND
+
+    @property
+    def is_token(self) -> bool:
+        """True if this card is a Token (rule 179)."""
+        return SuperType.TOKEN in self.definition.supertypes
+
+    @property
+    def is_permanent(self) -> bool:
+        """True if this card is a permanent (unit or gear on the board).
+
+        Legends are NOT permanents (rule 171)."""
+        return self.card_type in (CardType.UNIT, CardType.GEAR) and not self.is_legend
+
+    # ------------------------------------------------------------------
+    # Attachment / Inactive text (rules 718, 720-724)
+    # ------------------------------------------------------------------
+
+    @property
+    def is_attached(self) -> bool:
+        """True if this card is attached to another card (rule 718)."""
+        return self.attached_to is not None
+
+    @property
+    def rules_text_active(self) -> bool:
+        """True if this card's own rules text is active.
+
+        Rule 718.2: While attached, the card's Rules Text is Inactive.
+        Rule 723: Rules Text is never Inactive by default.
+        """
+        return not self.is_attached
+
+    @property
+    def effect_text_active(self) -> bool:
+        """True if this card's effect text is active.
+
+        Rule 724: Effect Text is Inactive unless the card is Attached.
+        """
+        return self.is_attached
+
+    # ------------------------------------------------------------------
+    # Playability (rule 170.2.a — Legends cannot be played)
+    # ------------------------------------------------------------------
+
+    @property
+    def can_be_played(self) -> bool:
+        """True if this card is allowed to be played during regular play.
+
+        Rule 170.2.a: Legends are not played during the course of regular play.
+        Rule 170.2.b: Legends are established at start and remain in place.
+        """
+        if self.is_legend:
+            return False
+        return True
+
+    # ------------------------------------------------------------------
+    # Token cost overrides (rules 179.2.a, 179.2.b)
+    # ------------------------------------------------------------------
+
+    @property
+    def play_cost_energy(self) -> int:
+        """Energy cost to play this card. Tokens have no costs (rule 179.2.a)."""
+        if self.is_token:
+            return 0
+        return self.definition.cost_energy
+
+    @property
+    def play_cost_power(self) -> dict[Domain, int]:
+        """Power cost to play this card. Tokens have no costs (rule 179.2.a)."""
+        if self.is_token:
+            return {}
+        return self.definition.cost_power_dict()
+
+    # ------------------------------------------------------------------
+    # Detachment (rule 719.5)
+    # ------------------------------------------------------------------
+
+    def detach_all(self, instances: dict[str, CardInstance]) -> list[str]:
+        """Detach all cards attached to this top-most card.
+
+        Rule 719.5: When a Top-Most Card changes zones from a board zone
+        to a non-board zone, all Attached cards Detach from it, remaining
+        in their current zones.
+
+        Returns instance_ids of detached cards.
+        """
+        detached: list[str] = []
+        for gear_id in list(self.attached_cards):
+            gear = instances.get(gear_id)
+            if gear:
+                gear.attached_to = None
+                detached.append(gear_id)
+        self.attached_cards.clear()
+        return detached
+
+    # ------------------------------------------------------------------
+    # Privacy (rules 127.2-127.5)
+    # ------------------------------------------------------------------
+
+    @property
+    def privacy_level(self) -> str:
+        """Return the privacy level of this card based on its zone.
+
+        Rule 127.3: Secret — neither player may look at the face.
+        Rule 127.4: Private — only the controller (board) or owner (other zones).
+        Rule 127.5: Public — any player may look at the face.
+        """
+        if self.zone in (ZoneType.MAIN_DECK, ZoneType.RUNE_DECK):
+            # Cards in decks are Secret (127.3)
+            return "secret"
+        if self.zone == ZoneType.HAND:
+            # Cards in hand are Private to the owner (127.4)
+            return "private"
+        if self.zone == ZoneType.FACEDOWN_ZONE:
+            # Facedown cards are Private to the controller (127.4, 128.4)
+            return "private"
+        if self.zone in (ZoneType.TRASH, ZoneType.BANISHMENT):
+            # Cards in trash/banishment are face-up, Public (129.6)
+            return "public"
+        if self.zone in (
+            ZoneType.BASE, ZoneType.BATTLEFIELD, ZoneType.RUNE_BOARD,
+            ZoneType.LEGEND_ZONE, ZoneType.CHAMPION_ZONE, ZoneType.CHAIN,
+        ):
+            # Cards on the board / chain are face-up, Public (129.4-129.5)
+            return "public"
+        return "public"
 
     def clear_turn_state(self) -> None:
         """Called at end of turn to clear transient state."""
@@ -258,6 +468,31 @@ class CardInstance:
         self.might_modifiers.clear()
         self.entered_this_turn = False
         self.stunned = False  # stun clears at Ending Step
+
+    def reset_on_zone_exit(self) -> None:
+        """Clear all mutable state when a card leaves play.
+
+        Rule 705: If a Unit leaves play, remove all Buffs from it.
+        Rule 705.1: Champions do not retain Buffs in the Champion Zone.
+        Rule 719.5: When a Top-Most Card changes zones from board to non-board,
+                     all attached cards detach (handled by caller via detach_all).
+        """
+        self.damage = 0
+        self.buff_counter = False
+        self.exhausted = False
+        self.stunned = False
+        self.combat_role = CombatRole.NONE
+        self.facedown = False
+        self.hidden_at_battlefield = None
+        self.hidden_ready = False
+        self.granted_keywords.clear()
+        self.might_modifiers.clear()
+        self.aura_might_bonus = 0
+        self.gear_might_bonus = 0
+        self.entered_this_turn = False
+        # Clear attachment state (rule 719.5)
+        self.attached_to = None
+        self.attached_cards.clear()
 
     def heal(self) -> None:
         self.damage = 0

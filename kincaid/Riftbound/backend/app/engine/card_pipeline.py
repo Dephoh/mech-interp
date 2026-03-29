@@ -770,7 +770,7 @@ def convert_card(cms_card: dict) -> dict:
     keywords, text_after_keywords = _extract_keywords(ability_text)
 
     # Parse abilities
-    abilities = _parse_abilities(text_after_keywords, effect_text, card_id, name, card_type, keywords)
+    abilities = _parse_abilities(text_after_keywords, effect_text, card_id, name, card_type, keywords, domains)
 
     # Build result
     result: dict[str, Any] = {
@@ -869,7 +869,7 @@ def _extract_keywords(text: str) -> tuple[list[dict], str]:
 
 def _parse_abilities(
     text: str, effect_text: str, card_id: str, card_name: str,
-    card_type: str, keywords: list[dict],
+    card_type: str, keywords: list[dict], domains: list[str] | None = None,
 ) -> list[dict]:
     """Parse ability text into a list of AbilityDefinition dicts."""
     abilities: list[dict] = []
@@ -890,6 +890,40 @@ def _parse_abilities(
             "ability_id": ability_id,
             "text": block,
         }
+
+        # Check for [Equip] ability on gear (rule 744)
+        equip_match = re.match(r"\[Equip\]\s*(.*)", block)
+        if equip_match and card_type == "gear":
+            equip_rest = equip_match.group(1).strip()
+            # Remove leading dash/emdash and reminder text in parentheses
+            equip_rest = re.sub(r"^[—\-]\s*", "", equip_rest)
+            equip_rest = re.sub(r"\s*\([^)]*\)\s*$", "", equip_rest).strip()
+            # Parse cost tokens from e.g. "[C]", "[1][C]", "[C], Kill a friendly unit"
+            cost: dict[str, Any] = {}
+            cost_tokens = re.findall(r"\[(\w+)\]", equip_rest)
+            for tok in cost_tokens:
+                if tok == "T":
+                    cost["exhaust_source"] = True
+                elif tok.isdigit():
+                    cost["energy"] = cost.get("energy", 0) + int(tok)
+                elif tok == "C":
+                    cost["power_of_domain"] = True
+                elif tok == "A":
+                    cost.setdefault("power", {})["any"] = cost.get("power", {}).get("any", 0) + 1
+                elif tok in ("R", "G", "B", "O", "P", "Y"):
+                    domain = DOMAIN_SYMBOL_TO_ID.get(f"[{tok}]", "any")
+                    cost.setdefault("power", {})[domain] = cost.get("power", {}).get(domain, 0) + 1
+            # Resolve [C] → actual domain power cost
+            if cost.pop("power_of_domain", False) and domains:
+                cost.setdefault("power", {})[domains[0]] = cost.get("power", {}).get(domains[0], 0) + 1
+            ability["ability_type"] = "activated"
+            ability["cost"] = cost
+            ability["timing"] = "default"
+            ability["targets_required"] = 1
+            ability["target_type"] = "friendly_unit"
+            ability["effect_ir"] = {"type": "attach"}
+            abilities.append(ability)
+            continue
 
         # Check for activated ability (cost: effect)
         cost, effect_body = parse_activated_cost(block)

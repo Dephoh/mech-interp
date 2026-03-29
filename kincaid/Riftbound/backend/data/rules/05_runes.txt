@@ -1,0 +1,93 @@
+================================================================================
+RIFTBOUND RULES: Runes & Rune Pools
+Source sections: 156-168
+Backend modules: card_types.py, state_machine.py
+================================================================================
+
+160. 
+Basic Runes 
+160.1. 
+There are six Basic Runes, each with a Domain corresponding to its name:  
+Fury Rune  
+Calm Rune  
+Mind Rune  
+Body Rune  
+Chaos Rune  
+Order Rune 
+160.2. 
+A Basic Rune always has the following two Abilities: 
+160.2.a. 
+[E]: [Reaction] — Add [1]. 
+160.2.b. 
+Recycle this: [Reaction] — Add [C]. 
+
+
+=== PAGE 17 ===
+ 
+ 
+160.2.b.1. 
+The Power added this way corresponds to the Domain of the Rune that is being 
+Recycled. 
+161. 
+Rune Pools 
+162. 
+The Rune Pool is a conceptual collection of a player's available Energy and Power available to pay Costs. 
+162.1. 
+When a card adds Energy or Power, it is added to the controlling player's Rune Pool. 
+162.2. 
+Players must first add Energy and Power to their Rune Pool in order to be able to spend it to play 
+cards or pay for Abilities with costs. 
+162.3. 
+Energy and Power do not have a physical marker or tracker, although players may wish to use a 
+physical tracker if they are retaining unspent Energy and Power over the course of their turn. 
+163. 
+Every player's Rune Pool empties at the end of each player's draw phase and the end of each player's turn. 
+163.1. 
+Any unspent Energy or Power are lost. 
+164. 
+All Abilities that include the action "Add" are abilities that are adding Energy or Power to the Rune Pool. 
+See rule 416. Add for more information. 
+165. 
+Battlefields 
+166. 
+Battlefields are Game Objects. 
+166.1. 
+Battlefields are Owned by a player. 
+166.2. 
+Battlefields are not shuffled into Decks at the start of a game. 
+166.2.a. 
+Battlefields are not played during the course of regular play. 
+166.2.b. 
+Battlefields are established at the start of a game and remain in place for the duration of 
+regular play. 
+166.3. 
+Battlefields cannot be Killed during the course of regular play. 
+166.4. 
+Battlefields cannot be Moved. 
+166.5. 
+Battlefields are Locations. 
+166.5.a. 
+Battlefields can be Origins of moves. 
+166.5.b. 
+Battlefields can be Destinations of moves. 
+166.6. 
+Any number of Units can be present at a Battlefield. 
+166.7. 
+Battlefields can be targeted by spells or game effects. 
+166.8. 
+Battlefields can have Passive Abilities. 
+See rule 360. Passive Abilities for more information. 
+166.9. 
+Battlefields can have Triggered Abilities. 
+See rule 375. Triggered Abilities for more information. 
+167. 
+Battlefields are not Permanents. 
+
+
+=== PAGE 18 ===
+ 
+ 
+168. 
+The number of Battlefields on the Board is determined by the Mode of Play. 
+169. 
+Legends 

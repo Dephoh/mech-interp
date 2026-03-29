@@ -19,10 +19,15 @@ from .effect_ir import (
     COMPOSITION_TYPES,
     CONDITIONAL,
     CHOOSE_ONE,
+    DELAYED_TRIGGER,
     FOR_EACH,
+    MODIFIER,
     OPTIONAL,
+    PLAYER_CHOICE,
     PRIMITIVE_TYPES,
+    REPLACEMENT,
     REPEAT_EFFECT,
+    RULE_BREAKER_TYPES,
     SEQUENCE,
     ConditionSpec,
     TargetSpec,
@@ -34,6 +39,18 @@ if TYPE_CHECKING:
     from .game_state import GameState
 
 logger = logging.getLogger("riftbound.resolver")
+
+# Monotonic counter used to stamp modifiers/replacements with a relative
+# timestamp so that effects in the same layer can be ordered chronologically
+# (rule 457).  The counter is module-level so it survives across calls.
+_timestamp_counter: int = 0
+
+
+def _next_timestamp() -> int:
+    """Return the next monotonically increasing timestamp (rule 457.1)."""
+    global _timestamp_counter
+    _timestamp_counter += 1
+    return _timestamp_counter
 
 
 def resolve_effect_ir(
@@ -72,6 +89,8 @@ def resolve_effect_ir(
         return _resolve_primitive(node, source, gs, targets)
     elif node_type in COMPOSITION_TYPES:
         return _resolve_composition(node, source, gs, targets)
+    elif node_type in RULE_BREAKER_TYPES:
+        return _resolve_rule_breaker(node, source, gs, targets)
     else:
         return [f"Unhandled node type: {node_type}"]
 
@@ -82,7 +101,14 @@ def _resolve_primitive(
     gs: GameState,
     targets: list[str],
 ) -> list[str]:
-    """Execute a leaf (primitive) node."""
+    """Execute a leaf (primitive) node.
+
+    Before executing, broadcasts intent to the replacement system. If an
+    active ReplacementNode intercepts this primitive, the alternative IR
+    is executed instead.
+    """
+    from .trigger_system import check_primitive_replacement
+
     node_type = node["type"]
     fn = PRIMITIVE_DISPATCH.get(node_type)
     if fn is None:
@@ -95,7 +121,17 @@ def _resolve_primitive(
     if not resolved and "target" in node:
         resolved = _auto_resolve_targets(node["target"], source, gs)
 
-    return fn(source, gs, node, resolved)
+    # Broadcast intent — check if any replacement intercepts this primitive
+    alt_ir = check_primitive_replacement(gs, node_type, source, resolved)
+    if alt_ir:
+        logs = resolve_effect_ir(alt_ir, source, gs, resolved)
+        gs.last_effect_succeeded = bool(logs and not any("No valid" in l for l in logs))
+        return logs
+
+    logs = fn(source, gs, node, resolved)
+    # Track success: a primitive succeeded if it produced logs without "No valid" failures
+    gs.last_effect_succeeded = bool(logs and not any("No valid" in l for l in logs))
+    return logs
 
 
 def _resolve_composition(
@@ -219,6 +255,192 @@ def _resolve_repeat(
 
 
 # ---------------------------------------------------------------------------
+# Rule-breaker node resolution (modifier, replacement, player_choice)
+# ---------------------------------------------------------------------------
+
+def _resolve_rule_breaker(
+    node: dict[str, Any],
+    source: CardInstance,
+    gs: GameState,
+    targets: list[str],
+) -> list[str]:
+    """Resolve a rule-breaker (stateful/interactive) node."""
+    node_type = node["type"]
+
+    if node_type == MODIFIER:
+        return _resolve_modifier(node, source, gs)
+    elif node_type == REPLACEMENT:
+        return _resolve_replacement(node, source, gs)
+    elif node_type == PLAYER_CHOICE:
+        return _resolve_player_choice(node, source, gs, targets)
+    elif node_type == DELAYED_TRIGGER:
+        return _resolve_delayed_trigger(node, source, gs)
+    else:
+        return [f"Unhandled rule-breaker: {node_type}"]
+
+
+def _resolve_modifier(
+    node: dict[str, Any],
+    source: CardInstance,
+    gs: GameState,
+) -> list[str]:
+    """Register a continuous modifier (aura) on the game state.
+
+    The modifier is tracked on GameState.active_modifiers and recalculated
+    each cleanup cycle. This never mutates base card data.
+
+    Auto-classifies the layer (rule 454) if not explicitly set on the node.
+    """
+    from .effect_ir import classify_modifier_layer
+
+    stat = node.get("stat", "might")
+    amount = node.get("amount", 0)
+
+    # Ensure the node carries a layer classification (as a string value)
+    if not node.get("layer"):
+        layer_enum = classify_modifier_layer(node)
+        node["layer"] = layer_enum.value if hasattr(layer_enum, "value") else str(layer_enum)
+
+    # Find the ability_id that owns this IR (use source + a hash key)
+    ability_id = f"{source.instance_id}_mod_{stat}_{amount}"
+
+    # Don't double-register
+    for existing in gs.active_modifiers:
+        if existing.source_instance_id == source.instance_id and existing.ability_id == ability_id:
+            return [f"{source.name} modifier already active"]
+
+    gs.register_modifier(source, ability_id, node)
+
+    # Stamp the newly registered modifier with a monotonic timestamp so
+    # the layer system can order effects chronologically (rule 457).
+    new_mod = gs.active_modifiers[-1]
+    new_mod.timestamp = _next_timestamp()  # type: ignore[attr-defined]
+
+    recalculate_modifiers_layered(gs)
+
+    exclude_tag = " (excluding self)" if node.get("exclude_self") else ""
+    sign = "+" if amount >= 0 else ""
+    layer_tag = f" [layer: {node['layer']}]"
+    return [f"{source.name}: {sign}{amount} {stat} aura active{exclude_tag}{layer_tag}"]
+
+
+def _resolve_replacement(
+    node: dict[str, Any],
+    source: CardInstance,
+    gs: GameState,
+) -> list[str]:
+    """Register a replacement effect on the game state.
+
+    The replacement watches for a specific event/primitive and intercepts
+    it with an alternative IR when conditions are met.
+    """
+    watch_event = node.get("watch_event", "")
+    ability_id = f"{source.instance_id}_rep_{watch_event}"
+
+    # Don't double-register
+    for existing in gs.active_replacements:
+        if existing.source_instance_id == source.instance_id and existing.ability_id == ability_id:
+            return [f"{source.name} replacement already active"]
+
+    gs.register_replacement(source, ability_id, node)
+    return [f"{source.name}: replacement effect active (watches {watch_event})"]
+
+
+def _resolve_delayed_trigger(
+    node: dict[str, Any],
+    source: CardInstance,
+    gs: GameState,
+) -> list[str]:
+    """Register a delayed trigger on the game state (rules 382-385).
+
+    Delayed abilities are created by spells/abilities and fire at a future
+    time or event.  They persist independently of the creating source --
+    even if the source leaves play, the delayed trigger still resolves
+    (rule 385).
+
+    The delayed trigger is stored on ``gs.delayed_triggers`` (a list).
+    The trigger system checks this list when events fire.
+    """
+    trigger_event = node.get("trigger_event", "")
+    effect_ir = node.get("effect_ir", {})
+    duration = node.get("duration", "turn")
+    max_fires = node.get("max_fires", 1)
+    condition = node.get("condition", {"cond_type": "always"})
+
+    if not hasattr(gs, "delayed_triggers"):
+        gs.delayed_triggers = []  # type: ignore[attr-defined]
+
+    delayed = {
+        "trigger_event": trigger_event,
+        "effect_ir": effect_ir,
+        "condition": condition,
+        "duration": duration,
+        "max_fires": max_fires,
+        "fires_remaining": max_fires if max_fires > 0 else -1,
+        "source_instance_id": source.instance_id,
+        "controller_id": source.controller_id,
+        "created_turn": getattr(gs, "turn_number", 0),
+    }
+    gs.delayed_triggers.append(delayed)  # type: ignore[attr-defined]
+
+    return [f"{source.name}: delayed trigger registered (watches {trigger_event}, "
+            f"duration={duration})"]
+
+
+def _resolve_player_choice(
+    node: dict[str, Any],
+    source: CardInstance,
+    gs: GameState,
+    targets: list[str],
+) -> list[str]:
+    """Handle a player_choice node — halts execution for player input.
+
+    In auto-play mode (no pending_choice support), picks the first option.
+    When the choice state machine is active (Task 3), this pushes
+    CHOICE_PENDING and halts.
+    """
+    # If the game state supports choice halting, use it
+    if hasattr(gs, "pending_choice") and gs.pending_choice is None:
+        prompt = node.get("prompt", "Make a choice")
+        options = node.get("options", [])
+        target_spec = node.get("target")
+        min_c = node.get("min_choices", 1)
+        max_c = node.get("max_choices", 1)
+
+        # Store the full context needed to resume later
+        gs.pending_choice = {
+            "prompt": prompt,
+            "options": [opt if isinstance(opt, dict) else opt for opt in options],
+            "target": target_spec,
+            "min_choices": min_c,
+            "max_choices": max_c,
+            "source_instance_id": source.instance_id,
+            "controller_id": source.controller_id,
+            "remaining_ir": node,  # the full node for resume
+            "pre_targets": targets,
+        }
+        return [f"CHOICE_PENDING: {prompt}"]
+
+    # Auto-play fallback: pick first option or first valid target
+    options = node.get("options", [])
+    if options:
+        first = options[0]
+        effect = first.get("effect", first)
+        return resolve_effect_ir(effect, source, gs, targets)
+
+    # Target-selection choice: auto-resolve
+    target_spec = node.get("target")
+    if target_spec:
+        resolved = _auto_resolve_targets(target_spec, source, gs)
+        max_c = node.get("max_choices", 1)
+        resolved = resolved[:max_c]
+        if resolved:
+            return [f"Auto-selected targets: {resolved}"]
+
+    return ["No choice options available"]
+
+
+# ---------------------------------------------------------------------------
 # Condition evaluation
 # ---------------------------------------------------------------------------
 
@@ -305,11 +527,52 @@ def evaluate_condition(
         ps = gs.players.get(source.controller_id)
         return bool(ps and ps.played_main_deck_this_turn)
 
+    elif cond_type == "previous_effect_succeeded":
+        return gs.last_effect_succeeded
+
     elif cond_type == "always":
         return True
 
     elif cond_type == "never":
         return False
+
+    elif cond_type == "hand_count_lte":
+        threshold = params.get("threshold", 0)
+        ps = gs.players.get(source.controller_id)
+        return bool(ps and len(ps.hand) <= threshold)
+
+    elif cond_type == "hand_count_gte":
+        # Rule 361.3a: conditional passive — "while you have N or more cards
+        # in hand"
+        threshold = params.get("threshold", 0)
+        ps = gs.players.get(source.controller_id)
+        return bool(ps and len(ps.hand) >= threshold)
+
+    elif cond_type == "opponent_hand_count_gte":
+        # Rule 361: "while you have 2 or more cards in your hand"
+        # (from opponent's perspective, e.g., "+1[M] while opponent has 2+
+        # cards in hand")
+        threshold = params.get("threshold", 0)
+        opp_id = gs.opponent_id(source.controller_id)
+        opp = gs.players.get(opp_id)
+        return bool(opp and len(opp.hand) >= threshold)
+
+    elif cond_type == "is_alone":
+        # "While I'm attacking or defending alone" — only one unit from
+        # the controller at the same battlefield
+        bf = gs.get_battlefield_for_unit(source.instance_id)
+        if not bf:
+            return False
+        own_units = [
+            uid for uid in bf.units
+            if gs.get_instance(uid) and gs.get_instance(uid).controller_id == source.controller_id
+        ]
+        return len(own_units) == 1
+
+    elif cond_type == "source_at_battlefield":
+        # True if the source card is at a battlefield (not in base)
+        from .enums import ZoneType
+        return source.zone == ZoneType.BATTLEFIELD
 
     else:
         logger.warning("Unknown condition type: %s", cond_type)
@@ -451,3 +714,207 @@ def _check_filter(card: CardInstance, f_dict: Any) -> bool:
             return card.exhausted == filt.value
 
     return True  # unknown filter passes by default
+
+
+# ---------------------------------------------------------------------------
+# Layer-aware modifier recalculation (rules 453-457)
+# ---------------------------------------------------------------------------
+
+_LAYER_ORDER = ("trait_altering", "ability_altering", "arithmetic")
+_MAX_LAYER_ITERATIONS = 5  # safety cap for the re-evaluation loop
+
+
+def recalculate_modifiers_layered(gs: GameState) -> None:
+    """Recompute all continuous modifiers using the 3-layer system (rule 454).
+
+    Layers are applied in order:
+      1. Trait-Altering  (454.1) -- name/type/tag/controller/domain/might-set
+      2. Ability-Altering (454.2) -- keywords / abilities / rules text
+      3. Arithmetic       (454.3) -- might increases THEN decreases
+
+    Within each layer, modifiers without dependency are applied in timestamp
+    order (rule 457). The whole sequence is re-evaluated until no changes
+    occur (rule 453.2), capped at ``_MAX_LAYER_ITERATIONS`` to prevent loops.
+
+    Within the Arithmetic layer (rule 454.3.d):
+      - Increases (positive amounts) are applied first  (454.3.d.1)
+      - Decreases (negative amounts) are applied second (454.3.d.2)
+
+    Arithmetic effects with a ``min_might`` or ``max_might`` limitation are
+    *snapshotted* at application time (rule 454.3.b): the effective delta is
+    clamped when first computed, and that clamped value is remembered for the
+    duration of the effect.
+
+    Keyword/ability modifiers (ability-altering layer) grant or remove
+    keywords on matching targets while their source is on the board.
+    """
+    from .effect_ir import EffectLayer, TargetSpec, classify_modifier_layer
+
+    # 1. Zero all derived bonuses and remove aura-granted keywords.
+    #    Aura-granted keywords are tracked as a count-per-keyword via the
+    #    ``_aura_kw_counts`` dict stamped on each CardInstance during the
+    #    previous pass.  We remove exactly that many entries per keyword,
+    #    leaving player-granted duplicates intact.
+    for inst in gs.instances.values():
+        inst.aura_might_bonus = 0
+        inst.gear_might_bonus = 0
+        prev_aura_counts: dict[str, int] = getattr(inst, "_aura_kw_counts", {})
+        if prev_aura_counts:
+            remaining_counts = dict(prev_aura_counts)
+            new_list: list = []
+            for gk in inst.granted_keywords:
+                kw_val = gk if isinstance(gk, str) else getattr(gk, "keyword", gk)
+                if isinstance(kw_val, str) and remaining_counts.get(kw_val, 0) > 0:
+                    remaining_counts[kw_val] -= 1
+                    # Skip this entry (it was aura-granted)
+                else:
+                    new_list.append(gk)
+            inst.granted_keywords = new_list
+        inst._aura_kw_counts = {}  # type: ignore[attr-defined]
+
+    # 2. Prune stale modifiers/replacements whose source left the board
+    board_ids = gs._get_board_instance_ids()
+    gs.active_modifiers = [
+        m for m in gs.active_modifiers if m.source_instance_id in board_ids
+    ]
+    gs.active_replacements = [
+        r for r in gs.active_replacements if r.source_instance_id in board_ids
+    ]
+
+    # 3. Classify EVERY modifier into its layer (not just "might").
+    layer_buckets: dict[str, list] = {layer: [] for layer in _LAYER_ORDER}
+    for mod in gs.active_modifiers:
+        layer_key = classify_modifier_layer(
+            {"stat": mod.stat, "amount": mod.amount}
+        )
+        if isinstance(layer_key, EffectLayer):
+            layer_key = layer_key.value
+        if layer_key not in layer_buckets:
+            layer_key = EffectLayer.ARITHMETIC.value
+        layer_buckets[layer_key].append(mod)
+
+    # 4. Sort within each layer by timestamp (rule 457)
+    for layer_key in _LAYER_ORDER:
+        bucket = layer_buckets[layer_key]
+        bucket.sort(key=lambda m: getattr(m, "timestamp", 0))
+
+    # 5. Iterative re-evaluation loop (rule 453.2)
+    applied_ids: set[tuple[str, str]] = set()  # (source_id, ability_id)
+
+    for _iteration in range(_MAX_LAYER_ITERATIONS):
+        changed = False
+
+        for layer_key in _LAYER_ORDER:
+            mods = layer_buckets[layer_key]
+            if not mods:
+                continue
+
+            if layer_key == EffectLayer.ARITHMETIC.value:
+                # Rule 454.3.d: increases first, then decreases
+                increases = [m for m in mods if m.amount >= 0]
+                decreases = [m for m in mods if m.amount < 0]
+                ordered = increases + decreases
+            else:
+                ordered = mods
+
+            for mod in ordered:
+                mod_key = (mod.source_instance_id, mod.ability_id)
+                if mod_key in applied_ids:
+                    continue
+
+                source = gs.get_instance(mod.source_instance_id)
+                if not source:
+                    continue
+
+                spec = TargetSpec.from_dict(mod.target_spec)
+                matched = gs._resolve_modifier_targets(spec, source, mod.exclude_self)
+                if not matched:
+                    continue
+
+                if mod.stat == "keyword":
+                    # Ability-Altering layer: grant keyword to matched targets
+                    _apply_keyword_modifier(gs, mod, matched)
+                elif mod.stat in ("might", "energy_cost", "power_cost"):
+                    # Arithmetic layer: apply might/cost adjustments
+                    _apply_arithmetic_modifier(gs, mod, matched)
+                # Trait-Altering modifiers (name/type/tag/controller/domain)
+                # are not yet implemented beyond might_set, which goes through
+                # the arithmetic path with a ``set_value`` flag.
+
+                applied_ids.add(mod_key)
+                changed = True
+
+        if not changed:
+            break
+
+    # 6. Apply gear attachment might bonuses (always arithmetic layer)
+    for inst in gs.instances.values():
+        if inst.attached_cards:
+            for gear_id in inst.attached_cards:
+                gear = gs.get_instance(gear_id)
+                if gear and gear.definition.might_bonus:
+                    inst.gear_might_bonus += gear.definition.might_bonus
+
+
+def _apply_arithmetic_modifier(
+    gs: GameState,
+    mod: Any,
+    matched: list[str],
+) -> None:
+    """Apply a single arithmetic modifier to matched targets (rule 454.3).
+
+    Handles snapshotting (rule 454.3.b): when the modifier carries a
+    ``min_might`` field, the effective delta is clamped so the target's
+    might does not fall below the minimum.
+    """
+    for iid in matched:
+        inst = gs.get_instance(iid)
+        if not inst:
+            continue
+        effective_delta = mod.amount
+
+        # Snapshotting (rule 454.3.b): clamp to floor / ceiling when
+        # the modifier specifies a min or max constraint.
+        min_might = getattr(mod, "min_might", None)
+        if min_might is not None and effective_delta < 0:
+            # How far can might drop before hitting the min?
+            current = inst.definition.base_might + inst.aura_might_bonus
+            headroom = current - min_might
+            if headroom <= 0:
+                effective_delta = 0
+            else:
+                effective_delta = max(effective_delta, -headroom)
+
+        inst.aura_might_bonus += effective_delta
+
+
+def _apply_keyword_modifier(
+    gs: GameState,
+    mod: Any,
+    matched: list[str],
+) -> None:
+    """Apply an ability-altering modifier that grants a keyword (rule 454.2).
+
+    Uses the same string convention as ``prim_give_keyword``: appends the
+    keyword's string value to ``granted_keywords``.  The keyword string is
+    also counted in the ``_aura_kw_counts`` dict on the CardInstance so that
+    ``recalculate_modifiers_layered`` can strip exactly those entries on
+    the next pass without removing player-granted keywords.
+    """
+    from .enums import Keyword
+
+    keyword_str = getattr(mod, "keyword_value", None) or str(mod.amount)
+    try:
+        kw = Keyword(keyword_str)
+    except (ValueError, KeyError):
+        return
+
+    for iid in matched:
+        inst = gs.get_instance(iid)
+        if not inst:
+            continue
+        aura_counts: dict[str, int] = getattr(inst, "_aura_kw_counts", {})
+        # Always append -- the count tracks how many to strip later
+        inst.granted_keywords.append(kw.value)
+        aura_counts[kw.value] = aura_counts.get(kw.value, 0) + 1
+        inst._aura_kw_counts = aura_counts  # type: ignore[attr-defined]

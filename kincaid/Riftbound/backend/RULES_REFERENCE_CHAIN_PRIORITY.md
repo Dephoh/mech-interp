@@ -1,5 +1,5 @@
 # Riftbound Chain & Priority - Rules Reference
-> Source of truth: rules_extracted.txt (rules 324-356)
+> Source of truth: backend/data/rules/11_chain.txt, backend/data/rules/13_process_of_play.txt
 
 ## Chain Basics (327-330)
 - Chain is a Non-Board Zone that temporarily exists when a card is played or ability activated

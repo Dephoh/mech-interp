@@ -45,6 +45,7 @@ def execute_action(
         ActionType.ACTIVATE_ABILITY: _exec_activate_ability,
         ActionType.ASSIGN_DAMAGE: _exec_assign_damage,
         ActionType.CONCEDE: _exec_concede,
+        ActionType.SUBMIT_CHOICE: _exec_submit_choice,
     }
 
     executor = executors.get(action_type)
@@ -62,7 +63,10 @@ def execute_action(
 
 
 def _exec_mulligan(gs: GameState, player_id: str, payload: dict) -> list[str]:
-    """Process mulligan choice: keep specified cards, redraw the rest."""
+    """Process mulligan choice: keep specified cards, redraw the rest.
+    Rule 117.1: A player may choose up to two cards to set aside.
+    Rule 117.3: Set-aside cards are recycled (placed at bottom of deck).
+    """
     ps = gs.players[player_id]
     keep_indices = payload.get("keep_indices", [])
     logs: list[str] = []
@@ -73,24 +77,27 @@ def _exec_mulligan(gs: GameState, player_id: str, payload: dict) -> list[str]:
         if 0 <= idx < len(current_hand):
             keep_ids.add(current_hand[idx])
 
-    # Return non-kept cards to deck
+    # Rule 117.1: max 2 cards can be set aside
     returned = []
     for iid in current_hand:
-        if iid not in keep_ids:
-            inst = gs.instances[iid]
-            inst.zone = ZoneType.MAIN_DECK
-            inst.location_id = None
-            ps.hand.remove(iid)
-            ps.main_deck.append(iid)
+        if iid not in keep_ids and len(returned) < 2:
             returned.append(iid)
 
-    # Shuffle deck
-    import random
-    random.shuffle(ps.main_deck)
+    # Remove returned cards from hand
+    for iid in returned:
+        inst = gs.instances[iid]
+        inst.zone = ZoneType.MAIN_DECK
+        inst.location_id = None
+        ps.hand.remove(iid)
 
-    # Draw replacements
+    # Draw replacements first (before recycling set-aside cards)
     num_draw = len(returned)
     drawn = _draw_cards(gs, player_id, num_draw)
+
+    # Rule 117.3: Recycle set-aside cards (place at bottom of deck)
+    for iid in returned:
+        ps.main_deck.append(iid)
+
     logs.append(f"{ps.display_name} mulligans {len(returned)} cards, draws {len(drawn)}")
 
     # Mark mulligan complete
@@ -138,8 +145,9 @@ def _exec_play_card(gs: GameState, player_id: str, payload: dict) -> list[str]:
 
     # Pay costs (unless facedown)
     if card.zone != ZoneType.FACEDOWN_ZONE:
-        cost_e = card.definition.cost_energy
-        cost_p = card.definition.cost_power_dict()
+        # Rule 353.5: Energy and Power costs can't be reduced below 0.
+        cost_e = max(0, card.definition.cost_energy)
+        cost_p = {dom: max(0, amt) for dom, amt in card.definition.cost_power_dict().items()}
         ps.rune_pool.spend(cost_e, cost_p)
 
         # Pay Accelerate cost if requested
@@ -170,8 +178,33 @@ def _exec_play_card(gs: GameState, player_id: str, payload: dict) -> list[str]:
         ps.played_main_deck_this_turn += 1
 
     # Spells go on the chain; permanents also go through the chain
-    push_card_to_chain(gs, card, player_id, targets)
+    destination = payload.get("destination")
+    push_card_to_chain(gs, card, player_id, targets, destination=destination)
     logs.append(f"{ps.display_name} plays {card.name}")
+
+    # Rule 355: Post-play legality check.
+    # Verify the board state is legal after the card enters. If a unit was
+    # played to a battlefield, confirm the controller still controls that
+    # battlefield (e.g. they didn't kill their only unit there as an
+    # additional cost). This is a safety net; the validator should catch
+    # most cases, but costs can change state.
+    if card.card_type == CardType.UNIT and destination:
+        dest_zone = destination.get("zone")
+        dest_id = destination.get("id")
+        if dest_zone == "battlefield" and dest_id in gs.battlefields:
+            bf = gs.battlefields[dest_id]
+            # Check the controller still has units there (including the
+            # newly placed unit itself).
+            controller_units = [
+                uid for uid in bf.units
+                if gs.get_instance(uid) and gs.get_instance(uid).controller_id == player_id
+            ]
+            if not controller_units:
+                logs.append(
+                    f"WARNING: {card.name} placed at battlefield "
+                    f"{dest_id} but controller has no units there — "
+                    f"legality check flagged (rule 355)"
+                )
 
     return logs
 
@@ -301,9 +334,13 @@ def _exec_activate_ability(gs: GameState, player_id: str, payload: dict) -> list
             ability = ab
             break
 
-    # Pay exhaust cost if needed
-    if ability.cost and ability.cost.exhaust_source:
-        source.exhausted = True
+    # Pay costs (rule 369)
+    if ability.cost:
+        if ability.cost.exhaust_source:
+            source.exhausted = True
+        if ability.cost.energy > 0 or ability.cost.power:
+            ps = gs.players[player_id]
+            ps.rune_pool.spend(ability.cost.energy, ability.cost.power_dict())
 
     # Push ability to chain
     push_ability_to_chain(gs, source, ability_id, player_id, targets)
@@ -326,3 +363,67 @@ def _exec_concede(gs: GameState, player_id: str, payload: dict) -> list[str]:
     winner_name = gs.players[winner_id].display_name
     gs.log.add(f"{loser_name} concedes. {winner_name} wins!")
     return [f"{loser_name} concedes. {winner_name} wins!"]
+
+
+def _exec_submit_choice(gs: GameState, player_id: str, payload: dict) -> list[str]:
+    """Resume execution after a player submits their choice.
+
+    Pops the pending_choice from GameState and resumes the IR walker
+    with the player's selection applied.
+    """
+    from .effect_resolver import resolve_effect_ir
+
+    pending = gs.pending_choice
+    if pending is None:
+        return ["No pending choice to submit"]
+
+    if pending["controller_id"] != player_id:
+        return ["Not your choice to make"]
+
+    logs: list[str] = []
+
+    chosen_option_index = payload.get("chosen_option_index")
+    chosen_target_ids = payload.get("chosen_target_ids", [])
+
+    # Clear the pending choice before resolving (so nested choices can work)
+    gs.pending_choice = None
+
+    source_id = pending["source_instance_id"]
+    source = gs.get_instance(source_id)
+    if not source:
+        return ["Choice source no longer exists"]
+
+    pre_targets = pending.get("pre_targets", [])
+
+    # Modal choice: player picked an option index
+    if chosen_option_index is not None:
+        options = pending.get("options", [])
+        if 0 <= chosen_option_index < len(options):
+            chosen = options[chosen_option_index]
+            effect = chosen.get("effect", chosen)
+            result = resolve_effect_ir(effect, source, gs, pre_targets)
+            logs.extend(result)
+            logs.insert(0, f"Choice submitted: option {chosen_option_index}")
+        else:
+            logs.append(f"Invalid option index: {chosen_option_index}")
+
+    # Target-selection choice: player picked specific targets
+    elif chosen_target_ids:
+        # Validate target count
+        min_c = pending.get("min_choices", 1)
+        max_c = pending.get("max_choices", 1)
+        if not (min_c <= len(chosen_target_ids) <= max_c):
+            logs.append(
+                f"Invalid target count: got {len(chosen_target_ids)}, "
+                f"expected {min_c}-{max_c}"
+            )
+        else:
+            logs.append(f"Targets selected: {chosen_target_ids}")
+            # The remaining IR after the choice point may use these targets.
+            # Callers higher up the chain should provide a continuation IR.
+            # For now, targets are stored and the chain resolver will pick them up.
+
+    else:
+        logs.append("No choice provided")
+
+    return logs

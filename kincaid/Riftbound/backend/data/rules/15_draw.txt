@@ -1,0 +1,305 @@
+================================================================================
+RIFTBOUND RULES: Draw, Exhaust, Ready, Recycle
+Source sections: 400-404
+Backend modules: effect_primitives.py
+================================================================================
+
+400. 
+Draw 
+400.1. 
+Drawing a card takes a single card from the top of the Main Deck and adds it to the player's Hand. 
+400.2. 
+This is a Limited Action. 
+400.2.a. 
+Each player draws 1 during the Draw Step of their Beginning Phase. 
+400.2.b. 
+The player may draw cards when instructed to do so by other game effects. 
+400.3. 
+This action, when instructed, is formatted as "Draw X." 
+400.4. 
+If a player attempts to draw more cards than are available in their Main Deck, they do the following: 
+400.4.a. 
+Draw as many as possible. 
+400.4.b. 
+Perform a Burn Out.  
+See rule 418. Burn Out for more information. 
+400.4.c. 
+Draw the remaining cards needed to complete the Draw action. 
+401. 
+Exhaust 
+401.1. 
+Exhausting is an action that marks a non-spell Game Object as "spent." 
+401.1.a. 
+To mark it, rotate the card 90 degrees opposite of Readying, so that the orientation of the 
+card is lengthwise in front of you. 
+401.1.b. 
+A Unit that is already Exhausted cannot be Exhausted again. 
+401.1.c. 
+If a Unit is instructed to be Exhausted while it is already Exhausted, nothing additional 
+happens. 
+401.2. 
+"Exhausted" is a state for Game Objects that other game effects and rules can reference. 
+401.3. 
+This is a Limited Action. 
+401.3.a. 
+Most Exhaust actions will be costs for Activated Abilities or Discretionary Actions. Example: 
+A unit's Standard Move exhausts the unit as a cost. 
+401.4. 
+When Exhausting is listed as a Cost, then the Action must be able to be completed for the cost to be 
+paid.  
+Example: A spell says "As an additional cost to play this, you may exhaust a friendly unit." An 
+exhausted friendly unit may not be exhausted again as the additional cost for the spell, and 
+the additional cost has not been paid. 
+401.5. 
+In abilities, the Exhaust symbol represents the cost "Exhaust this" or "Exhaust me." It resembles a 
+card turning sideways. 
+402. 
+Ready 
+402.1. 
+Readying is an action that marks a non-spell Game Object as available for action. 
+402.1.a. 
+To mark it, rotate the card 90 degrees opposite of Exhausting, so that it is vertically oriented 
+in front of you. 
+402.1.b. 
+A Unit that is already Ready cannot be Readied again. 
+402.1.c. 
+If a Unit is instructed to be Readied while it is already Ready, nothing additional happens. 
+
+
+=== PAGE 47 ===
+ 
+ 
+402.2. 
+"Ready" is a state for Game Objects that other game effects and rules can reference. 
+402.3. 
+This is a Limited Action. 
+402.3.a. 
+A player Readies all non-spell Game Objects they Control during the Ready Step of the 
+Beginning Phase on their turn. 
+402.3.b. 
+The player may also Ready their Game Objects when effects or spells instruct them to do so. 
+403. 
+Recycle 
+403.1. 
+Recycling cards is the action in which a player takes one or more cards from a specific zone and then 
+puts it on the bottom of the corresponding deck. 
+403.1.a. 
+Main Deck cards are Recycled to the Main Deck. 
+403.1.b. 
+Runes are Recycled to the Rune Deck. 
+403.1.c. 
+Each player Recycles cards to their own Main Deck and Rune Deck, regardless of which 
+player is instructed to perform the Recycle action. 
+403.2. 
+This is a Limited Action. 
+403.2.a. 
+The player must Recycle cards from the specified zones when instructed to do so by game 
+effects or costs. 
+403.3. 
+When Recycling is listed as a Cost, the action must be able to be completed for the cost to be paid.  
+Example: Vi, Destructive has the ability "Recycle 1 from your trash: Give me +1 [M] this turn." 
+Each time a player activates the ability, they must recycle 1 card from their trash to pay its 
+cost. If they have no cards in their trash, they can't activate the ability, because they can't pay 
+its cost. 
+403.4. 
+When Recycling is part of an effect, a player must Recycle as many cards as possible from the 
+specified zone or zones. 
+403.5. 
+If 2 or more cards are Recycled to the Main Deck simultaneously, they are placed on the bottom of 
+that deck in a random order.  
+Example: Garbage Grabber has the ability "Recycle 3 from your trash, [1], [E]: Draw " To pay 
+the cost of activating this ability, its controller chooses 3 cards from their trash and places 
+them on the bottom of their Main Deck in a random order. 
+403.5.a. 
+If 2 or more cards are Recycled to the Rune Deck simultaneously, they are placed on the 
+bottom of that deck in the order of their owner's choosing. 
+403.6. 
+This action, when instructed, is sometimes formatted as "Recycle X from [Zone]." That means to take 
+X cards of the instructed player's choice from the relevant zone and recycle them.  
+Example: Dr. Mundo, Expert has the ability "At the start of your Beginning Phase, recycle 3 
+from your trash." As that ability resolves, its controller recycles 3 cards from their trash. If 
+there are fewer than 3 cards in that player's trash, they recycle as many as they can. 
+404. 
+Deal 
+404.1. 
+Spells, Units, Abilities, and other game effects may Deal Damage to units. 
+404.1.a. 
+Assigning Damage during Combat Resolution is not Dealing Damage, but will cause 
+Damage to be Dealt when assignment is complete. 
+404.1.b. 
+To Deal Damage to Units, mark the specified amount of Damage on the Unit. 
+404.1.c. 
+Damage is marked on each unit separately. 
+
+
+=== PAGE 48 ===
+ 
+ 
+404.1.d. 
+Damage can be Dealt to more than one Unit at the same time. 
+404.2. 
+Only Damage can be Dealt. 
+404.3. 
+Dealing Damage is a Limited Action. 
+404.3.a. 
+Assigning Damage causes Damage to be dealt outside of being directed to Deal Damage.  
+See rule 437. Combat for more information. 
+404.4. 
+Dealing can have the intrinsic property of Bonus Damage. 
+404.5. 
+Bonus Damage is a property granted to the action of Dealing and alters the amount of Damage 
+distributed by this action.  
+See rule 712. Bonus Damage for more information. 
+404.6. 
+Deal actions can originate from one or more sources. 
+404.6.a. 
+If a game effect does not specify a source, the game effect describing the Deal action is the 
+source.  
+Example: Void Seeker is a spell that reads “Deal 4 to a unit at a battlefield. Draw 1.” 
+The damage that Void Seeker instructs you to deal is dealt by Void Seeker. 
+404.6.b. 
+If a game effect does specify a source, then that source is what is considered the origin of 
+the Damage for this Deal action. 
+404.6.b.1. 
+Units and Spells can be the source of Damage for Deal actions. 
+404.6.b.2. 
+Abilities can be the source of Damage for Deal actions. 
+404.6.b.2.a. 
+When an Ability is the source of Damage for a Deal action, it is in addition 
+to the Spell or Unit that created that Ability.  
+Example: Iron Ballista is a gear that says “[E]: Deal 2 to a unit at a 
+battlefield.” This damage is dealt both by a gear and by an ability. 
+404.6.b.3. 
+When a spell or ability specifies a Unit as the source of the Damage for the Deal 
+action, it is not in addition to the spell or ability that specified it.  
+Example: Challenge is a spell that reads “Choose a friendly unit and an 
+enemy unit. They deal damage equal to their Mights to each other.” The 
+damage that Challenge causes to be dealt is dealt by the chosen units, not 
+by Challenge. 
+404.6.c. 
+Damage Dealt as a result of being assigned during Combat has the Units as its source. 
+404.6.c.1. 
+The Damage assigned, and subsequently Dealt, to attackers has the defenders as 
+the source and vice versa. 
+404.7. 
+Deal actions can distribute Damage as part of combat actions or non-combat actions. 
+405. 
+Heal 
+405.1. 
+Damage being cleared from Units is Healing. 
+405.1.a. 
+If Damage is cleared for any reason it is considered Healing. 
+405.2. 
+More than one Unit can be Healed at the same time. 
+405.3. 
+Healing is a Limited Action. 
+405.3.a. 
+Players may only Heal units when game effects instruct them to, or at specific points in the 
+turn. 
+406. 
+Play 
+
+
+=== PAGE 49 ===
+ 
+ 
+406.1. 
+A player Plays cards by paying costs associated with that card.  
+See rule 346. Playing Cards for more information. 
+406.2. 
+This is a Discretionary Action. 
+406.2.a. 
+As long as a player has the resources to pay the costs associated with the card, they may 
+play cards. 
+406.3. 
+Game effects may result in cards being played as part of their resolution. 
+406.3.a. 
+This treats Play as a Limited Action. 
+406.3.b. 
+Treat all steps of Play as normal, except as noted by the game effect creating this Limited 
+Play Effect. 
+406.3.c. 
+If there are no eligible cards to Play when instructed to Play in this manner like this, then 
+nothing happens and resolution continues. 
+406.4. 
+Some Abilities trigger when cards are played or otherwise check whether cards have been played. 
+406.4.a. 
+These abilities trigger when the act of playing the card has been completed by the 
+resolution of the card. 
+406.4.b. 
+If a game effect prevents the resolution of the card—for example, because the card was 
+countered—the card wasn't played and no abilities that trigger on playing cards trigger.  
+See rule 412. Counter for more information. 
+407. 
+Move 
+407.1. 
+Moving is the act of a Game Object moving between two Locations on The Board. 
+407.2. 
+Moving is a Limited Action. 
+407.2.a. 
+Players may only move Game Objects when instructed to do so by Game Effects or costs. 
+407.2.b. 
+The Standard Move inherent to Units may also cause Movement.  
+See rule 142 for more information on the Standard Move. 
+407.3. 
+The Standard Move inherent to Units is a Discretionary Action. 
+407.3.a. 
+The Cost is Exhausting one or more Units. 
+407.3.b. 
+The Effect is Moving those Unit. 
+408. 
+Hide 
+408.1. 
+Hiding a card is the act of placing a card facedown at a Battlefield you control. 
+408.2. 
+Hiding is a Discretionary Action. 
+408.2.a. 
+The Hidden keyword allows a player to pay a cost to Hide a card any time they have a 
+Hidden card in their hand or Champion Zone and meet the prerequisites.  
+See rule 737. Hidden for more information. 
+408.3. 
+Cards that are facedown at Battlefields have their gameplay properties and permissions defined by 
+the effect that put them there.  
+Example: Cards that players Hide with the Hidden keyword can be Played for [0] on any 
+subsequent turn as a property of the Hidden keyword. 
+408.4. 
+If a facedown card would be put into a zone whose Privacy is Private or Secret, or if the game ends, 
+its owner reveals it to all players.  
+
+
+=== PAGE 50 ===
+ 
+ 
+See rule 127. Privacy for more information. 
+409. 
+Discard 
+409.1. 
+Discarding a card is moving it from a player's hand directly into their trash without activating or 
+executing its normal rules text. 
+409.1.a. 
+The player who is performing the action chooses which cards to send to their Trash, and 
+may use Private Information to do so. 
+409.1.b. 
+“When I am discarded” abilities or other Triggered Abilities that trigger on discarding are 
+executed after discarding has occurred. 
+409.2. 
+Discarding is a Limited Action. 
+409.2.a. 
+A player must Discard cards when instructed to do so by game effects or costs. 
+409.3. 
+When Discarding is listed as a Cost, then the Action must be able to be completed for the cost to be 
+paid.  
+Example: A card has the ability "Discard 2: Deal 2 damage to a unit at a battlefield." To 
+activate the ability, the card's controller must have at least 2 cards in hand and must be able 
+to discard them. 
+409.4. 
+When Discarding is part of an effect, then a player must Discard as many cards as possible from their 
+hand. If instructed to discard more cards than they have in their hand, further discard instructions are 
+ignored.  
+Example: Undercover Agent has the ability "[Deathknell] — Discard 2, then draw 2. (When I 
+die, get the effect.)" If Undercover Agent's controller has 2 or more cards in hand, they must 
+discard 2. If they have 1 card in hand, they discard 1, and the rest of the discard instruction is 
+ignored. If they have no cards in hand, the entire discard instruction is ignored. Regardless of 
+how many cards they discard, they then draw 2. 
+409.5. 
+This action is formatted as "Discard X." 

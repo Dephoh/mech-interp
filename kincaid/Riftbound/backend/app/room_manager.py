@@ -311,6 +311,19 @@ class RoomManager:
                     "entries": [{"message": m} for m in logs],
                 })
 
+            # Send CHOICE_REQUIRED if an effect is waiting for player input
+            if gs.pending_choice:
+                choice = gs.pending_choice
+                await self._send_to_player(session, choice["controller_id"], {
+                    "type": "CHOICE_REQUIRED",
+                    "prompt": choice.get("prompt", "Make a choice"),
+                    "options": choice.get("options", []),
+                    "target": choice.get("target"),
+                    "min_choices": choice.get("min_choices", 1),
+                    "max_choices": choice.get("max_choices", 1),
+                    "controller_id": choice["controller_id"],
+                })
+
             # Check game over
             if gs.game_over:
                 logger.info("[ACTION] GAME OVER room=%s winner=%s", session.room_id, gs.winner_id)
@@ -319,6 +332,83 @@ class RoomManager:
                     "winner_id": gs.winner_id or "",
                     "reason": "Game ended",
                 })
+
+            # Auto-pass for testlab P2
+            testlab = getattr(session, "_testlab", None)
+            if testlab and gs and not gs.game_over:
+                await self._testlab_auto_pass(session, gs)
+
+    async def _testlab_auto_pass(self, session: GameSession, gs: GameState) -> None:
+        """Auto-pass for testlab P2 opponent.
+
+        When it is P2's ACTION phase and contested battlefields exist,
+        P2 will advance phase which (after this fix) triggers showdowns.
+        During showdowns P1 gets focus windows where they can play
+        ambush units and reaction spells.
+        """
+        from .engine.enums import Domain, Phase
+        from .engine.combat import open_showdown, start_combat
+
+        p2_id = "testlab-p2"
+        max_iter = 40
+        did_something = False
+
+        for _ in range(max_iter):
+            if gs.game_over:
+                break
+            if gs.active_player_id != p2_id:
+                break
+            # Pass on chain
+            if not gs.chain.is_empty:
+                execute_action(gs, p2_id, ActionType.PASS_PRIORITY, {})
+                did_something = True
+                continue
+            # Pass on showdown focus
+            if gs.active_showdown and gs.active_showdown.focus_player_id == p2_id:
+                execute_action(gs, p2_id, ActionType.PASS_FOCUS, {})
+                did_something = True
+                continue
+            # Handle staged combats: start combat at the first staged battlefield
+            staged_combat_bf = None
+            for bf in gs.battlefields.values():
+                if bf.combat_staged:
+                    staged_combat_bf = bf
+                    break
+            if staged_combat_bf:
+                logs = start_combat(gs, staged_combat_bf.battlefield_id)
+                did_something = True
+                continue
+            # During P2's ACTION phase, start showdowns at contested battlefields
+            # so P1 gets reaction windows (for ambush, reaction spells, etc.)
+            if (gs.turn_player_id == p2_id
+                    and gs.phase == Phase.ACTION
+                    and not gs.active_showdown
+                    and not gs.active_combat):
+                contested_bf = None
+                for bf in gs.battlefields.values():
+                    units_by = bf.units_by_player(gs.instances)
+                    if len(units_by) >= 2:
+                        contested_bf = bf
+                        break
+                if contested_bf:
+                    logs = open_showdown(gs, contested_bf.battlefield_id, p2_id)
+                    did_something = True
+                    continue
+            # If it's P2's turn, advance phase
+            if gs.turn_player_id == p2_id:
+                execute_action(gs, p2_id, ActionType.ADVANCE_PHASE, {})
+                did_something = True
+                continue
+            break
+
+        if did_something:
+            # Replenish P1 resources
+            p1 = gs.players.get("testlab-p1")
+            if p1:
+                p1.rune_pool.energy = 99
+                for dom in Domain:
+                    p1.rune_pool.power[dom] = 99
+            await self._broadcast_state(session)
 
     async def _broadcast_state(self, session: GameSession) -> None:
         """Send per-player serialized state to each connected player."""
@@ -404,5 +494,6 @@ def _msg_type_to_action(msg_type: str) -> ActionType | None:
         "HIDE_CARD": ActionType.HIDE_CARD,
         "ASSIGN_DAMAGE": ActionType.ASSIGN_DAMAGE,
         "CONCEDE": ActionType.CONCEDE,
+        "SUBMIT_CHOICE": ActionType.SUBMIT_CHOICE,
     }
     return mapping.get(msg_type)

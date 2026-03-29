@@ -1,5 +1,5 @@
 # Riftbound Combat & Scoring - Rules Reference
-> Source of truth: rules_extracted.txt (rules 437-449)
+> Source of truth: backend/data/rules/12_combat.txt, backend/data/rules/19_scoring_and_modes.txt
 
 ## Combat Trigger (437-438)
 - Combat occurs when: Cleanup runs, chain is empty, and a Battlefield has units from 2 opposing players

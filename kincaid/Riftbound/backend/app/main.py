@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .engine.card_db import CardDB
 from .room_manager import RoomManager
+from .testlab.routes import router as testlab_router, set_room_manager
 
 # ---------------------------------------------------------------------------
 # Logging setup — writes to file + console
@@ -53,6 +54,7 @@ async def lifespan(app: FastAPI):
     CardDB.load_all(data_dir)
     logger.info("Card DB loaded: %d card definitions", len(CardDB.all_cards()))
     room_manager = RoomManager()
+    set_room_manager(room_manager)
     logger.info("RoomManager initialized, server ready")
     yield
 
@@ -66,6 +68,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(testlab_router)
 
 
 # ---------------------------------------------------------------------------
@@ -150,6 +154,91 @@ def _read_log_tail(n: int) -> list[str]:
         return []
 
 
+@app.post("/sandbox")
+async def create_sandbox():
+    """Create a pre-configured sandbox game for testing.
+
+    Returns a room_id with a game already initialized:
+    - Mulligan skipped, game in Action phase
+    - 10 energy + 5 of each power for both players
+    - 10 cards drawn (big hand)
+    - 6 runes channeled
+    Two browser tabs connecting to this room auto-join as P1/P2.
+    """
+    from .engine.card_db import CardDB
+    from .engine.enums import Domain, Phase
+    from .engine.game_state import create_game, _draw_cards
+    from .engine.state_machine import start_game as engine_start_game
+
+    room_id = room_manager.create_room()
+    session = room_manager.get_room(room_id)
+
+    card_db = CardDB.all_cards()
+
+    # Starter deck config (same for both players)
+    def make_deck():
+        return {
+            "legend_id": "unl-230-star-219",
+            "champion_id": "ogn-097-298",
+            "main_deck": [
+                *["ogn-097-298"] * 3,   # Blastcone Fae
+                *["sfd-091-221"] * 3,    # Buhru Captain
+                *["sfd-061-221"] * 3,    # Aspiring Engineer
+                *["ogn-056-298"] * 3,    # Adaptatron
+                *["ogs-010-024"] * 3,    # Annie
+                *["unl-121-219"] * 3,    # Bewitching Spirit
+                *["sfd-177a-221"] * 3,   # Azir
+                *["unl-132-219"] * 3,    # Angler Beast
+                *["sfd-011-221"] * 3,    # Angle Shot
+                *["ogn-127-298"] * 3,    # Cannon Barrage
+                *["sfd-001-221"] * 3,    # Against the Odds
+                *["sfd-162-221"] * 3,    # Blood Money
+                *["sfd-169-221"] * 2,    # Altar of Memories
+                *["sfd-161-221"] * 2,    # B.F. Sword (gear)
+            ],
+            "rune_deck": [
+                *["ogn-007a-298"] * 2,
+                *["ogn-042a-298"] * 2,
+                *["ogn-089a-298"] * 2,
+                *["ogn-126a-298"] * 2,
+                *["ogn-166a-298"] * 2,
+                *["ogn-214a-298"] * 2,
+            ],
+            "battlefields": ["unl-205-219", "unl-206-219", "ogn-275-298"],
+        }
+
+    configs = [
+        {"player_id": "sandbox-p1", "display_name": "Player 1", **make_deck()},
+        {"player_id": "sandbox-p2", "display_name": "Player 2", **make_deck()},
+    ]
+
+    gs = create_game(room_id, configs, card_db)
+
+    # Skip mulligan
+    gs.mulligan_done = {"sandbox-p1": True, "sandbox-p2": True}
+    engine_start_game(gs)
+
+    # Boost resources: 10 energy + 5 of each power
+    for pid in gs.player_order:
+        ps = gs.players[pid]
+        ps.rune_pool.energy = 10
+        for dom in Domain:
+            ps.rune_pool.power[dom] = ps.rune_pool.power.get(dom, 0) + 5
+
+    # Draw extra cards (already drew 4 in create_game, draw 6 more = 10 total)
+    for pid in gs.player_order:
+        _draw_cards(gs, pid, 6)
+
+    # Store the game state on the session (sandbox mode: game pre-started)
+    session.game_state = gs
+    # Mark sandbox flag so WS handler knows to assign players by connection order
+    session._sandbox_pids = list(gs.player_order)
+
+    logger.info("[SANDBOX] Created room=%s players=%s phase=%s",
+                room_id, gs.player_order, gs.phase.value)
+    return {"room_id": room_id, "sandbox": True, "players": gs.player_order}
+
+
 @app.get("/cards")
 async def list_cards():
     all_cards = CardDB.all_cards()
@@ -181,6 +270,13 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
     logger.info("[WS] New connection for room=%s", room_id)
 
     try:
+        session = room_manager.get_room(room_id)
+        if not session:
+            raise ValueError(f"Room {room_id} not found")
+
+        sandbox_pids = getattr(session, "_sandbox_pids", None)
+        testlab = getattr(session, "_testlab", None)
+
         # First message must be JOIN_ROOM or RECONNECT
         data = await websocket.receive_json()
         msg_type = data.get("type", "")
@@ -230,6 +326,75 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
 
             # Notify opponent
             await room_manager._notify_reconnect(session, player_id)
+
+        elif testlab:
+            # --- Testlab single-player join flow ---
+            from .room_manager import PlayerConnection
+
+            player_name = data.get("player_name", "Test Player")
+            player_id = "testlab-p1"
+            conn = PlayerConnection(
+                player_id=player_id,
+                display_name=player_name,
+                websocket=websocket,
+            )
+            session.slots[0] = conn
+            # P2 is virtual — no websocket
+            if not session.slots[1]:
+                session.slots[1] = PlayerConnection(
+                    player_id="testlab-p2",
+                    display_name="Bot",
+                    websocket=None,
+                    connected=False,
+                )
+            await websocket.send_json({
+                "type": "GAME_STARTED",
+                "your_player_id": player_id,
+            })
+            # Auto-pass P2 if it somehow has priority, then broadcast
+            if session.game_state:
+                await room_manager._testlab_auto_pass(session, session.game_state)
+            await room_manager._broadcast_state(session)
+
+        elif sandbox_pids:
+            # --- Sandbox join flow ---
+            from .room_manager import PlayerConnection
+
+            player_name = data.get("player_name", "Player")
+            slot_idx = next(
+                (i for i, s in enumerate(session.slots) if s is None), None
+            )
+            if slot_idx is None:
+                raise ValueError("Sandbox room is full")
+            player_id = sandbox_pids[slot_idx]
+            conn = PlayerConnection(
+                player_id=player_id,
+                display_name=player_name,
+                websocket=websocket,
+            )
+            session.slots[slot_idx] = conn
+            logger.info(
+                "[WS] Sandbox join room=%s player_id=%s slot=%d",
+                room_id, player_id, slot_idx,
+            )
+
+            # If room is now full, both players connected (sandbox already has game_state)
+            if session.is_full:
+                logger.info("[WS] Sandbox room %s — both players connected", room_id)
+                # Notify both players
+                for slot in session.slots:
+                    if slot:
+                        await slot.websocket.send_json({
+                            "type": "GAME_STARTED",
+                            "your_player_id": slot.player_id,
+                        })
+                # Send initial state
+                await room_manager._broadcast_state(session)
+                logger.info("[WS] Initial state broadcast complete for room=%s phase=%s",
+                             room_id, session.game_state.phase.value if session.game_state else "NONE")
+            else:
+                logger.info("[WS] Waiting for opponent in room=%s", room_id)
+                await websocket.send_json({"type": "WAITING_FOR_OPPONENT"})
 
         else:
             # --- Normal join flow ---

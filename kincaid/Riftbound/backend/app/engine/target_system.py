@@ -29,21 +29,36 @@ def resolve_targets(
     Args:
         gs: Current game state.
         target_spec: Dict with keys: obj_type, scope, zone, location,
-                     count, filters, chooser.
+                     count, filters, chooser, exclude_source.
         source: The card/ability producing this effect (for scope/location).
         controller_id: Fallback controller for scope resolution.
 
     Returns:
         List of matching instance_ids, limited by count.
+
+    Rule 352.8.c: A spell or ability cannot target itself. When the source
+    is a spell on the chain and obj_type is 'spell', exclude_source is
+    automatically enabled unless the spec explicitly opts out.
     """
     if not target_spec:
         return []
 
-    ctrl = controller_id or (source.controller_id if source else "")
-    candidates = _gather_candidates(gs, target_spec)
-    filtered = _apply_filters(gs, candidates, target_spec, source, ctrl)
+    # Auto-apply rule 352.8.c: spells targeting other spells on the chain
+    # should not be able to target themselves.
+    spec = dict(target_spec)
+    if (
+        source
+        and source.card_type == CardType.SPELL
+        and spec.get("obj_type") == "spell"
+        and "exclude_source" not in spec
+    ):
+        spec["exclude_source"] = True
 
-    count = target_spec.get("count", 1)
+    ctrl = controller_id or (source.controller_id if source else "")
+    candidates = _gather_candidates(gs, spec)
+    filtered = _apply_filters(gs, candidates, spec, source, ctrl)
+
+    count = spec.get("count", 1)
     if count == -1:
         return filtered
     return filtered[:count]
@@ -129,16 +144,29 @@ def _apply_filters(
     source: CardInstance | None,
     controller_id: str,
 ) -> list[str]:
-    """Filter candidates by scope, location, and additional filters."""
+    """Filter candidates by scope, location, and additional filters.
+
+    Rule 352.8.c: A spell or ability cannot target itself.
+    This is enforced via the exclude_source flag in the spec or by default
+    when scope is not 'self'.
+    """
     scope = spec.get("scope", "any")
     location = spec.get("location", "any")
     filters = spec.get("filters", [])
+    exclude_source = spec.get("exclude_source", False)
 
     result: list[str] = []
 
     for cid in candidates:
         card = gs.get_instance(cid)
         if not card:
+            continue
+
+        # Rule 352.8.c: Exclude the source spell/ability itself from its
+        # own candidate pool (a spell cannot target itself on the chain).
+        # Note: an ability CAN target its source permanent, because an
+        # ability and its source are separate objects.
+        if exclude_source and source and cid == source.instance_id:
             continue
 
         # Scope filter

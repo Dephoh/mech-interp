@@ -11,7 +11,43 @@ effect_primitives.py.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
+
+
+# ---------------------------------------------------------------------------
+# Effect Layer classification (rules 454)
+# ---------------------------------------------------------------------------
+
+class EffectLayer(str, Enum):
+    """The three layers in which continuous effects are applied (rule 454).
+
+    Applied in order:
+      1. TRAIT_ALTERING  — grants/removes/replaces inherent traits (name, type,
+                           tags, controller, cost, domain, Might *assignment*)
+      2. ABILITY_ALTERING — grants/removes/replaces abilities, keywords, rules text
+      3. ARITHMETIC       — numeric increases then decreases to Might, cost, etc.
+    """
+    TRAIT_ALTERING = "trait_altering"
+    ABILITY_ALTERING = "ability_altering"
+    ARITHMETIC = "arithmetic"
+
+
+def classify_modifier_layer(node: dict[str, Any]) -> EffectLayer:
+    """Determine which layer a modifier IR node belongs to (rule 454).
+
+    - stat in {"name", "type", "tag", "controller", "cost", "domain",
+      "might_set"} -> Trait-Altering (454.1)
+    - stat in {"keyword", "ability", "rules_text"} -> Ability-Altering (454.2)
+    - stat in {"might", "energy_cost", "power_cost"} -> Arithmetic (454.3)
+    """
+    stat = node.get("stat", "might")
+    if stat in ("name", "type", "tag", "controller", "cost", "domain", "might_set"):
+        return EffectLayer.TRAIT_ALTERING
+    if stat in ("keyword", "ability", "rules_text"):
+        return EffectLayer.ABILITY_ALTERING
+    # Default: arithmetic (might, energy_cost, power_cost, shield, assault, etc.)
+    return EffectLayer.ARITHMETIC
 
 
 # ---------------------------------------------------------------------------
@@ -55,6 +91,12 @@ CHOOSE_ONE = "choose_one"
 OPTIONAL = "optional"
 REPEAT_EFFECT = "repeat_effect"
 
+# Rule-breaker node type constants (stateful / interactive nodes)
+MODIFIER = "modifier"
+REPLACEMENT = "replacement"
+PLAYER_CHOICE = "player_choice"
+DELAYED_TRIGGER = "delayed_trigger"  # rules 382-385
+
 # All valid node types
 PRIMITIVE_TYPES = frozenset({
     DEAL_DAMAGE, DRAW_CARDS, GIVE_MIGHT, BUFF, STUN, HEAL, KILL, MOVE,
@@ -67,7 +109,11 @@ COMPOSITION_TYPES = frozenset({
     SEQUENCE, CONDITIONAL, FOR_EACH, CHOOSE_ONE, OPTIONAL, REPEAT_EFFECT,
 })
 
-ALL_NODE_TYPES = PRIMITIVE_TYPES | COMPOSITION_TYPES
+RULE_BREAKER_TYPES = frozenset({
+    MODIFIER, REPLACEMENT, PLAYER_CHOICE, DELAYED_TRIGGER,
+})
+
+ALL_NODE_TYPES = PRIMITIVE_TYPES | COMPOSITION_TYPES | RULE_BREAKER_TYPES
 
 
 # ---------------------------------------------------------------------------
@@ -444,3 +490,287 @@ def optional(effect: dict) -> dict:
 
 def repeat_effect(effect: dict) -> dict:
     return {"type": REPEAT_EFFECT, "effect": effect}
+
+
+# ---------------------------------------------------------------------------
+# Rule-breaker node constructors — stateful / interactive IR nodes
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class ModifierSpec:
+    """A continuous stat adjustment applied to matching targets.
+
+    While the source permanent is on the board, all targets matching the
+    filter have their stats adjusted. The engine recalculates derived stats
+    dynamically — base card data in card_db is never mutated.
+
+    Attributes:
+        stat: Which stat to modify — "might", "shield", "assault".
+        amount: Signed integer adjustment (e.g., +1, -2).
+        target: Who receives the modifier.
+        duration: "continuous" (while source is on board), "turn", or "permanent".
+        exclude_self: If True, the source permanent is not affected.
+        layer: Which effect layer this modifier belongs to (rule 454).
+    """
+
+    stat: str = "might"
+    amount: int = 0
+    target: TargetSpec = field(default_factory=lambda: TargetSpec(scope="friendly"))
+    duration: str = "continuous"
+    exclude_self: bool = False
+    layer: str = ""  # auto-classified if empty
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "stat": self.stat,
+            "amount": self.amount,
+            "target": self.target.to_dict() if isinstance(self.target, TargetSpec) else self.target,
+            "duration": self.duration,
+            "exclude_self": self.exclude_self,
+            "layer": self.layer,
+        }
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> ModifierSpec:
+        target = d.get("target", {})
+        if isinstance(target, dict):
+            target = TargetSpec.from_dict(target)
+        return ModifierSpec(
+            stat=d.get("stat", "might"),
+            amount=d.get("amount", 0),
+            target=target,
+            duration=d.get("duration", "continuous"),
+            exclude_self=d.get("exclude_self", False),
+            layer=d.get("layer", ""),
+        )
+
+
+@dataclass(frozen=True)
+class ReplacementSpec:
+    """Specifies an event to intercept, a condition, and an alternative IR.
+
+    When the watched event is about to occur and the condition is met,
+    the original event is suppressed and the alternative_ir is executed
+    instead.
+
+    Attributes:
+        watch_event: The GameEvent name to intercept (e.g., "deal_damage").
+        condition: When to intercept — evaluated against event context.
+        alternative_ir: The IR subtree to execute instead of the original.
+        target: Which objects this replacement applies to.
+    """
+
+    watch_event: str = ""
+    condition: ConditionSpec = field(default_factory=lambda: ConditionSpec(cond_type="always"))
+    alternative_ir: dict = field(default_factory=dict)
+    target: TargetSpec = field(default_factory=TargetSpec)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "watch_event": self.watch_event,
+            "condition": self.condition.to_dict() if isinstance(self.condition, ConditionSpec) else self.condition,
+            "alternative_ir": self.alternative_ir,
+            "target": self.target.to_dict() if isinstance(self.target, TargetSpec) else self.target,
+        }
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> ReplacementSpec:
+        cond = d.get("condition", {"cond_type": "always"})
+        if isinstance(cond, dict):
+            cond = ConditionSpec.from_dict(cond)
+        target = d.get("target", {})
+        if isinstance(target, dict):
+            target = TargetSpec.from_dict(target)
+        return ReplacementSpec(
+            watch_event=d.get("watch_event", ""),
+            condition=cond,
+            alternative_ir=d.get("alternative_ir", {}),
+            target=target,
+        )
+
+
+@dataclass(frozen=True)
+class ChoiceOptionSpec:
+    """One selectable option within a player_choice node.
+
+    Attributes:
+        label: Human-readable label for the frontend (e.g., "Deal 3 damage").
+        effect: The IR subtree to execute if this option is selected.
+    """
+
+    label: str = ""
+    effect: dict = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"label": self.label, "effect": self.effect}
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> ChoiceOptionSpec:
+        return ChoiceOptionSpec(label=d.get("label", ""), effect=d.get("effect", {}))
+
+
+def modifier(
+    stat: str,
+    amount: int,
+    target: TargetSpec | dict | None = None,
+    duration: str = "continuous",
+    exclude_self: bool = False,
+    layer: str = "",
+) -> dict:
+    """Create a ModifierNode IR dict.
+
+    Represents a continuous aura/buff like "Your other units have +1 Might."
+    The ``layer`` field is auto-classified from ``stat`` when empty
+    (see :func:`classify_modifier_layer`).
+    """
+    node: dict[str, Any] = {
+        "type": MODIFIER,
+        "stat": stat,
+        "amount": amount,
+        "duration": duration,
+        "exclude_self": exclude_self,
+    }
+    # Auto-classify layer when not explicitly provided
+    if layer:
+        node["layer"] = layer
+    else:
+        node["layer"] = classify_modifier_layer(node).value
+    if target is not None:
+        node["target"] = target.to_dict() if isinstance(target, TargetSpec) else target
+    return node
+
+
+def replacement(
+    watch_event: str,
+    condition: ConditionSpec | dict | None = None,
+    alternative_ir: dict | None = None,
+    target: TargetSpec | dict | None = None,
+) -> dict:
+    """Create a ReplacementNode IR dict.
+
+    Represents event interception: "If this unit would take damage, prevent it."
+    """
+    node: dict[str, Any] = {
+        "type": REPLACEMENT,
+        "watch_event": watch_event,
+    }
+    if condition is not None:
+        node["condition"] = condition.to_dict() if isinstance(condition, ConditionSpec) else condition
+    if alternative_ir is not None:
+        node["alternative_ir"] = alternative_ir
+    if target is not None:
+        node["target"] = target.to_dict() if isinstance(target, TargetSpec) else target
+    return node
+
+
+def player_choice(
+    prompt: str,
+    options: list[dict] | None = None,
+    target: TargetSpec | dict | None = None,
+    min_choices: int = 1,
+    max_choices: int = 1,
+) -> dict:
+    """Create a PlayerChoice IR dict.
+
+    Represents a point where the engine must halt and ask the player
+    to pick an option or select a target before resuming.
+
+    Args:
+        prompt: Description shown to the player (e.g., "Choose a unit to destroy").
+        options: List of ChoiceOptionSpec dicts (for modal choices).
+        target: TargetSpec for target-selection choices (pick from matching).
+        min_choices: Minimum number of selections required.
+        max_choices: Maximum number of selections allowed.
+    """
+    node: dict[str, Any] = {
+        "type": PLAYER_CHOICE,
+        "prompt": prompt,
+        "min_choices": min_choices,
+        "max_choices": max_choices,
+    }
+    if options is not None:
+        node["options"] = options
+    if target is not None:
+        node["target"] = target.to_dict() if isinstance(target, TargetSpec) else target
+    return node
+
+
+# ---------------------------------------------------------------------------
+# Delayed trigger IR node (rules 382-385)
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class DelayedTriggerSpec:
+    """Specifies a delayed ability that fires at a future time or event.
+
+    Rules 382-385: Delayed abilities are created by other abilities/spells
+    and execute when their condition and/or specified time occurs, regardless
+    of whether the creating source is still on the board.
+
+    Attributes:
+        trigger_event: The GameEvent name that will fire this trigger
+                       (e.g., "damage_dealt", "turn_end").
+        condition: When to fire -- evaluated against event context.
+        effect_ir: The IR subtree to execute when the trigger fires.
+        duration: How long the delayed trigger persists --
+                  "turn" (until end of turn), "once" (fires once then expires),
+                  "permanent" (persists until removed).
+        max_fires: Maximum times this delayed trigger can fire (0 = unlimited).
+    """
+
+    trigger_event: str = ""
+    condition: ConditionSpec = field(default_factory=lambda: ConditionSpec(cond_type="always"))
+    effect_ir: dict = field(default_factory=dict)
+    duration: str = "turn"
+    max_fires: int = 1
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "trigger_event": self.trigger_event,
+            "condition": self.condition.to_dict() if isinstance(self.condition, ConditionSpec) else self.condition,
+            "effect_ir": self.effect_ir,
+            "duration": self.duration,
+            "max_fires": self.max_fires,
+        }
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> DelayedTriggerSpec:
+        cond = d.get("condition", {"cond_type": "always"})
+        if isinstance(cond, dict):
+            cond = ConditionSpec.from_dict(cond)
+        return DelayedTriggerSpec(
+            trigger_event=d.get("trigger_event", ""),
+            condition=cond,
+            effect_ir=d.get("effect_ir", {}),
+            duration=d.get("duration", "turn"),
+            max_fires=d.get("max_fires", 1),
+        )
+
+
+def delayed_trigger(
+    trigger_event: str,
+    effect_ir: dict,
+    condition: ConditionSpec | dict | None = None,
+    duration: str = "turn",
+    max_fires: int = 1,
+) -> dict:
+    """Create a DelayedTrigger IR dict (rules 382-385).
+
+    Represents an ability that is created now but fires later when a
+    specified event occurs. The delayed trigger persists independently
+    of its source -- even if the creating card leaves play, the delayed
+    trigger still resolves at the specified time.
+
+    Example: "The next time this unit takes damage this turn, kill it."
+      delayed_trigger("damage_dealt", kill(SELF_TARGET), duration="turn", max_fires=1)
+    """
+    node: dict[str, Any] = {
+        "type": DELAYED_TRIGGER,
+        "trigger_event": trigger_event,
+        "effect_ir": effect_ir,
+        "duration": duration,
+        "max_fires": max_fires,
+    }
+    if condition is not None:
+        node["condition"] = condition.to_dict() if isinstance(condition, ConditionSpec) else condition
+    return node

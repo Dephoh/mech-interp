@@ -1,0 +1,526 @@
+================================================================================
+RIFTBOUND RULES: Process of Play
+Source sections: 346-356
+Backend modules: action_executor.py, action_validator.py
+================================================================================
+
+350. 
+The Process of Play 
+351. 
+1. Remove the card from the zone you are playing it from and put it onto the Chain. 
+351.1. 
+This Closes the State.  
+See rule 307. States of the Turn for more information. 
+351.2. 
+This item becomes Pending. 
+351.3. 
+If another Card Effect or ability is currently resolving, continue resolving it before proceeding with any 
+further steps of this process. 
+
+
+=== PAGE 31 ===
+ 
+ 
+352. 
+2. Make necessary choices. 
+352.1. 
+If the card is a spell, or has an effect that specifies a choice "As I am played," those choices are made 
+now. 
+352.2. 
+For Units, choose a valid Location where that Unit will be placed upon being Played. 
+352.2.a 
+By default, Valid locations include the controller’s Base or a Battlefield the controller 
+controls. 
+352.2.b 
+Some Game Effects may grant players permission to play Units to locations that are not 
+normally Valid. Such locations become Valid for the purposes of Playing the Unit.. 
+352.3. 
+For Spells and Abilities that Move one or more Units, choose a valid Location as the Move 
+Destination for each Move that will be performed. 
+352.4. 
+If a card requires you to specifically choose one or more Game Objects, that choice is made now. 
+352.4.a. 
+This does not include cards that affect one or more Game Objects based on criteria.  
+Example: "Stun a unit at a battlefield" is a Choice.  
+ 
+Example: "Kill all gear" is not a Choice. 
+352.4.b. 
+This does not include making choices for Triggered Abilities of permanents, even if those 
+abilities trigger when the permanent is played.  
+Example: A unit with a triggered ability that says "When I'm played, kill a unit" does 
+not require you to choose a target as it's played. The target will be chosen when the 
+ability triggers.  
+ 
+See rule 375. Triggered Abilities for more information. 
+352.5. 
+Targeting 
+352.6. 
+When a card Chooses one or more specific Game Objects to affect, it is Targeted. 
+352.7. 
+In order to put a spell or ability on the chain, valid choices must be made for all targets. 
+352.8. 
+A target is a valid choice if it meets all of the following requirements: 
+352.8.a. 
+It is a permanent or rune on the board, a spell or ability on the chain, a player or zone, or 
+specified explicitly or implicitly as being in some other zone.  
+e.g., “Kill a unit” targets a unit on the board.  
+e.g., “Recycle a unit from your trash” targets a unit card in your trash. 
+352.8.a.1. 
+“Unit,” “gear,” and “rune” refer to objects on the Board unless specified otherwise. 
+352.8.a.2. 
+“Spell” and “ability” refer to objects on the Chain unless specified otherwise. 
+352.8.a.3. 
+“Facedown card” refers to a card in a Facedown Zone unless specified otherwise. 
+352.8.a.4. 
+“Legend” refers to a legend in the Legend Zone. 
+352.8.a.5. 
+“Chosen Champion” and “unit in the Champion Zone” refer to a unit in the 
+Champion Zone unless specified otherwise. 
+352.8.b. 
+It meets all targeting restrictions.  
+e.g., A unit is a valid target for a spell that refers to a “unit at a battlefield,” “enemy 
+unit,” “unit you control,” or “unit with Might 4 or greater” only if it meets the 
+appropriate criteria. 
+
+
+=== PAGE 32 ===
+ 
+ 
+352.8.c. 
+It is not the spell or ability itself.  
+e.g., A spell that says “Counter a spell” cannot target itself.  
+e.g., An ability of a permanent can target that permanent, because abilities and 
+their sources are separate objects. 
+352.9. 
+If a spell or ability requires one or more players to choose objects, players, or zones that are not 
+targets, those choices are made on resolution. 
+352.9.a. 
+Passive abilities never have targets. 
+352.9.b. 
+Replacement effects never have targets. 
+352.9.c. 
+Units and gear never have targets, although their abilities may. 
+352.10. 
+A game object, player, or zone mentioned in the text of a spell, activated ability, or triggered ability is a 
+target UNLESS any of the following are true: 
+352.10.a. 
+It is in a zone whose information status is not Public.  
+e.g., “Ready a legend” targets a legend, because the Legend Zone is Public.  
+e.g., “Return a unit from your trash to your hand” targets a unit card in your trash, 
+because your trash is Public.  
+e.g., “You may play a unit from your hand, ignoring its costs” does not target a unit 
+card in your hand, because your hand is not a public zone. 
+352.10.a.1. 
+Public zones are Battlefield Zones, Bases, Trashes, Legend Zones, Champion Zones, 
+and Facedown Zones. 
+352.10.b. 
+It is included only as part of a targeting restriction for another choice.  
+e.g., “Kill a unit at a battlefield” targets a unit, but not a battlefield, because the 
+units are targets and “at a battlefield” is a restriction.  
+e.g., “Kill all units at a battlefield” targets a battlefield, but not any units. 
+e.g., “Move a unit to a battlefield” targets both a unit and a battlefield. 
+352.10.c. 
+It is included only as part of a cost, trigger condition, or replacement effect.  
+e.g., “As an additional cost to play me, kill a friendly unit” doesn’t target anything.  
+e.g., “When a friendly unit dies, kill a gear” targets a gear, but not a friendly unit.  
+e.g., “When you play me, the next time a friendly unit would die this turn, return it 
+to your hand instead” doesn’t target anything. The replacement effect applies 
+when any friendly unit dies.  
+e.g., “Choose a friendly unit. The next time it would die this turn, return it to your 
+hand instead” targets a friendly unit, because “choose a friendly unit” is not part of 
+the replacement effect. 
+352.10.c.1. 
+This includes costs within instructions, identified by phrases like “[do X] to [do Y].” 
+The cost within that instruction is “[do X].”  
+e.g., “When I hold, you may kill another friendly unit here to draw 1” does 
+not target anything.  
+e.g., “When you play me, you may spend a buff to move a friendly unit” 
+targets the friendly unit, but not the buff. 
+
+
+=== PAGE 33 ===
+ 
+ 
+352.10.d. 
+It is programmatically selected based on its characteristics rather than chosen by the spell or 
+ability’s controller.  
+e.g., “Kill all units at a battlefield” targets a battlefield, but does not target any 
+units.  
+e.g., “Kill all units at battlefields” doesn’t target anything.  
+e.g., “Destroy a unit. Its controller draws 2 cards” targets the unit, but not its 
+controller.  
+e.g., “Ready your legend” doesn’t target anything, because you can only have one 
+legend. 
+e.g., “Ready a friendly legend” targets a legend, because in a 2v2 game there are 
+two friendly legends.  
+e.g., “Recycle all cards in your trash” doesn’t target anything, because it affects all 
+cards and you only have one trash. 
+352.10.d.1. 
+This exception applies solely to objects for which no choice is ever possible. 
+352.10.d.2. 
+This exception does not apply to objects that are the only valid choice at the 
+moment a spell or ability is placed on the chain, but which would require a choice 
+under other circumstances.  
+e.g., “Kill a unit at a battlefield” always targets a unit, even if that unit is 
+the only unit currently at a battlefield. 
+352.10.e. 
+It is part of a set of objects chosen in whole or in part by other players.  
+e.g., “Each player kills a unit they control” does not target. Each player, including 
+the one who played the spell, chooses a unit to kill as the spell or ability resolves. 
+352.10.f. 
+It is identified in an instruction that a player “must” complete.  
+e.g., “You must recycle one of your runes” doesn’t target anything. You choose from 
+among your runes as the spell or ability resolves.  
+e.g., “Recycle a rune you control” targets a rune. You choose a rune you control as 
+you put the spell or ability on the chain. 
+352.11. 
+Some cards identify a group of Targets with Targeting Requirements that must be met by the 
+group as a whole. 
+352.11.a. 
+As they’re finalized on the chain, such cards can choose any group of valid targets that 
+collectively fulfill the targeting restriction. 
+352.11.b. 
+If the group of targets no longer collectively fulfill the targeting restriction as the spell or 
+ability resolves, that spell or ability’s controller can choose a subset of the original targets 
+that fulfills the targeting requirement for the spell or ability to affect.  
+Example: A player plays Fox-Fire, a spell that says in part “Kill any number of units at 
+a battlefield with total Might 4 or less.” That player chooses four 1 [M] Recruit tokens 
+at a single battlefield. As a Reaction, another player gives two of those Recruits +1 
+[M], so the Recruits’ Mights are 1, 1, 2, and 2. Then Fox-Fire resolves. The Recruits no 
+longer have total Might 4 or less, so Fox-Fire’s controller must choose a legal subset 
+of the original targets to affect. They could choose to kill the two 2 [M] Recruits, or 
+the two 1 [M] Recruits plus one 2 [M] Recruit. The units they choose are Fox-Fire’s 
+remaining legal targets. They can’t choose to affect units at the same battlefield 
+that weren’t initially chosen as targets, and they can’t affect any units that are no 
+longer at the chosen battlefield. 
+352.12. 
+If a card specifies that a player may choose some number of Game Objects to be affected by a card, 
+then all choices are considered targeted and chosen independently. 
+352.13. 
+If a card specifies that a player chooses “any number” or “up to” some number of Game Objects to be 
+affected, they may choose any number of available targets, including zero. If they choose zero, the 
+spell or ability can be played without any targets. 
+352.14. 
+Splitting 
+
+
+=== PAGE 34 ===
+ 
+ 
+352.14.a. 
+If a card specifies that an amount of damage may be split among some number of Units, 
+then each Unit chosen is Targeted. 
+352.14.b. 
+The Targets are chosen when the spell or ability is finalized on the chain. 
+352.14.c. 
+A number of Targets can only be chosen up to, and not exceeding, the initial amount of 
+damage available when the spell is played. Example: A player playing a spell that instructs 
+them to "Split 5 damage" may only choose up to 5 units, but may choose fewer. 
+352.14.d. 
+Each Target is valid, and contributes to Chosen triggers individually. 
+352.14.e. 
+The choice of how much damage is divided across the split is not decided until the 
+resolution of the spell or ability. 
+352.14.f. 
+Each Target must receive a valid amount of damage. 
+352.14.g. 
+Valid damage is a positive integer amount, greater than or equal to 1 damage. 
+352.14.h. 
+If, at resolution of the spell or effect, there are more Targets than available damage to divide, 
+then the player who controls the effect dealing damage determines which Targets cease 
+being Targets. 
+352.14.i. 
+Any costs that were paid, or effects that were triggered as a result of those Game Objects 
+being chosen as Targets remain in effect, paid, or otherwise triggered. 
+352.15. 
+These choices cannot be changed after this step. 
+352.16. 
+A player may not make choices during this step that will deterministically result in illegal choices or 
+actions later in this process unless they have no choice.  
+Example: A player plays Cruel Patron, which says "As an additional cost to play me, kill a 
+friendly unit." They control exactly one unit, which is at a battlefield. They can't choose to play 
+Cruel Patron to that battlefield, because by the time they have finished paying costs, they 
+will no longer control that battlefield. 
+353. 
+3. Determine Total Cost. 
+353.1. 
+If an ability or instruction allows you to "ignore" one or more of a card's costs, set the appropriate Base 
+Cost(s) of the card to zero. 
+353.1.a. 
+If a card allows a player to play a card "ignoring its cost," its base Energy cost and base 
+Power cost are set to zero. 
+353.1.b. 
+If a card instructs a player to play a card "ignoring its Energy cost" or "ignoring its Power 
+cost," only the appropriate cost is set to zero, and the remaining cost still applies. 
+353.1.c. 
+Further additional costs and/or cost increases applied in subsequent steps may raise the 
+card's Total Cost above zero.  
+Example: Legion Rearguard is a Fury unit that costs 2 Energy and 0 Power and has 
+Accelerate. A player plays Legion Rearguard and is instructed to ignore its costs, but 
+chooses to pay the Accelerate cost. They ignore Legion Rearguard's Base Cost of 2 
+Energy, but the optional additional cost of 1 Energy and 1 Fury Power is added to its 
+Total Cost and must be paid. 
+353.2. 
+Apply additional costs in any order. 
+353.2.a. 
+Mandatory Additional Costs 
+353.2.a.1. 
+Some Additional Costs specified by Passive Abilities on the card being played or 
+another card are Mandatory, and must be paid to complete playing the card. They 
+use the phrase "as an additional cost" and don't include the word "may."  
+Example: A unit has the passive ability "As an additional cost to play me, 
+kill a friendly unit." To play that unit, a player must kill a friendly unit.  
+
+
+=== PAGE 35 ===
+ 
+ 
+ 
+See rule 360. Passive Abilities for more information. 
+353.2.a.2. 
+The cost imposed by the Deflect keyword is a Mandatory Additional Cost.  
+See rule 735. Deflect for more information. 
+353.2.b. 
+Optional Additional Costs 
+353.2.b.1. 
+Some Optional Costs specified by Passive Abilities on the card being played or 
+another card are Non-Mandatory, and must be paid only if the player made the 
+choice to pay them in rule 352. They use the phrase "as an additional cost" and the 
+word "may."  
+Example: A unit has the ability "As you play me, you may discard 1 as an 
+additional cost. If you do, reduce my cost by [2]." While playing the unit, its 
+controller declares their intention to pay the additional cost in rule 352, 
+applies that additional cost in rule 353.2, applies the discount granted by 
+paying that cost in rule 353.4, and discards a card to pay that additional 
+cost in rule 354.2.   
+ 
+See rule 360. Passive Abilities for more information. 
+353.3. 
+Apply cost increases. 
+353.4. 
+Apply discounts in any order. 
+353.4.a. 
+Discounts may be applied by the card being played or by any other card or effect. 
+353.4.b. 
+Discounts may say that cards "cost [amount] less" or that one or more of their costs are 
+"reduced by [amount]." 
+353.4.c. 
+If a discount applies a minimum cost, that minimum applies only to that discount.  
+Example: Eager Apprentice says "While I'm at a battlefield, the Energy costs for 
+spells you play is reduced by [1], to a minimum of [1]." A player who controls Eager 
+Apprentice and a unit with 7 Might plays Sky Splitter, a spell that costs 8 Energy 
+and says "This spell's Energy cost is reduced by the highest Might among units you 
+control." That player can choose to apply Eager Apprentice's discount first, reducing 
+Sky Splitter's Energy cost to 7, then apply Sky Splitter's discount, reducing its Energy 
+cost to 0. If they applied these discounts in the other order, Sky Splitter's Energy 
+cost would be 1. 
+353.4.d. 
+Discounts can reduce additional costs, including to 0. 
+353.4.d.1. 
+An optional additional cost was "paid" if the player made the decision in rule 352 to 
+pay it. It doesn't matter how much the player actually paid. 
+Example: Clockwork Keeper is a unit that costs 2 Energy and 0 Power and 
+says "As you play me, you may pay [C] as an additional cost. If you do, draw 
+" A player controls a card that says "Units you play cost [A] less." That player 
+plays Clockwork Keeper and chooses to pay the optional additional cost of 
+[C]. They will draw a card, even though the optional additional cost was 
+reduced to 0. 
+353.5. 
+Energy and Power costs can't be reduced below 0. 
+353.6. 
+Costs may be Energy costs, Power costs, or non-standard costs. Example: A card reads "As an 
+additional cost to play me, kill a friendly unit." Killing a friendly unit is an additional cost to play that 
+card. 
+354. 
+4. Pay the card's costs. 
+354.1. 
+In total, pay the combined Energy cost (if any) and Power cost (if any). 
+
+
+=== PAGE 36 ===
+ 
+ 
+354.1.a. 
+During this step, the spell's controller can use activated abilities with the Reaction tag that 
+Add resources to add Energy and Power to pay the spell's costs.  
+See rule 161. Rune Pools and rule 416. Add for more information. 
+354.2. 
+In addition, pay any non-standard Cost summed in rule 353.2 in any order. 
+354.2.a. 
+Costs that are replaced with other events by replacement effects are still considered paid.  
+Example: A player plays Cruel Patron, which says "As an additional cost to play me, 
+kill a friendly unit." They also control Zhonya’s Hourglass, which says “If a friendly 
+unit would die, kill this instead. Heal that unit, exhaust it, and recall it.” They choose 
+to kill a friendly unit during rule 353.2, but as they pay the cost in rule 354.2, 
+Zhonya’s Hourglass replaces that unit’s death. The cost is considered paid, and the 
+player can continue playing Cruel Patron. 
+354.3. 
+A player may not pay costs during this step that will deterministically result in illegal choices or 
+actions later in this process unless they have no choice.  
+Example: A player plays Cruel Patron, which says "As an additional cost to play me, kill a 
+friendly unit." They control multiple units, one of which is alone at a battlefield. During rule 
+352.2., they chose to play Cruel Patron to that battlefield. While paying costs, they can't 
+choose to kill the unit at that battlefield, because then they will no longer control that 
+battlefield and Cruel Patron cannot legally be played there. If they controlled that battlefield 
+with multiple units, any of those units would be a legal choice, because they would still 
+control the battlefield after killing one. 
+355. 
+5. Check legality. 
+355.1. 
+Check that all chosen targets are legal. 
+355.2. 
+Ensure that the outcome of the effect of this card being played would not create an illegal state.  
+Example: Check that a spell's execution does not create a state where a Battlefield has Units 
+controlled by 3 different players. 
+355.3. 
+If the card, if continued to be played, would create an illegal state, or if a choice or action at this state 
+is illegal, the actions taken in this process are undone and the action is cancelled. 
+356. 
+6. Finalize this card and proceed with the card's category of Play. 
+356.1. 
+This card is no longer Pending. 
+356.2. 
+A Permanent leaves the Chain and becomes a Game Object. 
+356.2.a. 
+Any passive abilities become active. 
+356.2.b. 
+Execute all rules text on the card, from top to bottom. 
+356.2.c. 
+If it is a Unit, it enters the Board exhausted at the Location that was chosen. 
+356.2.d. 
+If it is a Gear, it enters the Board Ready at the player's Base. 
+356.3. 
+A Spell lingers on the Chain. 
+356.3.a. 
+This card becomes a Finalized Chain Item. 
+356.3.b. 
+If there are other Pending Items on the Chain, then the controller of those Pending Items 
+completes Steps 2 through 5 of Playing Cards for those items before continuing.  
+See rule 326. Chains for more information. 
+356.3.c. 
+Other players have an opportunity to play Reactions before the resolution of spells.  
+See rule 326. Chains for more information. 
+356.3.d. 
+Otherwise, execute the game effect of the spell, from top to bottom of the rules text of the 
+card and then place the card in the Trash of the owning player. 
+
+
+=== PAGE 37 ===
+ 
+ 
+356.3.e. 
+Handling illegal and impossible instructions 
+356.3.e.1. 
+The spell resolves even if some or all of its targets are illegal. 
+356.3.e.2. 
+A target is illegal as the spell resolves if it no longer meets the targeting 
+requirements of the spell, or if it has changed Zones to or from a Non-Board Zone. 
+356.3.e.3. 
+If a target ceases to meet the targeting requirements while the spell is on the chain, 
+then meets them again, it's a legal target.  
+Example: A spell targets "a unit at a battlefield." A player reacts with a spell 
+that moves the unit to base, then another player reacts with a spell that 
+moves it back to that battlefield, then the original spell resolves. The unit is 
+a legal target. 
+356.3.e.4. 
+If a target changes Zones to or from a Non-Board Zone and then returns to its 
+original zone, it is no longer a legal target, because it's not treated as the same 
+object.  
+Examples:  
+An enemy unit at a battlefield is no longer a legal target if it is no longer an 
+enemy, no longer a unit, or no longer at a battlefield.  
+ 
+A unit with 3 or less Might is no longer a legal target if it is no longer a unit 
+or if its Might is greater than 3.  
+ 
+Something that's exhausted is no longer a legal target if it is no longer 
+exhausted. (It can't stop being "something.")  
+ 
+A spell that's played from hidden can normally only target its own 
+battlefield or something at that battlefield. A target for such a spell may 
+cease to be a legal target if it moves from the battlefield where that spell 
+was played, even if the spell has no location targeting requirement 
+otherwise. 
+356.3.e.5. 
+If any of the spell's targets are no longer legal, those targets are unaffected by the 
+spell as it resolves.  
+Example: A player plays Void Seeker, a spell that says "Deal 4 to a unit at a 
+battlefield. Draw 1." The unit's controller uses a Reaction to move the unit 
+to their base. Since the unit is no longer a legal target, it is not dealt any 
+damage. Void Seeker's controller still draws 1. 
+356.3.e.6. 
+Instructions that can't be followed, either because of illegal targets or other 
+circumstances, are ignored. 
+356.3.e.7. 
+If all of an instruction's Targets become Invalid or Unavailable by the time the 
+spell is finished being played, that instruction will not execute. 
+356.3.e.8. 
+If an instruction has more than one Target and fewer than all of the Targets 
+become Invalid or Unavailable by the time the spell is finished being played, the 
+instruction will execute, with only the Targets available and valid being operated 
+on. 
+356.3.e.9. 
+The process for a card's choice becoming Invalid or Unavailable is referred to as 
+mistargeting.  
+Example: A spell has the instruction "Deal 2 to a unit at a battlefield." 
+Before that instruction can execute, the chosen unit is moved to its base. 
+The instruction will not be executed, because it specifies that the unit it 
+chooses must be at a Battlefield, and by the time it attempted to execute, 
+the unit was no longer valid as a choice. 
+
+
+=== PAGE 38 ===
+ 
+ 
+356.3.e.10. 
+It is possible for none of a spell's instructions to be executed as it resolves, due to all 
+of them requiring targets to act on and all of those targets becoming Invalid or 
+Unavailable. In this case, the spell has no effect but is still considered played.  
+Example: A player plays a spell that reads "Deal 2 to a unit at a battlefield" 
+with no other instructions, and chooses an enemy unit at a battlefield. 
+They also control a unit with the ability "When you play a spell, give me +1 
+[M] this turn." Before the spell resolves, the chosen unit is moved to its 
+base. The spell resolves and its only instruction cannot be executed, but 
+the unit's ability still triggers as the spell resolves and gives it +1 [M]. 
+356.3.e.11. 
+Instructions that can be partially followed are followed as much as possible and 
+ignored otherwise.  
+Example: A player plays a spell that says "Discard 2, then draw 2" If their 
+hand is empty, the instruction to discard 2 will be ignored. They'll still draw 
+2. If they had 1 card in hand, they would discard it and draw 2. 
+356.3.e.12. 
+If the spell checks information about a target that is no longer legal or a card or 
+permanent whose location, zone, or status has changed such that that information 
+is no longer available, that check returns "null" and all calculations based on it are 
+ignored.  
+Examples:  
+A unit that is no longer on the board is treated as having null Might, null 
+cost, etc.  
+ 
+A unit that is no longer on the board has no location, is neither exhausted 
+nor readied, etc.  
+ 
+Baited Hook says "[1][C], [E]: Kill a friendly unit. Look at the top 5 cards of 
+your Main Deck. You may banish a unit from among them that has Might 
+up to 1 more than the killed unit and play it, ignoring its cost. Then recycle 
+the rest." While Baited Hook’s ability is on the chain, an opponent reacts 
+with a spell that returns the friendly unit to its owner's hand. Because the 
+friendly unit is no longer a legal target, it can't be killed and its Might is 
+treated as null. Baited Hook’s controller reveals the top 5 cards of their 
+Main Deck, but can’t choose any unit from among them. 
+356.3.e.13. 
+A spell or ability that moves something to a different zone as a cost or effect can 
+"look back" at its characteristics before it changes zones. 
+357. 
+Abilities 
+358. 
+An Ability is the structured rules and capabilities of Game Objects or Spells. 
+358.1. 
+An Ability has multiple structures.  
+Passive Abilities  
+Replacement Effects  
+Activated Abilities  
+Triggered Abilities  
+Delayed Abilities 
+359. 
+A card can have more than one Ability and more than one type of Ability. 

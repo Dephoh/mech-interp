@@ -1,0 +1,493 @@
+================================================================================
+RIFTBOUND RULES: Abilities (Passive, Activated, Triggered)
+Source sections: 357-399
+Backend modules: effect_ir.py, effect_resolver.py, trigger_system.py
+================================================================================
+
+360. 
+Passive Abilities 
+361. 
+Conditions, rules, constraints, or statements that affect the course of regular play. 
+361.1. 
+These abilities have a wide variety of formats to recognize.  
+Example: "I get +1[M] while you have 2 or more cards in your hand."  
+ 
+
+
+=== PAGE 39 ===
+ 
+ 
+Example: "Friendly Yordles at my battlefield have [Shield]." 
+361.2. 
+They can be recognized by being statements of fact. 
+361.3. 
+Passive Abilities can be conditional. 
+361.3.a. 
+Conditional Passive Abilities can be recognized by the occurrence of "if" or "while" as part of 
+the statement of the ability.  
+Example: "While I'm attacking or defending alone, I have +2 [M]."  
+ 
+Example: "If an opponent controls a battlefield, I enter ready." 
+362. 
+Presence on Permanents 
+362.1. 
+Passive Abilities of Permanents are typically only active while on the Board. 
+363. 
+Presence on Card outside of the Board 
+363.1. 
+Passive Abilities of cards in zones that are outside of the Board will self-describe their context.  
+Example: The passive ability "Play me only during an opponent's turn." applies in any zone 
+from which that card can be played. 
+363.2. 
+Passive Abilities can alter the costs of cards as they are played. 
+363.2.a. 
+These apply at all times in any zone from which the card with the ability can be played. 
+364. 
+Replacement Effects 
+365. 
+An ability that alters the application of another game effect or game rule. 
+365.1. 
+Passive Abilities can be Replacement Effects. 
+366. 
+Replacement Effects intercede during the execution of a Game Effect and alter its execution. 
+366.1. 
+A Replacement Effect can be identified by the presence of the term "instead."  
+Example: Zhonya's Hourglass reads "The next time a friendly unit would die, kill this instead. 
+Recall that unit exhausted." This is a replacement effect that alters the execution of any 
+Game Effect that would kill a friendly unit. 
+367. 
+A Replacement Effect can alter the typical flow of play, including other cards' executions. 
+368. 
+If more than one Replacement Effect applies to the same event being executed, then the owner of the object 
+being acted on determines the order the Replacement Effects will apply. 
+368.1. 
+If it is a player being acted on, that player decides the order the Replacement Effects will apply. 
+368.2. 
+If the affected object is an Uncontrolled Battlefield then the Current Turn Player decides the order 
+the Replacement Effects will apply. 
+369. 
+Activated Abilities 
+
+
+370. 
+Activated Abilities are repeatable effects with a cost. They follow a process of going onto the chain and 
+resolving, similar to Playing a Card.  
+See rule 346. Playing Cards for more information. 
+370.1. 
+Activated Abilities are recognized by the presence of a ":" in the text of the card, preceded by a cost 
+and succeeded by an effect.  
+Example: "[2]: Draw 1" is an activated ability. The cost is 2 energy. The effect is to draw 1 card. 
+370.2. 
+Activated Abilities use the chain. 
+370.2.a. 
+Declare activation of the Ability. 
+
+
+=== PAGE 40 ===
+ 
+ 
+370.2.a.1. 
+The ability goes on the chain but has no card to represent it, so players need to take 
+note that it is now a Closed State. 
+370.2.b. 
+Proceed with executing the Chain. 
+370.2.b.1. 
+Follow the steps of “Playing or Activating Abilities” in rule 386. This ability will 
+become a Pending Chain Item. 
+370.2.b.2. 
+Opponents have an opportunity to respond, as appropriate, as if a card was played 
+onto the chain. 
+370.2.b.3. 
+If no further action is taken, execute the Activated Ability. 
+371. 
+The controlling player chooses when and whether to activate an Activated Ability. 
+372. 
+Activated abilities are present on Game Objects and some Spells. 
+373. 
+Can primarily be activated while on the Board. 
+374. 
+All Activated Abilities can only be activated on the Controlling Player's Turn and during an Open State. 
+375. 
+Triggered Abilities 
+376. 
+Triggered Abilities are repeatable effects that happen when a Condition is met. 
+376.1. 
+Triggered Abilities can usually be recognized by the word "when" followed by a game action or 
+event; the word "at" followed by a point in time during the turn sequence; or the phrase “the [Nth] 
+time” followed by a game action or event.  
+Examples:  
+"When you conquer here, you may spend a buff to draw 1."  
+ 
+"At the end of your turn, ready 2 runes."  
+ 
+“The first time I move each turn, you may ready something else that's exhausted.” 
+376.1.a. 
+The phrases that identify triggered abilities do not always appear at the beginning of 
+sentences or abilities. 
+376.1.b. 
+If an ability triggers “the [Nth] time” something happens and that trigger condition is met 
+multiple times simultaneously, the ability’s controller picks one of those instances to serve as 
+the trigger condition. The ability triggers only once, due to the chosen condition.  
+Example: Wraith of Echoes reads “The first time another friendly unit dies each turn, 
+draw 1.” That ability hasn’t triggered yet this turn. Two other friendly units die 
+simultaneously (say, due to combat damage). The Wraith’s controller chooses one 
+of those deaths to trigger Wraith’s ability. 
+376.2. 
+Triggered Abilities have a Condition and an Effect. 
+376.2.a. 
+The Condition follows the When. 
+376.2.b. 
+The Effect is the Instruction that follows the comma after the Condition. 
+376.2.c. 
+The Condition of a Trigger is evaluated after a potentially inciting event has been processed. 
+376.2.c.1. 
+If a Game Object with a Triggered Ability that is active in a specific zone, it is 
+evaluated and subsequently triggered if it enters that zone at the same time that 
+its Trigger’s condition is met.  
+Example: Immortal Phoenix says “When you kill a unit with a spell, you 
+may pay [1][C] to play me from your trash.” This ability triggers if Immortal 
+Phoenix is in your trash immediately after you kill a unit with a spell, even if 
+the unit you killed with a spell was that Immortal Phoenix. 
+
+
+=== PAGE 41 ===
+ 
+ 
+376.2.c.2. 
+A Game Object will not be able to successfully be able to evaluate its Trigger 
+Condition, however, if it leaves the zone that its Trigger is active from at the same 
+time that its Trigger is satisfied.  
+Example: Viktor, Leader says “When another non-Recruit unit you control 
+dies, play a 1 [M] Recruit unit token into your base.” This ability triggers if 
+Viktor is on the board immediately after another non-Recruit unit you 
+control dies. It does not trigger if Viktor and another non-Recruit unit you 
+control die during the same game action (for instance, if they are both 
+killed in the same Cleanup due to the damage dealt by Unchecked 
+Power). 
+376.3. 
+When a Condition is met, a Triggered Ability behaves like an Activated Ability and is placed on the 
+Chain. 
+376.3.a. 
+Triggered Abilities can be put on the Chain during Closed States or Open States on any 
+player's turn. 
+376.3.b. 
+If more than one Triggered Ability is Triggered simultaneously, then the player that controls 
+the Abilities selects the order to place them on the Chain. 
+376.3.b.1. 
+If multiple players separately control Triggered Abilities that are Triggered 
+simultaneously, then starting with the Turn Player and proceeding in Turn Order, 
+each player orders their Triggered Abilities on the Chain. 
+376.4. 
+Some Conditions are commonly used and structured in a way that explicitly defines their use and 
+other properties of the Effect that is associated with it. 
+376.4.a. 
+Play Effects are Triggered Abilities with the Condition that the Permanent that has the 
+Play Effect being played to the board. 
+376.4.a.1. 
+These are commonly structured as “When you play me…” for Units and “When you 
+play this…” for Gear. 
+376.4.a.2. 
+These Triggered Abilities are put on the Chain as Pending Items after the 
+Permanent these effects correspond to is finalized and enters the board. 
+376.4.a.3. 
+These Triggered Abilities can be referred to as Play Effects. 
+376.4.a.4. 
+Abilities that trigger when another object is played are not considered Play Effects. 
+376.4.b. 
+Conquer Effects are Triggered Abilities with a Condition of a Unit participating in, and 
+successfully Conquering a Battlefield. 
+376.4.b.1. 
+These are commonly structured as “When I conquer…” and “When you conquer…” 
+376.4.b.2. 
+This category of Triggered Abilities encompasses only those that are triggered 
+from Units that were present during the Conquer action, or Abilities that reference 
+the player that performed the Conquer action. 
+376.4.b.2.a. 
+The Conquer Abilities of Units are put on the Chain as Pending Items 
+after the Unit(s) these effects correspond to are present at a Battlefield 
+when a player gains control of it and gains 1 Victory Point from 
+Conquering. 
+376.4.b.2.b. 
+The Conquer Abilities of anything that references the player Conquering 
+is put on the Chain as a Pending Item when the Condition that the player 
+that controls the triggering source has performed a Conquer and gained 1 
+Victory Point. 
+376.4.b.2.c. 
+If the act of gaining one point from Conquering is negated or replaced in 
+any way, the Conquer Effect will still trigger. 
+
+
+=== PAGE 42 ===
+ 
+ 
+376.4.b.3. 
+These Triggered Abilities can be referred to as Conquer Effects. 
+376.4.c. 
+Hold Effects are Triggered Abilities with a Condition of a Unit being present at a 
+Battlefield during the Beginning phase when a player scores Victory Points from Holding. 
+376.4.c.1. 
+These are commonly structured as “When I hold…” or “When you hold…” 
+376.4.c.2. 
+This category of Triggered Abilities encompasses only those that are triggered 
+from Units that were present during the Hold action, or Abilities that reference the 
+player that performed the Hold action. 
+376.4.c.2.a. 
+The Hold Abilities of Units are put on the Chain as Pending Items after 
+the Unit these effects correspond to are present at a Battlefield when a 
+player maintains control of it and Gains 1 Victory Point during their 
+Beginning Phase from Holding. 
+376.4.c.2.b. 
+The Hold Abilities of anything that references the player Holding is put on 
+the Chain as a Pending Item when the Condition that the player that 
+controls the triggering source has performed a Hold and gained 1 Victory 
+Point. 
+376.4.c.2.c. 
+If the act of gaining one point from Holding is negated or replaced in any 
+way, the Hold Effect will still trigger. 
+376.4.c.3. 
+These Triggered Abilities can be referred to as Hold Effects. 
+376.4.d. 
+Attack Triggers are Triggered Abilities that trigger when a Unit gains the Attacker 
+designation for the first time during a combat. 
+376.4.d.1. 
+These are commonly structured as “When I attack…” 
+376.4.d.2. 
+These Triggered Abilities are put on the Chain as Pending Items after the Unit 
+these effects correspond to gains the Attacker designation during Combat. 
+376.4.d.2.a. 
+These triggers can only become fulfilled once per combat, despite a Unit 
+being able to gain and lose the Attacker designation multiple times in the 
+same combat. 
+376.4.d.3. 
+These Triggered Abilities can be referred to as Attack Triggers. 
+376.4.e. 
+Defend Triggers are Triggered Abilities that trigger when a Unit gains the Defender 
+designation for the first time during a combat. 
+376.4.e.1. 
+These are commonly structured as “When I defend…” 
+376.4.e.2. 
+These Triggered Abilities are put on the Chain as Pending Items after the Unit 
+these effects correspond to gains the Defender designation during Combat. 
+376.4.e.2.a. 
+These triggers can only become fulfilled once per combat, despite a Unit 
+being able to gain and lose the Defender designation multiple times in 
+the same combat. 
+376.4.e.3. 
+These Triggered Abilities can be referred to as Defend Triggers. 
+377. 
+Presence on Permanents 
+377.1. 
+Typically active while on the Board. 
+377.2. 
+Triggered Abilities of Permanents are only able to have their Conditions evaluated while on the 
+Board. 
+378. 
+Presence on Cards outside of the Board 
+
+
+=== PAGE 43 ===
+ 
+ 
+378.1. 
+Triggered Abilities on cards outside of the Board rely on the Information Level of the zone they are 
+in. 
+378.2. 
+Triggered Abilities outside of the Board will self-describe their context.  
+Example: The triggered ability "When you conquer, you may discard 1 to return this from 
+your trash to your hand." triggers while the card it's on is in the trash, and not anywhere else. 
+379. 
+Reflexive Triggers 
+
+
+380. 
+Reflexive Triggers are a type of Triggered Ability that create one or more Chain Items when their condition is 
+met. 
+380.1. 
+Reflexive Triggers can be recognized by the phrase “Do this:” or “Do one of the following:”. 
+380.1.a. 
+“Do this” can be followed by “N times.” The Reflexive Trigger will thus be added to the chain 
+N times when its condition is met. 
+380.2. 
+Reflexive Triggers will be preceded by their conditions, if any. If no condition is present in the ability 
+then the Reflexive Trigger will always be added to the Chain. 
+380.3. 
+If present, the Condition of a Reflexive Trigger will follow the same format as a Triggered Ability. 
+381. 
+Reflexive Triggers use the Chain. 
+381.1. 
+A new ability is created and added to the chain as a Pending Item. 
+See rule 386. Playing or Activating Abilities for more information. 
+381.2. 
+If a Reflexive Trigger creates more than one Pending Item it creates them all in order, but does not 
+go beyond the first step of adding them to the Chain.  
+See rule 386. Playing or Activating Abilities for more information. 
+382. 
+Delayed Abilities 
+383. 
+Delayed Abilities are a type of Ability whose trigger Condition identifies a specific time during a turn or a 
+specific event that can occur during a specific timeframe. 
+383.1. 
+Delayed Abilities can be any other type of Ability, and contain all of the properties of that type in 
+addition to the properties of Delayed Abilities. 
+383.2. 
+Delayed Triggers are Triggered Abilities that can be recognized by describing a specific time of the 
+turn, or by structuring a Triggered Ability with a specific frame of time as a restriction. 
+383.3. 
+Delayed Replacements are Replacement Effects that can be recognized by specifying the effect 
+they are replacing at a specific time, or “the [Nth] time” in the description of the effect as it resolves. 
+383.4. 
+Delayed Passive Abilities are Passive Abilities that are applicable only during a specified window of 
+time. The time that the Delayed Passive Ability applies will be recognized in the effect that initiates 
+it. 
+384. 
+Delayed Abilities will resolve or be active just like the ability they augment, but only during the specified time 
+in the effect that created the Delayed Ability.  
+Example: Ravenborn Tome reads “The next spell you play this turn deals 1 Bonus Damage” is a 
+Delayed Passive Ability that passively adds 1 damage to just the next spell played. The next spell is a 
+specific time, and the 1 Bonus Damage is a passive ability.  
+ 
+Example: Noxian Guillotine reads “Choose a unit. Kill it the next time it takes damage this turn.” When 
+the chosen unit takes damage is the specified time, and killing it is the condition for a Delayed 
+Triggered Ability. 
+385. 
+Delayed Abilities are not associated with Units or Gear; they are created by other Abilities or Spells. As such 
+they are executed when their condition and/or specified time occurs regardless of whether the source of the 
+Delayed Ability is still on the board or not. 
+
+
+=== PAGE 44 ===
+ 
+ 
+386. 
+Playing or Activating Abilities 
+387. 
+Playing or activating Abilities follows the same steps of playing cards. 
+388. 
+Abilities when added to the Chain become Pending Items until they complete the steps of Playing. 
+388.1. 
+When an Ability finishes the steps of playing it becomes a Chain Item just like a Spell. 
+388.2. 
+When an Ability with the [Add] action is finalized it resolves immediately instead of becoming a 
+Chain Item, like a Unit or Gear. 
+389. 
+1. Activate or trigger the Ability 
+389.1. 
+Add a Pending Item to the chain representing the Ability that is either being Activated or Triggered. 
+Notably, although this Chain Item will not have a card representing it, this will create a Closed State.  
+See rule 346. Playing Cards for more information. 
+389.2. 
+If there is currently a game effect being resolved, continue resolving the game effect instead of 
+continuing the following steps. 
+390. 
+2. Make relevant choices 
+390.1. 
+Make all choices required for this ability, such as targets, options, or other relevant decisions.  
+See rule 346. Playing Cards for more information 
+390.2. 
+If legal options are not available for an Activated Ability, it is not legal to activate it. 
+390.3. 
+If there are not enough options to make legal choices for a Triggered Ability that has been put on 
+the chain, remove it from the Chain now. It ceases to be a Pending Item but never becomes a Chain 
+Item. 
+390.3.a. 
+This is not an Ability being countered. 
+390.3.b. 
+If there are legal options to choose, the ability’s controller must choose them. They may not 
+decline this stage of playing a Trigger. 
+391. 
+3. Determine Total Cost 
+391.1. 
+Determine the base cost of the Ability. 
+391.1.a. 
+Activated Abilities will have a cost listed before the “:” in their text. 
+391.1.b. 
+Triggered Abilities will typically not have a base cost associated with them when placed on 
+the chain due to their conditions. 
+391.2. 
+Apply cost increases and decreases as a result of choices made in the prior step.  
+See rule 346. Playing Cards for more information. 
+391.3. 
+Apply any other cost increases or decreases as necessary.  
+See rule 346. Playing Cards for more information. 
+392. 
+4. Pay Costs 
+392.1. 
+Pay costs as determined in the prior step.  
+See rule 346. Playing Cards for more information. 
+392.2. 
+At this stage, players may decline to pay for Triggered Abilities that have incurred a cost. If they do, 
+the ability will cease being a Pending Item and be removed from the Chain. It never becomes a 
+Chain Item. 
+392.2.a. 
+This is not an Ability being countered. 
+
+
+=== PAGE 45 ===
+ 
+ 
+393. 
+5. Check Legality 
+393.1. 
+Ensure that the Ability’s targets are still legal. 
+393.2. 
+Ensure that the Ability’s effect would not create an illegal state. If it would, resolve in the same way 
+you would resolve a Card that creates an illegal state. 
+See rule 346. Playing Cards for more information. 
+394. 
+6. Proceed with Play 
+394.1. 
+This Ability is no longer Pending. 
+394.2. 
+This Ability becomes a Chain Item. 
+394.3. 
+If there are other Pending Items on the Chain, their controllers perform the remaining steps of 
+playing now. 
+394.4. 
+Other players have an opportunity to play Reactions before the resolution of spells.  
+See rule 326. Chains for more information. 
+394.5. 
+Otherwise, execute the Ability just like a Spell, then clear the Chain Item from the Chain. 
+395. 
+Game Actions 
+396. 
+Game Actions are actions players may perform at any given time during the game. 
+397. 
+A player, unless otherwise specified or prompted, may only perform actions on their turn. 
+398. 
+There are two types of Game Actions: 
+398.1. 
+Discretionary Actions 
+398.1.a. 
+A Discretionary Action is a Game Action that may be performed at any time during a 
+player's turn during a Neutral Open State.  
+See rule 307. States of the Turn for more information. 
+398.1.b. 
+A player may take any number of Discretionary Actions available to them during their turn. 
+398.1.b.1. 
+As long as any conditions, if applicable, are met. 
+398.1.b.2. 
+As long as any costs, if applicable, are paid. 
+398.1.b.3. 
+As long as it does not result in any forbidden action being taken or game state 
+being created.  
+Example: A player can't use the Standard Move discretionary action to 
+move a unit to a Battlefield that's already occupied by Units controlled by 
+two other players. 
+398.2. 
+Limited Actions 
+398.2.a. 
+A Limited Action is a game action that a spell, ability, or circumstance of the turn's 
+progression causes the player to perform. A player cannot perform these actions at-will. 
+398.2.b. 
+These actions can only be taken when a player is instructed to do so as the execution of an 
+effect or during their specified occasion during the turn.  
+Example: A player may Draw during the Draw Step of the Beginning Phase of 
+their turn or when instructed to do so by a spell or ability. They can't choose to 
+
+
+=== PAGE 46 ===
+ 
+ 
+Draw at any other time. 
+399. 
+Types of Actions 

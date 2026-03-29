@@ -1,0 +1,130 @@
+================================================================================
+RIFTBOUND RULES: Chain & Priority
+Source sections: 326-336
+Backend modules: chain.py
+================================================================================
+
+330. 
+The State of the Turn is partially determined by whether or not the Chain currently exists. 
+330.1. 
+The turn is said to be in a Closed State if a Chain exists. 
+330.1.a. 
+Cards of all Categories, by default, cannot be played during a Closed State. 
+330.1.b. 
+Card abilities, by default, cannot be played during a Closed State. 
+330.2. 
+The turn is said to be in an Open State if no Chain exists. 
+331. 
+Steps of Resolving Chain Items 
+332. 
+Whenever a card or token is played or an ability is activated or triggered, a Chain is created. 
+332.1. 
+The player that created the chain becomes the first Active Player. 
+332.2. 
+The Active Player is a designator similar to, but distinct from, Turn Player. 
+332.3. 
+Similar to the Turn Player, this designation will pass between players over the course of play. 
+333. 
+Step 1: Finalize 
+333.1. 
+If one or more Items are Pending, their controllers must complete the steps of Playing those 
+Pending Items until they are Finalized Items or leave the Chain. 
+333.1.a. 
+This process does not pass Priority. 
+333.1.b. 
+Each Item is Finalized in the order it was appended to the Chain. 
+
+
+=== PAGE 28 ===
+ 
+ 
+333.1.c. 
+Abilities that Add resources, Units, and Gear resolve immediately when Finalized and do not 
+progress to Step 2: Execute.  
+See rule 346. Playing Cards for more information. 
+333.1.c.1. 
+If the Chain is empty, play proceeds in an Open State. 
+333.1.c.2. 
+If the Chain is not empty and there are one or more Pending Items, repeat Step 1. 
+333.1.c.3. 
+If the Chain is not empty and there are no Pending Items, the controller of the 
+newest item on the chain gains Priority and becomes the Active Player. Proceed 
+to Step 2: Execute. 
+334. 
+Step 2: Execute 
+334.1. 
+The Active Player may do any the following: 
+334.1.a. 
+Play a Card that is legally timed. 
+334.1.a.1. 
+Cards, by default, cannot be played during a Closed State. 
+334.1.a.2. 
+A Legally Timed Card would be a Card with Reaction. 
+334.1.a.3. 
+Other exceptions may be created during regular play. 
+334.1.a.4. 
+The card will be added to the chain as a Pending Item, following the steps of 
+playing a card. 
+334.1.a.5. 
+This can be an additional card to the item that Started the Chain in the case of the 
+first Active Player after creating the Chain. 
+334.1.a.6. 
+Whether a Card is legally timed is evaluated during the “Check Legality” step of 
+Playing a Card.  
+See rule 346. Playing Cards for more information. 
+334.1.a.7. 
+Playing a card will create one or more Pending Items. Return to Step 1: Finalize. 
+334.1.b. 
+Activate Abilities of Game Objects that are legally timed.  
+See rule 386. Playing or Activating Abilities for more information. 
+334.1.b.1. 
+All rules for legally timed cards apply to legally timed abilities. 
+334.1.b.2. 
+Activating abilities will create one or more Pending Items. Return to Step 1: Finalize. 
+334.1.c. 
+Pass Priority 
+334.1.c.1. 
+The Active Player passes Priority to the next Player in Turn Order. Proceed to Step 
+3: Pass. 
+335. 
+Step 3: Pass 
+335.1. 
+If all players have passed Priority without adding any items to the Chain, proceed to Step 4: Resolve. 
+335.2. 
+Otherwise, the Active Player passes Priority to the next Player in Turn Order. Return to Step 3: 
+Execute. 
+336. 
+Step 4: Resolve 
+336.1. 
+The newest item on the Chain resolves. Execute its game effects in their entirety. 
+See rule 346. Playing Cards for more information on resolving spells.  
+See rule 386. Playing or Activating Abilities for more information on resolving abilities. 
+336.2. 
+If the Chain is empty, play proceeds in an Open State. 
+
+
+=== PAGE 29 ===
+ 
+ 
+336.3. 
+If the Chain is not empty and there are one or more Pending Items, return to Step 1: Finalize. 
+336.4. 
+If the Chain is not empty and there are no Pending Items, the controller of the newest item on the 
+chain gains Priority and becomes the Active Player. Return to Step 2: Execute. 
+337. 
+Showdowns 
+338. 
+A Showdown is a Window of Opportunity in which Players have an Open State in which they may play 
+Spells in an alternating fashion. 
+338.1. 
+Each spell played this way creates a Chain as normal. 
+339. 
+The State of the turn is partially determined by whether or not a Showdown is in progress. 
+339.1. 
+The turn is said to be in a Showdown State if a Showdown is in progress. 
+339.1.a. 
+Cards of all Categories, by default, cannot be played during a Showdown State. 
+339.1.b. 
+Card abilities, by default, cannot be played during a Showdown State. 
+339.2. 
+The turn is said to be in a Neutral State if no Showdown is in progress. 

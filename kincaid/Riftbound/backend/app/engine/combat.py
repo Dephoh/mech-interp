@@ -45,7 +45,8 @@ def open_showdown(
 def pass_focus(gs: GameState, player_id: str) -> list[str]:
     """
     Player passes focus in a showdown. Returns log messages.
-    If both players pass, the showdown closes.
+    If all players have passed once in sequence (rule 344.3.a),
+    the showdown closes.
     """
     sd = gs.active_showdown
     if not sd:
@@ -55,16 +56,28 @@ def pass_focus(gs: GameState, player_id: str) -> list[str]:
     logs: list[str] = []
 
     if len(sd.passed_players) >= len(gs.player_order):
-        # Both passed — showdown ends
+        # All passed in sequence — showdown ends (rule 344.3.a / 345)
         logs.extend(close_showdown(gs))
     else:
-        # Pass focus to opponent
+        # Pass focus to opponent (rule 344.4)
         next_player = gs.opponent_id(player_id)
         sd.focus_player_id = next_player
         gs.active_player_id = next_player
         logs.append(f"Focus passes to {next_player}")
 
     return logs
+
+
+def showdown_action_taken(gs: GameState) -> None:
+    """
+    Called when a player plays a spell or activates an ability during a
+    showdown (rule 344.1/344.2).  Resets the sequential-pass tracker so
+    that all players must pass again in sequence before the showdown
+    closes (rule 344.3.a).
+    """
+    sd = gs.active_showdown
+    if sd:
+        sd.passed_players.clear()
 
 
 def close_showdown(gs: GameState) -> list[str]:
@@ -143,11 +156,17 @@ def start_combat(gs: GameState, battlefield_id: str) -> list[str]:
     )
 
     # Assign combat roles to units
+    # Rule 756-757: Backline units cannot be declared as attackers.
     for uid in bf.units:
         unit = gs.instances.get(uid)
         if unit:
             if unit.controller_id == attacker_id:
-                unit.combat_role = CombatRole.ATTACKER
+                if unit.has_keyword(Keyword.BACKLINE):
+                    logger.info(
+                        "[COMBAT] %s has Backline — cannot attack", unit.name,
+                    )
+                else:
+                    unit.combat_role = CombatRole.ATTACKER
             elif unit.controller_id == defender_id:
                 unit.combat_role = CombatRole.DEFENDER
 
@@ -283,7 +302,7 @@ def validate_assignment(
     assignment: dict[str, int],
     targets: list,
 ) -> str | None:
-    """Validate a damage assignment. Returns error string or None."""
+    """Validate a damage assignment against all combat rules. Returns error string or None."""
     assigned_total = sum(assignment.values())
     if assigned_total != total_damage:
         return f"Must assign exactly {total_damage} damage (assigned {assigned_total})"
@@ -292,50 +311,103 @@ def validate_assignment(
         if dmg < 0:
             return "Cannot assign negative damage"
 
-    # Check Backline protection: cannot assign damage to Backline units
-    # while non-Backline units remain without lethal damage
+    # --- Backline: cannot assign damage to Backline units while
+    # non-Backline units remain without lethal damage (rule 443.1.d.5) ---
     valid_targets = get_valid_damage_targets(targets)
     for uid, dmg in assignment.items():
         if dmg > 0:
             target = next((u for u in targets if u.instance_id == uid), None)
             if target and target not in valid_targets:
-                # Backline unit receiving damage while non-Backline targets exist
-                return "Cannot assign damage to Backline unit while other units remain"
+                # Check if all valid (non-Backline) targets already have lethal
+                all_valid_lethal = all(
+                    assignment.get(vt.instance_id, 0) >= vt.effective_might - vt.damage
+                    for vt in valid_targets
+                )
+                if not all_valid_lethal:
+                    return "Cannot assign damage to Backline unit while other units remain"
 
-    # Check Tank ordering
+    # --- Tank ordering (rule 443.1.d.5 / 443.1.d.6) ---
     if not check_tank_ordering(targets, assignment):
         return "Must assign lethal to Tank units before non-Tank units"
 
-    # Check lethal-before-next rule
+    # --- Lethal-before-next (rule 443.1.d.3) ---
     if not check_lethal_before_next(targets, assignment):
         return "Must assign lethal to each unit before moving to the next"
+
+    # --- No-overkill (rule 443.1.d.4): a unit cannot receive more damage
+    # than the minimum lethal unless no further valid targets remain ---
+    units_with_damage = [
+        u for u in targets if assignment.get(u.instance_id, 0) > 0
+    ]
+    units_without_damage = [
+        u for u in targets if assignment.get(u.instance_id, 0) == 0
+    ]
+    for unit in units_with_damage:
+        lethal = max(0, unit.effective_might - unit.damage)
+        assigned = assignment.get(unit.instance_id, 0)
+        if lethal > 0 and assigned > lethal:
+            # Overkill — only allowed if no other assignable targets remain
+            # "no further units remain" means every other unit already has
+            # lethal assigned OR there are no other targets at all.
+            others_needing = [
+                u for u in targets
+                if u.instance_id != unit.instance_id
+                and assignment.get(u.instance_id, 0) < max(0, u.effective_might - u.damage)
+                and max(0, u.effective_might - u.damage) > 0
+            ]
+            if others_needing:
+                return (
+                    f"Cannot assign more than lethal ({lethal}) to "
+                    f"{unit.name} while other units can receive damage"
+                )
 
     return None
 
 
 def apply_combat_damage(gs: GameState) -> list[str]:
-    """Apply damage from both sides simultaneously, then resolve combat."""
+    """
+    Apply damage from both sides simultaneously (rule 443.1.d.1.a),
+    then fire DAMAGE_DEALT triggers, then resolve combat.
+    """
     combat = gs.active_combat
     if not combat:
         return []
 
     logs: list[str] = []
 
-    # Apply attacker's damage to defenders
+    # Collect all (unit, damage, source_player) pairs first so the
+    # actual application is simultaneous (rule 443.1.d.1.a).
+    damage_pairs: list[tuple[str, int, str]] = []  # (target_uid, dmg, dealer_pid)
+
     if combat.attacker_assignment:
         for uid, dmg in combat.attacker_assignment.items():
-            unit = gs.instances.get(uid)
-            if unit and dmg > 0:
-                unit.damage += dmg
-                logs.append(f"{unit.name} takes {dmg} combat damage")
+            if dmg > 0:
+                damage_pairs.append((uid, dmg, combat.attacker_id))
 
-    # Apply defender's damage to attackers
     if combat.defender_assignment:
         for uid, dmg in combat.defender_assignment.items():
-            unit = gs.instances.get(uid)
-            if unit and dmg > 0:
-                unit.damage += dmg
-                logs.append(f"{unit.name} takes {dmg} combat damage")
+            if dmg > 0:
+                damage_pairs.append((uid, dmg, combat.defender_id))
+
+    # Apply all damage simultaneously
+    for uid, dmg, _ in damage_pairs:
+        unit = gs.instances.get(uid)
+        if unit:
+            unit.damage += dmg
+            logs.append(f"{unit.name} takes {dmg} combat damage")
+
+    # Fire DAMAGE_DEALT triggers after all damage is applied (rule 443.1.e)
+    for uid, dmg, dealer_pid in damage_pairs:
+        unit = gs.instances.get(uid)
+        if unit:
+            evt_logs = fire_event(gs, GameEvent.DAMAGE_DEALT, {
+                "card_id": uid,
+                "player_id": dealer_pid,
+                "damage": dmg,
+                "source": "combat",
+                "battlefield_id": combat.battlefield_id,
+            })
+            logs.extend(evt_logs)
 
     combat.phase = "resolution"
     logs.extend(resolve_combat(gs))
@@ -345,10 +417,11 @@ def apply_combat_damage(gs: GameState) -> list[str]:
 def resolve_combat(gs: GameState) -> list[str]:
     """
     Combat resolution step:
-    1. Heal all units (combat cleanup)
-    2. Recall attackers if defenders remain
-    3. Remove designations
-    4. Determine control
+    1. Kill units with lethal damage (BEFORE healing)
+    2. Heal surviving units
+    3. Recall surviving losers
+    4. Remove combat designations
+    5. Determine control
     """
     combat = gs.active_combat
     if not combat:
@@ -357,46 +430,94 @@ def resolve_combat(gs: GameState) -> list[str]:
     bf = gs.battlefields[combat.battlefield_id]
     logs: list[str] = []
 
-    # Note: units killed by damage will be handled by cleanup
-    # Here we do the combat-specific resolution after cleanup runs
+    # 1. Kill units with lethal damage BEFORE healing
+    dead_units: list = []
+    for uid in list(bf.units):
+        unit = gs.instances.get(uid)
+        if unit and unit.effective_might > 0 and unit.damage >= unit.effective_might:
+            dead_units.append(unit)
 
-    # Check who has units remaining (after damage is applied but before cleanup kills)
-    attacker_units = [
-        gs.instances[uid] for uid in list(bf.units)
-        if uid in gs.instances and gs.instances[uid].controller_id == combat.attacker_id
-    ]
-    defender_units = [
-        gs.instances[uid] for uid in list(bf.units)
-        if uid in gs.instances and gs.instances[uid].controller_id == combat.defender_id
-    ]
+    for unit in dead_units:
+        # Fire death events while unit is still on the board
+        ctx = {"card_id": unit.instance_id, "player_id": unit.controller_id}
+        logs.extend(fire_event(gs, GameEvent.UNIT_DIED, ctx))
+        logs.extend(fire_event(gs, GameEvent.FRIENDLY_DEATH, ctx))
+        logs.extend(fire_event(gs, GameEvent.ENEMY_DEATH, ctx))
+        # Detach gear — returns to owner's base
+        for gear_id in list(unit.attached_cards):
+            gear = gs.instances.get(gear_id)
+            if gear:
+                gear.attached_to = None
+                gear.zone = ZoneType.BASE
+                gear.location_id = gear.owner_id
+                gs.base_gear.setdefault(gear.owner_id, []).append(gear_id)
+                logs.append(f"{gear.name} detached (unit died in combat)")
+        unit.attached_cards.clear()
+        # Remove from battlefield, move to trash
+        if unit.instance_id in bf.units:
+            bf.units.remove(unit.instance_id)
+        gs.unregister_card(unit.instance_id)
+        unit.zone = ZoneType.TRASH
+        unit.location_id = None
+        unit.damage = 0
+        unit.exhausted = False
+        unit.buff_counter = False
+        unit.stunned = False
+        unit.combat_role = CombatRole.NONE
+        unit.granted_keywords.clear()
+        unit.might_modifiers.clear()
+        gs.players[unit.owner_id].trash.append(unit.instance_id)
+        logs.append(f"{unit.name} destroyed in combat")
 
-    # Heal all units at this battlefield
+    # 2. Heal surviving units at the battlefield
     for uid in list(bf.units):
         unit = gs.instances.get(uid)
         if unit:
             unit.heal()
 
-    # Check which units survived (after healing, before checking kills — kills handled by cleanup)
-    surviving_attackers = [u for u in attacker_units if u.is_alive]
-    surviving_defenders = [u for u in defender_units if u.is_alive]
+    # 3. Determine surviving sides and recall losers
+    surviving_attackers = [
+        gs.instances[uid] for uid in bf.units
+        if uid in gs.instances and gs.instances[uid].controller_id == combat.attacker_id
+    ]
+    surviving_defenders = [
+        gs.instances[uid] for uid in bf.units
+        if uid in gs.instances and gs.instances[uid].controller_id == combat.defender_id
+    ]
 
-    # Recall attackers if defenders survive
-    if surviving_defenders:
+    # Track whether we already fired COMBAT_WIN for a player to avoid duplicates
+    combat_win_fired_for: str | None = None
+
+    if surviving_defenders and surviving_attackers:
+        # Both sides survive — attackers recall (rule 444.1.a.2)
         for unit in surviving_attackers:
             _recall_unit(gs, unit)
+            # Rule 444.1.a.3: remove Attacker designation from recalled units
+            unit.combat_role = CombatRole.NONE
             logs.append(f"{unit.name} recalled to base")
+        # Defenders successfully repelled the attack — fire COMBAT_WIN
+        combat_win_fired_for = combat.defender_id
+        evt_logs = fire_event(gs, GameEvent.COMBAT_WIN, {
+            "player_id": combat.defender_id,
+            "battlefield_id": combat.battlefield_id,
+        })
+        logs.extend(evt_logs)
+    elif surviving_defenders:
+        pass  # attackers all dead — defenders hold the field (control handled below)
+    elif surviving_attackers:
+        pass  # defenders all dead — attackers take the field (control handled below)
 
-    # Remove combat designations
+    # 4. Remove combat designations from any remaining units (rule 444.1.a.3)
     for uid in list(bf.units):
         unit = gs.instances.get(uid)
         if unit:
             unit.combat_role = CombatRole.NONE
 
-    # Determine control
+    # 5. Determine control (rule 444.2)
     remaining_players = set()
     for uid in bf.units:
         unit = gs.instances.get(uid)
-        if unit and unit.is_alive:
+        if unit:
             remaining_players.add(unit.controller_id)
 
     if len(remaining_players) == 1:
@@ -405,21 +526,23 @@ def resolve_combat(gs: GameState) -> list[str]:
         bf.controller_id = winner_id
         bf.contested_by = None
         logs.append(f"{winner_id} takes control of the battlefield")
+        # Rule 444.2.b: Conquer if not already scored this turn
         logs.extend(score_conquer(gs, winner_id, combat.battlefield_id))
-        # Fire combat win trigger
-        evt_logs = fire_event(gs, GameEvent.COMBAT_WIN, {
-            "player_id": winner_id,
-            "battlefield_id": combat.battlefield_id,
-        })
-        logs.extend(evt_logs)
+        # Fire COMBAT_WIN only if we haven't already fired it for this player
+        if combat_win_fired_for != winner_id:
+            evt_logs = fire_event(gs, GameEvent.COMBAT_WIN, {
+                "player_id": winner_id,
+                "battlefield_id": combat.battlefield_id,
+            })
+            logs.extend(evt_logs)
     elif len(remaining_players) == 0:
+        # Rule 444.2.d: no units remain — battlefield becomes uncontrolled
         bf.control_status = ControlStatus.UNCONTROLLED
         bf.controller_id = None
         bf.contested_by = None
         logs.append("Battlefield becomes uncontrolled")
-    # If both sides remain (shouldn't happen after recall), leave contested
 
-    # Clean up any lingering facedown state at the combat battlefield
+    # 6. Clean up any lingering facedown state at the combat battlefield
     if bf.facedown_card:
         fd_card = gs.instances.get(bf.facedown_card)
         if fd_card:
@@ -428,7 +551,7 @@ def resolve_combat(gs: GameState) -> list[str]:
             fd_card.hidden_ready = False
         bf.facedown_card = None
 
-    # Clear combat state
+    # 7. Clear combat state
     gs.active_combat = None
     gs.active_player_id = gs.turn_player_id
     logs.append("Combat resolved")
@@ -446,7 +569,7 @@ def _recall_unit(gs: GameState, unit) -> None:
     # Place in base
     unit.zone = ZoneType.BASE
     unit.location_id = unit.controller_id
-    unit.exhausted = True  # recalled units stay exhausted
+    # Rule 436.1: Recall preserves exhausted status, damage, buffs — don't change state
     gs.base_units.setdefault(unit.controller_id, []).append(unit.instance_id)
 
 

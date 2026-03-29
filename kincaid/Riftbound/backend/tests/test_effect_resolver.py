@@ -421,6 +421,40 @@ class TestConditions:
         source.combat_role = CombatRole.DEFENDER
         assert evaluate_condition({"cond_type": "is_attacker"}, source, gs) is False
 
+    def test_previous_effect_succeeded_true(self):
+        """If the last primitive succeeded, previous_effect_succeeded is True."""
+        gs = make_game()
+        source = add_unit(gs, "p1", name="Adaptatron")
+        enemy = add_unit(gs, "p2", name="Enemy", might=3)
+
+        # Kill succeeds → sets last_effect_succeeded = True
+        ir = sequence([
+            kill(target=TargetSpec(scope="enemy")),
+            conditional(
+                {"cond_type": "previous_effect_succeeded"},
+                then=buff(target=TargetSpec(scope="self")),
+            ),
+        ])
+        logs = resolve_effect_ir(ir, source, gs, [])
+        assert enemy.damage >= enemy.effective_might  # killed
+        assert source.buff_counter is True  # conditional fired
+
+    def test_previous_effect_succeeded_false(self):
+        """If the last primitive had no valid targets, condition is False."""
+        gs = make_game()
+        source = add_unit(gs, "p1", name="Adaptatron")
+        # No enemies exist — kill fails
+
+        ir = sequence([
+            kill(target=TargetSpec(scope="enemy")),
+            conditional(
+                {"cond_type": "previous_effect_succeeded"},
+                then=buff(target=TargetSpec(scope="self")),
+            ),
+        ])
+        logs = resolve_effect_ir(ir, source, gs, [])
+        assert source.buff_counter is False  # conditional did NOT fire
+
 
 # ---------------------------------------------------------------------------
 # Auto-target resolution tests

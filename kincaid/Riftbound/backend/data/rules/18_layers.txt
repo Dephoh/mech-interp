@@ -1,0 +1,179 @@
+================================================================================
+RIFTBOUND RULES: Layers (Continuous Effect Ordering)
+Source sections: 450-457
+Backend modules: effect_resolver.py, game_state.py
+================================================================================
+
+450. 
+Layers 
+451. 
+Layers are the mechanism in which Game Effects alter the Traits, Intrinsic Abilities, or other properties of 
+Game Objects. 
+452. 
+Layers are an organizational structure. 
+452.1. 
+Layers only serve to structure the application and order that Game Effects apply to Game Objects to 
+maintain consistency. 
+453. 
+The layers are applied repeatedly until all effects operating on objects have been applied once and no 
+changes have been processed. 
+453.1. 
+Layers are applied in sequence. Each effect in them is applied as soon as able, and only a single time 
+across all sequences. 
+453.2. 
+When a sequence of applications completes, recur the process, and evaluate each layer again 
+applying any effects that may now be applicable. 
+
+
+=== PAGE 63 ===
+ 
+ 
+453.3. 
+The removal or disqualification of an effect is separate from the application of the effect, but still can 
+only be applied once.  
+Example: Fiora, Victorious has printed Might 4 and says “While I'm Mighty, I have Deflect, 
+Ganking, and Shield.” If a player places a buff on Fiora, her Might is increased in the 
+Arithmetic layer, after the layer for Ability-Altering Effects. The Ability-Altering Effect layer is 
+then re-checked and the abilities Deflect, Ganking, and Shield applied. Since each effect has 
+been applied once and there are no other effects to apply, Fiora’s characteristics are finalized 
+as 5 Might with Deflect, Ganking, and Shield. While a buffed Fiora, Victorious is in combat as 
+a defender, an additional +1 Might will be applied in the Arithmetic layer, giving her 6 Might 
+and the 3 keywords.  
+ 
+Example: A buffed Fiora, Victorious is in combat as a defender when her buff is removed. 
+Reevaluating the layers in sequence, she no longer gains Deflect, Ganking, and Shield 
+during the Ability-Altering Effect layer, so when the Arithmetic layer is evaluated, neither the 
+buff (which is gone) nor Shield (which she no longer has) apply. She goes directly from 6 
+Might with three keywords to 4 Might with no keywords.. 
+454. 
+Layers are applied in the following order: 
+454.1. 
+1. Trait-Altering Effects 
+454.1.a. 
+This layer deals with effects that grant, remove, or replace inherent traits of Game Objects.  
+Name 
+Super Type 
+Type 
+Tags 
+Controller 
+Cost 
+Domain 
+454.1.a.1. 
+Assignment of Might is dealt with in this layer.  
+Example: A spell reads "A unit's Might becomes 4 this turn." The unit's 
+Might is set to 4 in this layer. 
+454.1.b. 
+One Game Object becoming a copy of another. 
+454.1.b.1. 
+All Traits, including the Rules Text, replace or are added to those of the original 
+Game Object as specified by the Game Effect directing the Copy. This is applied in 
+this layer. 
+454.1.c. 
+Effects for this layer can be identified by the phrase "become(s)", "give," "is," or "are" in the 
+text.  
+Example: A permanent has the ability "Other friendly units are Yordles." Other 
+friendly units gain the Yordle tag in this layer. 
+454.2. 
+2. Ability-Altering Effects 
+454.2.a. 
+This layer deals with effects that grant, remove, or replace the abilities or rules text of Game 
+Objects.  
+Keywords 
+Passive Abilities 
+Appending rules text 
+Removing rules text 
+Duplicating Rules Text from one Game Object to another 
+454.2.b. 
+Effects for this layer can be identified by the phrase "become(s)," "give," "lose(s)," "have," "has," 
+"is," or "are" in the text.  
+Example: A permanent has the ability "Other friendly units have [Vision]." Other 
+friendly units gain the Vision keyword in this layer. 
+
+
+=== PAGE 64 ===
+ 
+ 
+454.2.c. 
+Abilities of Effect Text of Attached cards are appended in this layer. 
+454.3. 
+3. Arithmetic 
+454.3.a. 
+This layer deals with the mathematics of increasing and decreasing the numeric values of 
+the traits of Game Objects.  
+Might 
+Energy Cost 
+Power Cost 
+454.3.b. 
+When an arithmetic effect has a limitation that applies, it is limited at the time of its 
+application, and is “remembered” at that limited level for the duration of its effect. This 
+process is called “snapshotting.”  
+Example: If an effect gives a unit “-4 [M] to a min of 1 until end of turn” choosing a 
+unit with 2 [M], then the effect will generate -1 [M] until end of turn. 
+454.3.c. 
+Might Bonuses of Attached cards are applied in this layer. 
+454.3.d. 
+This layer applies arithmetic in the following way. 
+454.3.d.1. 
+1. Increases 
+454.3.d.1.a. 
+Positive values, or increases, to Might are applied first. 
+454.3.d.1.b 
+If there is a restriction or limitation to this increase, the limitation is 
+“snapshotted” for the duration of the effect. 
+454.3.d.2. 
+2. Decreases 
+454.3.d.2.a. 
+Negative values, or decreases, to Might are applied last. 
+454.3.d.2.b. 
+If there is a restriction or limitation to this decrease, the limitation is 
+snapshotted for the duration of the effect. 
+455. 
+If more than one effect applies to the same Game Object in the Same Layer, or to each other in the same 
+layer, then both effects will apply but their order may be determined by Dependency. 
+455.1. 
+A Dependency is established if: 
+455.1.a. 
+Applying one of the effects alters the existence of the other; or 
+455.1.b. 
+Applying one of the effects alters the number of objects the other effect can influence 
+455.1.c. 
+Applying one of the effects alters the outcome when applying the other non- 
+deterministically 
+456. 
+To determine which effect Depends on another, determine which of the prior criteria applies, and then also 
+which effect’s evaluation is altered by the sequence of applications. That effect is said to Depend on the other. 
+456.1. 
+To resolve a dependency, the effects within the same layer that created the dependency must be 
+applied such that:  
+1. Identify which effect Depends on the other within the Layer.  
+2. Apply the effect that is depended on first.  
+3. Immediately apply the effect that Depends on the first effect next. 
+457. 
+If more than one effect applies in the same layer but no dependency is established, then Timestamp order is 
+applied to the effects within that layer and sublayer 
+457.1. 
+When an effect begins applying, it establishes a time for which it is compared against other Game 
+Effects for purposes of resolving Layered effects as its Timestamp. 
+
+
+=== PAGE 65 ===
+ 
+ 
+457.1.a. 
+Timestamps are not rote values. 
+457.1.b. 
+Timestamps are relative comparisons between effects and when they began applying to 
+the game. 
+457.1.c. 
+Timestamps are not referenced by Game Effects in any way. They are only used to finalize 
+layered effects. 
+457.2. 
+When Rules Text becomes Inactive for any reason, it loses its Timestamp. When it ceases to be 
+Inactive, a new Timestamp is established. 
+457.3. 
+Effects are applied such that the earliest Timestamp within each Layer and Sublayer applies first, 
+followed by other Effects in that Layer and Sublayer in chronological order. 
+458. 
+Modes of Play 
+459. 
+There are multiple methods of playing Riftbound. 

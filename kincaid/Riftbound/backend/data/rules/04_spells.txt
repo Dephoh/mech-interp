@@ -1,0 +1,94 @@
+================================================================================
+RIFTBOUND RULES: Spells
+Source sections: 150-155
+Backend modules: card_types.py, chain.py
+================================================================================
+
+150. 
+Spell is a card type. 
+151. 
+A spell can be played during an Open State Outside of Showdowns on its controller's turn. 
+152. 
+A spell is controlled by the player who played it. 
+153. 
+A spell creates a game effect according to its instructions and is then placed in the Trash of the player who 
+owns it. 
+154. 
+When a spell is successfully played, a player executes the rules text of the spell. This is called Resolving the 
+spell. 
+154.1. 
+Spells have their rules text executed from top to bottom when they are Resolved. 
+154.2. 
+If a later part of a spell applies a Replacement Effect that alters earlier parts of the spell, apply those 
+replacement effects as appropriate. Example: A spell says "Choose a unit. Kill it the next time it takes 
+damage this turn." and "[Legion] — Kill it now instead. (Get the effect if you've played another card 
+this turn.)" If the Legion condition is satisfied, the unit is killed immediately and the instruction to kill 
+it the next time it takes damage is ignored, even if the unit remains on the board somehow. 
+154.3. 
+While a spell or ability on the chain is Resolving, no other spells or abilities can be finalized on the 
+chain or resolved, including triggered abilities or game effects that would occur as a result of the 
+execution of the spell. 
+154.3.a. 
+Finish resolving all effects of a spell before addressing anything the spell may have triggered 
+or caused through execution. 
+155. 
+Certain Keywords on spells are not executable rules text, but instead intrinsic properties of the spell. 
+155.1. 
+These determine inherent properties and behaviors of the spell before being played or while on the 
+chain. 
+155.2. 
+These keywords are: 
+155.2.a. 
+Action 
+155.2.a.1. 
+This indicates that, in addition to being able to be played during an Open State, 
+this spell may also be played during Open States during Showdowns. 
+
+
+=== PAGE 16 ===
+ 
+ 
+155.2.b. 
+Reaction 
+155.2.b.1. 
+Grants all cases and rules of Action. 
+155.2.b.2. 
+In addition to all prior cases, may also be played during all forms of Closed State. 
+155.2.b.3. 
+This will result in this spell resolving before spells and abilities that are already on 
+the chain. 
+156. 
+Runes 
+157. 
+Rune is a Card Type. 
+157.1. 
+A Rune is not a Main Deck card. 
+157.1.a. 
+This means, despite remaining on the Board until Recycled or otherwise removed from the 
+board, it is not a Permanent. 
+157.2. 
+Runes are kept in the Rune Deck. 
+157.2.a. 
+Exactly 12 Rune cards chosen during Deck Construction.  
+See rule 103.3. Rune Deck for more information. 
+157.2.b. 
+When a Rune is Recycled it is returned to the Rune Deck, not the Main Deck.  
+See rule 403. Recycle for more information. 
+158. 
+Runes produce the resources needed to pay costs. 
+159. 
+Runes produce Energy and Power. 
+159.1. 
+Energy is used to pay numeric Energy costs. 
+159.1.a. 
+Energy has no Domain. 
+159.1.b. 
+Energy has no type. 
+159.2. 
+Power is used to pay Domain-associated Power Costs. 
+159.2.a. 
+Power has a Domain. 
+159.2.a.1. 
+Power's Domain usually corresponds to the Domain of the Rune that produced it. 
+159.2.b. 
+Some Power is Universal and can be used to pay for costs of any Domain. 

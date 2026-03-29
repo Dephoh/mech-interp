@@ -1,0 +1,91 @@
+================================================================================
+RIFTBOUND RULES: Legends
+Source sections: 169-172
+Backend modules: card_types.py
+================================================================================
+
+170. 
+Legends are Game Objects. 
+170.1. 
+Legends are Owned by a player. 
+170.2. 
+Legends are not shuffled into Decks at the start of a game. 
+170.2.a. 
+Legends are not played during the course of regular play. 
+170.2.b. 
+Legends are established at the start of a game, and remain in place for the duration of 
+regular play. 
+170.3. 
+Legends cannot be Killed during the course of regular play. 
+170.4. 
+Legends cannot be Moved. 
+170.5. 
+Legends can be targeted by spells or game effects. 
+170.6. 
+Legends can have Passive Abilities. 
+See rule 360. Passive Abilities for more information. 
+170.7. 
+Legends can have Triggered Abilities. 
+See rule 375. Triggered Abilities for more information. 
+170.8. 
+Legends can have Activated Abilities. 
+See rule 369. Activated Abilities for more information. 
+171. 
+Legends are not Permanents. 
+172. 
+Legends may have one or more Domains. 
+172.1. 
+The Legend determines the Domain Identity of cards its owner can include. 
+See rule 101. Deck Construction for more information. 
+173. 
+Tokens 
+174. 
+Tokens are Game Objects created by spells and abilities during play. 
+175. 
+Tokens can be represented by anything. Printed tokens are included in Riftbound booster packs, but they are 
+not required to play a token. 
+176. 
+A token's controller is the controller of the spell or ability that created it, unless the token's type innately 
+determines control or that spell or ability specifies that a different player is the token's controller. 
+177. 
+A token's owner is the player who controlled the effect that created it. 
+178. 
+The effect that creates a token may specify the conditions or circumstances under which it enters the board. 
+These stipulations may alter the usual steps for playing a card. 
+178.1. 
+The effect may state that the token enters ready or exhausted, if that state is contrary to the default 
+for the token's type. 
+178.2. 
+The effect may restrict the location to which the token may be played. 
+178.3. 
+The effect may grant temporary abilities or modifications to the token. 
+179. 
+Tokens are not cards. 
+
+
+=== PAGE 19 ===
+ 
+ 
+179.1. 
+Tokens have some properties in common with cards. 
+179.1.a. 
+Tokens are played by their owner if their card type is played, following all the applicable 
+steps for playing a card plus any restrictions or modifications from the effect that created the 
+token.  
+See rule 346. Playing Cards for more information. 
+179.1.b. 
+Token units have a Might. 
+179.1.c. 
+Tokens may have one or more tags. 
+179.1.d. 
+Tokens have a type. They follow all rules for their type unless otherwise specified. Example: A 
+token unit is a unit. It enters exhausted, can take the standard move action, deals damage 
+equal to its Might in combat, is destroyed if it takes damage equal to or greater than its 
+might, can be chosen or otherwise affected by spells or abilities that choose or affect units, 
+etc. 
+179.2. 
+Tokens differ from cards in some ways. 
+179.2.a. 
+Tokens do not have costs. 
+179.2.b. 
+Tokens do not have domains. 

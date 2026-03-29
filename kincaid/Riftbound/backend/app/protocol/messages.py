@@ -49,6 +49,7 @@ class PlayCard(BaseModel):
     instance_id: str
     targets: list[str] = Field(default_factory=list)
     pay_accelerate: bool = False
+    destination: ZoneDestination | None = None  # where to place a unit (base or battlefield)
 
 
 class ActivateAbility(BaseModel):
@@ -99,6 +100,14 @@ class Reconnect(BaseModel):
     reconnect_token: str
 
 
+class SubmitChoice(BaseModel):
+    """Client response to a CHOICE_REQUIRED message."""
+
+    type: Literal["SUBMIT_CHOICE"] = "SUBMIT_CHOICE"
+    chosen_option_index: int | None = None        # for modal choices (pick an option)
+    chosen_target_ids: list[str] = Field(default_factory=list)  # for target selection
+
+
 # Union of all client messages
 ClientMessage = (
     JoinRoom
@@ -115,6 +124,7 @@ ClientMessage = (
     | AssignDamage
     | Concede
     | Reconnect
+    | SubmitChoice
 )
 
 
@@ -136,6 +146,7 @@ def parse_client_message(data: dict[str, Any]) -> ClientMessage:
         "ASSIGN_DAMAGE": AssignDamage,
         "CONCEDE": Concede,
         "RECONNECT": Reconnect,
+        "SUBMIT_CHOICE": SubmitChoice,
     }
     parser = parsers.get(msg_type)
     if not parser:
@@ -190,6 +201,18 @@ class WaitingForOpponent(BaseModel):
     type: Literal["WAITING_FOR_OPPONENT"] = "WAITING_FOR_OPPONENT"
 
 
+class ChoiceRequired(BaseModel):
+    """Sent when the engine halts on a player_choice node and needs input."""
+
+    type: Literal["CHOICE_REQUIRED"] = "CHOICE_REQUIRED"
+    prompt: str
+    options: list[dict[str, Any]] = Field(default_factory=list)
+    target: dict[str, Any] | None = None
+    min_choices: int = 1
+    max_choices: int = 1
+    controller_id: str = ""
+
+
 class ErrorMessage(BaseModel):
     type: Literal["ERROR"] = "ERROR"
     action_type: str = ""  # what the player tried to do (e.g. "PLAY_CARD")
@@ -217,3 +240,4 @@ class PlayerReconnected(BaseModel):
 
 # Rebuild models that have forward references
 JoinRoom.model_rebuild()
+PlayCard.model_rebuild()

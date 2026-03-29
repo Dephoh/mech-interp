@@ -1,22 +1,32 @@
+import { isValidTarget } from "../../utils/targeting";
 import type { CardView } from "../../ws/messageTypes";
 import { CardViewComponent } from "../cards/CardView";
+
+interface TargetingContext {
+  targetType: string;
+  yourPlayerId: string;
+}
 
 interface Props {
   units: CardView[];
   gear: CardView[];
   label: string;
   onUnitClick?: (instanceId: string) => void;
+  onGearClick?: (instanceId: string) => void;
   onDropUnit?: () => void;
+  highlightIds?: string[];
+  targeting?: TargetingContext;
+  activateAbility?: (instanceId: string, abilityId: string) => void;
 }
 
-export function BaseZone({ units, gear, label, onUnitClick, onDropUnit }: Props) {
+export function BaseZone({ units, gear, label, onUnitClick, onGearClick, onDropUnit, highlightIds, targeting, activateAbility }: Props) {
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     onDropUnit?.();
   }
 
   return (
-    <div 
+    <div
       className="zone zone--base"
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
@@ -26,14 +36,20 @@ export function BaseZone({ units, gear, label, onUnitClick, onDropUnit }: Props)
       <div className="zone__section">
         <span className="zone__section-label">Units</span>
         <div className="zone__cards">
-          {units.map((u) => (
-            <CardViewComponent
-              key={u.instance_id}
-              card={u}
-              compact
-              onClick={() => onUnitClick?.(u.instance_id)}
-            />
-          ))}
+          {units.map((u) => {
+            const dimmed = targeting && !isValidTarget(u, targeting.targetType, targeting.yourPlayerId);
+            return (
+              <CardViewComponent
+                key={u.instance_id}
+                card={u}
+                compact
+                zone="base"
+                highlighted={highlightIds?.includes(u.instance_id)}
+                dimmed={dimmed}
+                onClick={() => onUnitClick?.(u.instance_id)}
+              />
+            );
+          })}
           {units.length === 0 && <span className="zone__empty">No units</span>}
         </div>
       </div>
@@ -41,9 +57,31 @@ export function BaseZone({ units, gear, label, onUnitClick, onDropUnit }: Props)
         <div className="zone__section">
           <span className="zone__section-label">Gear</span>
           <div className="zone__cards">
-            {gear.map((g) => (
-              <CardViewComponent key={g.instance_id} card={g} compact />
-            ))}
+            {gear.map((g) => {
+              const dimmed = targeting && !isValidTarget(g, targeting.targetType, targeting.yourPlayerId);
+              const activatedAbility = g.abilities?.find(ab => ab.ability_type === "activated");
+              return (
+                <div key={g.instance_id} className="gear-card-wrapper">
+                  <CardViewComponent
+                    card={g}
+                    compact
+                    zone="base"
+                    highlighted={highlightIds?.includes(g.instance_id)}
+                    dimmed={dimmed}
+                    onClick={targeting ? () => onGearClick?.(g.instance_id) : undefined}
+                  />
+                  {activateAbility && activatedAbility && (
+                    <button
+                      className="btn-activate"
+                      onClick={(e) => { e.stopPropagation(); activateAbility(g.instance_id, activatedAbility.ability_id); }}
+                      title={activatedAbility.text}
+                    >
+                      {activatedAbility.text.toLowerCase().includes("equip") ? "Equip" : "Act"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

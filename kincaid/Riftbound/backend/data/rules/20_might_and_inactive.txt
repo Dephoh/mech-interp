@@ -1,0 +1,246 @@
+================================================================================
+RIFTBOUND RULES: Might Evaluation & Inactive Rules
+Source sections: 700-725
+Backend modules: card_types.py, game_state.py
+================================================================================
+
+700. Additional Rules 
+701. 
+Buffs 
+702. 
+Buffs are objects placed on Units. 
+702.1. 
+Buffs can be tracked with a buff reminder card from a Riftbound booster pack or with any spare 
+object in your surroundings. 
+
+
+=== PAGE 70 ===
+ 
+ 
+702.2. 
+Buffs can be added or spent. 
+702.2.a. 
+To Buff a Unit, a player chooses a Unit and then places a buff on it. That Unit is Buffed for as 
+long as the buff remains on it. 
+702.2.b. 
+Spending a Buff removes a single Buff counter from a Unit. 
+702.2.b.1. 
+A buff cannot be spent from a Unit that does not have a buff. 
+702.2.b.2. 
+A player can only spend buffs on units they control. 
+702.3. 
+There can only be one Buff on a Unit at a time. 
+702.3.a. 
+If a Buff is added, or instructed to be added, on a Unit that already has a Buff, it is not placed 
+instead. 
+703. 
+Each Buff individually contributes +1 Might to a Unit. 
+704. 
+Buffs are Game Objects and may be referenced, counted, or targeted by other effects as specified. 
+705. 
+If a Unit leaves play, remove all Buffs from it. 
+705.1. 
+Champions do not retain Buffs in the Champion Zone, even if they return there somehow. 
+706. 
+Mighty 
+707. 
+Mighty is a description that applies to some units. Other game effects can check whether a unit is Mighty. 
+708. 
+A Unit "is Mighty" as long as its Might is 5 or greater. 
+709. 
+A Unit "becomes Mighty" at the moment its Might changes from being less than 5 to being 5 or greater.  
+Example: A Unit with Might 4 that gets +1 [M] becomes Mighty.  
+ 
+Example: A Unit with Might 5 that gets +1 [M] does not become Mighty, because it was already 
+Mighty. 
+
+
+710. 
+Units on the board are evaluated according to their current Might.  
+Example: A unit with a base Might of 3 is targeted by a spell that reads "A unit gets +3 [M] this turn." As 
+that spell resolves, its Might changes from 3 to 6, and it becomes Mighty. When that effect expires at 
+the end of the turn, it will no longer be Mighty. 
+711. 
+Units in Non-Board Zones are evaluated according to their inherent Might.  
+Example: A unit in the trash is Mighty if its printed Might is 5 or greater. It doesn't matter if there were 
+effects raising or lowering its might while it was on the board. 
+712. 
+Bonus Damage 
+713. 
+Bonus Damage is an intrinsic property that can be granted to Deal actions that influence the amount of 
+Damage that the action is distributing. 
+714. 
+If more than one instance of Bonus Damage is applied or granted to a Deal action, all instances are summed 
+and applied once. 
+714.1. 
+Bonus Damage can only be a positive value, and can only increase the amount of Damage being 
+distributed. 
+714.2. 
+If, for any reason, Bonus Damage would be a negative number, then no Bonus Damage is applied to 
+the action. 
+715. 
+Bonus Damage applies to the total damage Dealt by one instance of the action. 
+
+
+=== PAGE 71 ===
+ 
+ 
+715.1. 
+If the Deal action has a single target, the amount of Damage to that target will be increased by the 
+Bonus Damage granted to it. 
+715.2. 
+If the Deal action has multiple targets, the amount of Damage dealt to each target is increased by 
+Bonus Damage individually and separately.  
+Example: Singularity is a spell that says “Deal 6 to each of up to two units.” A player plays 
+Singularity while they also control Annie, Fiery, a unit that says “Your spells and abilities deal 1 
+Bonus Damage.” Singularity deals 1 Bonus Damage to both of its targets, dealing 7 to each. 
+715.3. 
+If the Deal action Splits damage, then the Bonus Damage applies to the amount of Damage that 
+will be Split. This can alter the number of targets eligible to be chosen.  
+Example: Volibear, Furious is a unit that says in part “When I attack, deal 5 damage split 
+among any number of enemy units here.” A player attacks with Volibear, Furious while they 
+also control Annie, Fiery, a unit that says “Your spells and abilities deal 1 Bonus Damage.” 
+Volibear, Furious now deals 6 damage split among any number of enemy units at its 
+location, and can choose to split that damage among up to 6 units rather than the usual 5. 
+716. 
+Attachment 
+717. 
+Attaching is a limited action that causes cards to become linked to each other to combine their effects in 
+some way. This causes one card to become Attached and the other to become A Top-Most Card. 
+See rule 421 Attach for more information. 
+718. 
+Attached is the state of a card being linked to another card in this way. 
+718.1. 
+A card remains in this state until Detached. 
+718.2. 
+While in this state, the card’s Rules Text is Inactive. 
+See rule 720 Inactive for more information. 
+718.3. 
+While in this state, Abilities in the card’s Effect Text are appended to the Rules Text of the Top-Most 
+Card. 
+718.4. 
+While in this state, the card’s Might Bonus modulates the Top-Most Card’s Might by the value listed. 
+718.5. 
+Attached cards still have all properties of being a card on the board while in this state. 
+718.5.a. 
+Attached cards still have all Types and Tags while Attached. 
+718.5.b. 
+Attached cards still can be chosen or targeted by game effects while Attached. 
+718.6. 
+Attached cards cannot be moved separately from the Top-Most Card they are Attached 
+to. 
+718.7. 
+A card may be Attached only to a single Top-Most card at a time. 
+718.8. 
+Attached cards may have different Controllers from their Top-Most card.  
+718.8.a. 
+Changes in Control of the Top-Most card do not impact Control of Attached cards and vice 
+versa. 
+718.8.b. 
+An Attached card still appends the abilities in its Effect Text to the Rules Text of the 
+Top-Most card and modulates the Top-Most Card’s Might by its Might Bonus. 
+719. 
+A Top-Most Card is a card that has one or more cards linked to it through the process of Attaching. 
+719.1. 
+The Effect Text of all cards Attached to this card are appended to the Rules Text of this card for as 
+long as they remain Attached. 
+719.2. 
+This card ceases being a Top-Most Card when there are no longer any cards Attached to it. 
+719.3. 
+A Top-Most Card and all cards Attached to it are at the same location. 
+
+
+=== PAGE 72 ===
+ 
+ 
+719.3.a. 
+When the Top-Most Card moves, all Attached cards move with it. 
+719.4. 
+The Exhausted and Ready state of the Top-Most card does not affect nor change the status of the 
+Attached cards and vice versa. 
+719.5. 
+When a Top-Most Card changes zones from a board zone to a non-board zone, all Attached cards 
+Detach from it, remaining in their current zones. 
+719.5.a. 
+The player that controls the Top-Most Card that changed zones decides the order these 
+cards Detach in, and thus the order of any relevant effects that occur due to the Detach 
+occurring. 
+720. 
+Inactive 
+721.1. 
+Card text can occasionally be assigned to be ignored, disregarded, or otherwise rendered as not applicable 
+during the course of play. This state is referred to as Inactive. 
+721.1.a. 
+Text marked this way is not applied at all while in this state. 
+721.1.b. 
+Inactive Abilities do not trigger, do not apply, and cannot be activated. Inactive instructions are not 
+processed. 
+722. 
+Inactive text is still present on cards. 
+722.1. 
+Cards with Inactive text still have keywords for the sake of Game Effects that want to reference or see 
+if a card has a keyword. 
+722.2. 
+Game Effects that parse or interpret text to determine target eligibility may still parse Inactive text 
+for the sake of eligibility. 
+Example: Spinning Axe is a gear with [Temporary]. While it’s attached and its rules text is 
+inactive, its [Temporary] ability doesn’t trigger. However, a spell that reads “Destroy a gear 
+with [Temporary]” could still choose and destroy Spinning Axe. 
+723. 
+Rules Text is never Inactive by default. 
+724. 
+Effect Text is Inactive unless the card with the Effect Text is Attached. 
+725. 
+Inactive text can partially cease to be Inactive under specific circumstances and exceptions. 
+725.1. 
+If an Attached card has a Passive or Replacement ability that applies during the process of 
+Attaching or a Triggered ability that triggers off of Attaching, that text exists and can be processed 
+as it Attaches. 
+725.2. 
+If an Attached card has a Passive or Replacement ability that applies during the process of 
+Detaching or a Triggered ability that triggers off of Detaching, that text exists and can be processed 
+as it Detaches. 
+725.3. 
+If an Attached card has an Equip ability, the Weaponmaster keyword can reference that Equip 
+ability and any abilities that passively modify that Equip ability. 
+726. 
+Keywords 
+727. 
+A Keyword is a specific term that appears on Cards that acts as a shorthand for a specific game effect, or 
+ability of any variety. 
+727.1. 
+A Keyword can be an ability. 
+727.2. 
+Keywords can be identified by having a colored highlight behind them. 
+727.2.a. 
+The color of the highlight has no effect on gameplay. 
+
+
+=== PAGE 73 ===
+ 
+ 
+727.3. 
+Keywords can be referenced or specified by other Game Effects. 
+727.3.a. 
+Other effects may grant Keywords. 
+727.3.a.1. 
+The definition and rules of the specific Keyword will determine the behavior if a 
+Keyword is granted while it is already present. 
+727.3.a.2. 
+The effect that granted the Keyword will specify the duration for which it is 
+granted. 
+727.3.a.3. 
+If an effect that grants a Keyword does not specify a duration, the duration is as 
+long as that Game Object remains on the Board or in its current Non-Board Zone. 
+727.3.b. 
+Other effects may remove Keywords. 
+727.3.b.1. 
+The effect that removed the Keyword will specify the duration it is removed. 
+727.3.b.2. 
+If an effect that removes a Keyword does not specify a duration, the duration is as 
+long as that Game Object remains on the Board or in its current Non-Board Zone. 
+728. 
+A card can have any number of Keywords. 
+729. 
+Similar to other rules text, execute any effects of Keywords in the order listed when reading the card from top 
+to bottom of the rules text. 

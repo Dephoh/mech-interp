@@ -1,5 +1,5 @@
 # Riftbound Rune, Resource & Mulligan - Rules Reference
-> Source of truth: rules_extracted.txt (rules 156-164, 116-117, 403, 416-418)
+> Source of truth: backend/data/rules/05_runes.txt, backend/data/rules/08_costs.txt, backend/data/rules/16_stun_buff_channel.txt
 
 ## Rune System (156-164)
 

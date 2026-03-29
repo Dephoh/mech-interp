@@ -101,11 +101,13 @@ def can_play_in_state(
     """Check if a card/ability can be played given the current turn state."""
     has_action = any(k.keyword == Keyword.ACTION for k in card_or_ability_keywords)
     has_reaction = any(k.keyword == Keyword.REACTION for k in card_or_ability_keywords)
+    # Rule 755: Ambush grants Reaction timing ("as though it had Reaction")
+    has_ambush = any(k.keyword == Keyword.AMBUSH for k in card_or_ability_keywords)
 
     if is_closed:
-        return has_reaction
+        return has_reaction or has_ambush
     if is_showdown:
-        return has_action or has_reaction
+        return has_action or has_reaction or has_ambush
     # Neutral open: always OK for the turn player
     return True
 

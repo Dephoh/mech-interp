@@ -1,0 +1,125 @@
+================================================================================
+RIFTBOUND RULES: Cleanup
+Source sections: 318-325
+Backend modules: cleanup.py
+================================================================================
+
+320. 
+While a Cleanup is occurring, Chain Items cannot be Resolved. 
+320.1. 
+New Pending Items can be added, but Legal Items cannot be executed and Priority and Focus are 
+not passed or awarded. 
+321. 
+If an event occurs during a Cleanup that qualifies for a Cleanup, another Cleanup will occur immediately after 
+the first completes, repeating until a Cleanup occurs with no new change in the game’s state. 
+322. 
+When a Cleanup occurs, the following steps occur in order: 
+322.1. 
+1. If a player has as many points as the Victory Score, that player wins. 
+
+
+=== PAGE 26 ===
+ 
+ 
+322.2 
+2. Handle outstanding board state 
+322.3 
+2a. All Units that have non-zero Damage marked on them equalling or exceeding their Might that 
+have Deathknell abilities will trigger their Deathknell ability now, making note of their current 
+location, attributes, and other information relevant to add the trigger as a Pending Item 
+See rule 734 Deathknell for more information. 
+322.4. 
+2b. All Units that have non-zero Damage marked on them equalling or exceeding their Might are 
+killed and placed in their owners' Trash. 
+322.5. 
+3. Assign or Remove the Attacker or Defender designation from Units as needed if there is a Combat 
+in progress 
+322.5.a. 
+If there are Units present at the Battlefield the Combat is taking place at, but do not have a 
+designation, they gain the same designation as their Controller now 
+322.5.b. 
+If there are Units present at the Battlefield the Combat is taking place at, but have the 
+opposite designation of their controller, they lose that designation, and gain the same 
+designation as their controller now 
+322.5.c. 
+If there are Units at locations other than the Battlefield that the Combat is taking place at, 
+but have either Attacker or Defender designations, they lose those designations now 
+322.6. 
+4. Battlefields with no Units occupying them and no Contested status become Uncontrolled. 
+322.7. 
+5. Recall all Gear at Battlefields. Remove all Hidden cards from all Battlefields that are not controlled 
+by the same player and place them in their owner's Trash. 
+322.8. 
+6. Mark a Showdown as Staged at each Battlefield that Contested was applied to that is 
+Uncontrolled. 
+322.8.a 
+The Showdown remains Staged at each Battlefield that is Contested and has only units 
+present controlled by the player that applied Contested 
+322.9 
+6a. If Units of an opposing player are present at a Battlefield that has a Showdown staged before it 
+can be Opened, the Showdown will cease being Staged 
+322.10. 
+7. Mark a Combat as Staged at each Battlefield that Contested was applied to that have Units 
+present controlled by opposing players.  
+322.10.a. 
+The Combat remains Staged at that Battlefield as long as there are Units present from two 
+opposing players there. 
+322.11 
+7a. If Units of two opposing players are no longer present at a Battlefield that has a Combat Staged 
+before it has opened, the Combat will cease being Staged 
+322.12. 
+8. Finalize any Pending Items on the Chain 
+322.13. 
+9. If the current state is a Neutral Open State and one or more Showdowns are Staged, the Turn 
+Player chooses one of those Battlefields. A Showdown begins there. 
+322.14. 
+10. If the current state is a Neutral Open State and Combat is Staged at one or more Battlefields, the 
+Turn Player chooses one of those Battlefields. Combat begins there. 
+323. 
+Special Cleanups are Cleanup steps invoked at specific times that have additional steps not present in a 
+normal Cleanup. 
+323.1. 
+When a Special Cleanup is invoked, the unique steps added will be inserted and defined by the 
+sub-section that invokes it.  
+Example: When a Combat Cleanup is invoked, the Combat section defines what steps are 
+added to the Cleanup. 
+
+
+=== PAGE 27 ===
+ 
+ 
+323.2. 
+If events during a Special Cleanup require another Cleanup, a normal Cleanup is invoked, not 
+another iteration of the Special Cleanup. 
+324. 
+Chains and Showdowns 
+325. 
+Players can act during the following Windows of Opportunity that occur during the course of regular play: 
+325.1. 
+During a Chain 
+325.2. 
+During a Showdown 
+326. 
+Chains 
+327. 
+The Chain is a Non-Board Zone that temporarily exists whenever a card is played or an ability is activated. 
+327.1. 
+Cards are placed here as part of the process of being played. 
+327.2. 
+Abilities are queued here as part of the process of resolving.  
+See rule 357. Abilities for more information. 
+328. 
+Cards and abilities added to the chain are added as Pending Chain Items that become Finalized Chain Items. 
+328.1. 
+Pending Items are on the Chain. 
+328.2. 
+Chain Items are Pending until the “Check Legality” step of playing a card.  
+See rule 346. Playing Cards for more information. 
+328.3. 
+When a Pending Chain Item is no longer Pending it is finalized and becomes a Finalized Chain Item. 
+329. 
+The Chain exists as long as a Chain Item is on it. 
+329.1. 
+Only one Chain can exist at a time. 
+329.2. 
+If a card would begin to be played while a Chain already exists, it is placed on the existing Chain. 

@@ -1,0 +1,632 @@
+================================================================================
+RIFTBOUND RULES: Keyword Glossary
+Source sections: 726-747+
+Backend modules: keywords.py, card_pipeline.py
+================================================================================
+
+730. 
+Keyword Glossary 
+731. 
+Accelerate 
+731.1. 
+Accelerate is a Unit ability. 
+731.1.a. 
+Accelerate is functionally short for "As you play me, you may pay [1] and 1 Power as an 
+additional cost. If you do, I enter ready." 
+731.1.a.1. 
+If the unit has a single domain, the Power portion of the Accelerate cost can be paid 
+only with a Power that matches the domain of the unit. 
+731.1.a.2. 
+If the unit has no domain or more than one domain, the Power portion of the 
+Accelerate cost can be paid with [A] (a Power of any domain). 
+731.2. 
+Accelerate is an Optional Additional Cost to be paid as a player plays the unit with the ability. 
+731.2.a. 
+Accelerate costs cannot be paid while the unit is on the board, only as part of the steps of 
+playing a card. 
+731.3. 
+Accelerate has no function while on the board. 
+731.4. 
+Multiple instances of Accelerate are redundant. 
+731.5. 
+Accelerate, and whether or not a unit has Accelerate, is a characteristic of the Unit and may be 
+checked or referenced by other Game Effects. 
+731.6. 
+Accelerate influences the state of the unit entering the Board. It does not enter exhausted and then 
+become ready. 
+731.6.a. 
+Accelerate will not interact with, or trigger, abilities that are affected by units becoming 
+ready. 
+732. 
+Action 
+732.1. 
+Action is a Permissive keyword. 
+
+
+=== PAGE 74 ===
+ 
+ 
+732.1.a. 
+It can be present on Spells, Units, Rune Abilities, Legend Abilities or Permanent Abilities. 
+732.1.b. 
+Action grants the corresponding card or effect permission to be played or activated during 
+Showdowns, even when it is not the Controlling player's turn. 
+732.1.c. 
+Action is functionally short for the following: 
+732.1.c.1. 
+On Spells and Units: "This can be played during showdowns on any player's turn." 
+732.1.c.2. 
+On Rune, Legend, or Permanent Abilities: "This can be activated during showdowns 
+on any player's turn." 
+732.2. 
+The card or effect with this keyword is not restricted to showdowns. This permission is inclusive of all 
+other timings and options available to the ability as written or by default. 
+732.3. 
+Action does not alter the function of any instruction of the corresponding card or effect it is on. It is 
+only permission.  
+Example: Playing a Unit with Action still has the inherent restrictions of playing Units 
+without Action. It can only be played to the controlling player's base or a battlefield they 
+control. 
+732.4. 
+Action is a referenceable characteristic. 
+732.4.a. 
+Whether or not a Game Object has Action is a characteristic of that Game Object and may 
+be checked or referenced by other Game Effects. 
+732.4.b. 
+Whether or not a Spell has Action is a characteristic of that Spell and may be checked or 
+referenced by other Game Effects. 
+732.4.c. 
+Whether or not an Ability has Action is a characteristic of that Ability and may be checked 
+or referenced by other Game Effects. 
+733. 
+Assault 
+733.1. 
+Assault is a Passive Ability keyword. 
+733.1.a. 
+It is present on Units. 
+733.1.b. 
+Assault is formatted as "Assault [X]". 
+733.1.b.1. 
+The X is referenced in the functional text of the ability. 
+733.1.b.2. 
+The X is referred to as the Assault Value. 
+733.1.b.3. 
+If X is omitted, it is presumed to be 1. 
+733.1.c. 
+It is functionally short for "While I am an attacker, I have +X [M]." 
+733.1.d. 
+Being an attacker means the Unit has gained the Attacker designation during Combat.  
+See rule 437. Combat for more information. 
+733.1.d.1. 
+Assault remains in effect as long as the Unit maintains the Attacker designation. 
+733.2. 
+If a Unit has Assault or has been granted Assault and is granted Assault by an additional source, the 
+Assault Value of all granted Assault keywords is summed.  
+Example: Petty Officer has Assault. It is chosen as the target of Cleave, which says "Give a unit 
+[Assault 3] this turn." After Cleave resolves, Petty Officer has Assault 4 this turn. 
+733.3. 
+Assault, and whether or not a unit has Assault, is a characteristic of the Unit and may be checked or 
+referenced by other Game Effects. 
+734. 
+Deathknell 
+
+
+=== PAGE 75 ===
+ 
+ 
+734.1. 
+Deathknell is a Triggered Ability keyword. 
+734.1.a. 
+It is present on Permanents. 
+734.1.b. 
+It is formatted as "Deathknell — [Effect]". 
+734.1.b.1. 
+[Effect] is the rules text for the specific instance of Deathknell. This is referred to as 
+the Deathknell effect. 
+734.1.c. 
+It is functionally short for "When I die, [Effect]." 
+734.1.c.1. 
+[Effect] is the rules text of the Deathknell effect. 
+734.1.d. 
+The Trigger for this effect is the Permanent being Killed and sent to the Trash. 
+734.1.d.1. 
+If the Permanent with the effect is not sent to the Trash, for example because its 
+"killed" event was replaced with a recall, the Deathknell will not occur. 
+734.1.d.2. 
+The trigger will be added to the chain as a Pending Item before the card with 
+Deathknell is moved to the trash due to a Kill instruction or a Cleanup. 
+734.1.d.3. 
+Before the card with Deathknell is moved to the Trash, note its location, its 
+attributes, and any other details related to the effect of its Deathknell to process 
+the trigger after it has been Finalized. 
+734.2. 
+Each instance of Deathknell a Permanent may have will trigger separately. 
+734.2.a. 
+The controller will choose the order to add these Triggers to the chain. 
+734.3. 
+Deathknell, and whether or not a permanent has Deathknell, is a characteristic of the permanent and 
+may be checked or referenced by other Game Effects. 
+735. 
+Deflect 
+735.1. 
+Deflect is a Passive Ability keyword. 
+735.1.a. 
+It is present on Permanents. 
+735.1.b. 
+It is formatted as "Deflect [X]". 
+735.1.b.1. 
+The X is referenced in the functional text of the ability. 
+735.1.b.2. 
+The X is referred to as the Deflect Value. 
+735.1.b.3. 
+If X is omitted, it is presumed to be 1. 
+735.1.c. 
+It is functionally short for "Spells and abilities an opponent controls that choose me cost an 
+amount of Power equal to [Deflect Value] more to play as an additional cost." 
+735.1.c.1. 
+The Power used to pay this cost may always be of any Domain.  
+Example: A Fury spell targets an Order unit with Deflect. The Power used 
+to pay the Deflect cost can be any Domain; it does not need to match the 
+Domain of the spell or the target. 
+735.1.d. 
+It is an effect that imposes a Mandatory Additional Cost on Spells and Abilities that choose 
+the permanent that has this ability.  
+See rule 346. Playing Cards for more information. 
+735.2. 
+If a Unit has Deflect, or has been granted Deflect, and is granted Deflect by an additional source, the 
+Deflect Value of all granted Deflect keywords is summed. 
+735.3. 
+Deflect, and whether or not a permanent has Deflect, is a characteristic of the permanent and may 
+
+
+=== PAGE 76 ===
+ 
+ 
+be checked or referenced by other Game Effects. 
+736. 
+Ganking 
+736.1. 
+Ganking is a Passive Ability keyword. 
+736.1.a. 
+It is present on Units. 
+736.1.b. 
+It is functionally short for "I may move to a battlefield from another battlefield." 
+736.1.c. 
+It is a passive ability that adds permissions to the Unit's Standard Move. 
+736.1.c.1. 
+It does not restrict or remove options from the Unit's Standard Move. 
+736.1.c.2. 
+It does not have an activation cost. 
+736.1.c.3. 
+It does not give additional abilities or activations of Movement, only new options for 
+the Standard Move. 
+736.2. 
+Multiple instances of Ganking are redundant. 
+736.3. 
+Ganking, and whether or not a unit has Ganking, is a characteristic of the Unit and may be checked or 
+referenced by other Game Effects. 
+737. 
+Hidden 
+737.1. 
+Hidden is a keyword that acts as a prerequisite to perform the Hide Discretionary Action. 
+737.1.a. 
+It is present on Spells, Units, and Gear. 
+737.1.b. 
+It is functionally short for "While this card is in your hand or in the Champion Zone on your 
+turn during an Open State, you may pay [A] to hide this facedown at a battlefield you control 
+that doesn't already have a facedown card hidden there for as long as you control that 
+battlefield. Beginning on the next turn, this gains [Reaction] and you may play this, ignoring 
+its base cost." 
+737.1.c. 
+It allows the player to take the Discretionary Action Hide. 
+737.1.c.1. 
+Hide is not a subset of Play. 
+737.1.c.2. 
+Hiding a card does not open a chain. 
+737.1.c.3. 
+Playing a card from facedown (or "from Hidden") does open a chain. 
+737.1.d. 
+Some choices made while playing a card from Hidden are restricted to the battlefield where 
+it was hidden. A card cannot be played from Hidden if it is a spell with no valid targets under 
+these restrictions.  
+See rule 352.5. Targeting for more information. 
+737.1.d.1. 
+A hidden unit must be played to that battlefield. 
+737.1.d.2. 
+If a hidden spell or a play effect of a hidden permanent chooses any targets, those 
+targets must be chosen from among options at that battlefield, unless the ability 
+explicitly restricts targeting in a way that makes this impossible.  
+Example: Blastcone Fae is a unit with Hidden and “When you play me, 
+give a unit -2 [M] this turn, to a minimum of 1 [M].” Because this is a play 
+effect, its target must be chosen from among units at the same battlefield 
+if Blastcone Fae was played from Hidden.  
+ 
+Example: Tideturner is a unit with Hidden and “When you play me, you 
+may choose a unit you control at another location. Move me to its location 
+and it to my original location.” Because its play ability has a targeting 
+
+
+=== PAGE 77 ===
+ 
+ 
+restriction that can never be fulfilled by a unit at its battlefield, its target 
+may be chosen freely from among the available options. 
+737.1.d.3. 
+If a hidden spell or a play effect of a hidden permanent causes you to play a unit, 
+you must choose to play that unit at that battlefield. 
+737.2. 
+Abilities and instructions of hidden cards other than the choices listed above function as normal.  
+Example: Stand United is a spell that has Hidden and says “Buff a friendly unit. Buffs give an 
+additional +1 might to friendly units this turn.” If it’s played from Hidden, the first part of its 
+ability must choose a friendly unit at the same battlefield, but the second part of its ability 
+affects all friendly units with buffs, no matter where they are. 
+737.3. 
+Instead of being hidden, a card with Hidden may be played for its cost as normal, at its normal timing 
+with no restrictions on targeting. 
+737.4. 
+Multiple instances of Hidden are redundant. 
+737.5. 
+Hidden, and whether or not a card has Hidden, is a characteristic of the card and may be checked or 
+referenced by other Game Effects. 
+737.5.a. 
+This is independent of the state of being facedown. 
+737.6. 
+A card that is Hidden gains Reaction while facedown, and may be played any time a card with 
+Reaction may be played as a result. 
+737.6.a. 
+The property is granted to the card in its facedown state, and is not publicly known. 
+738. 
+Legion 
+738.1. 
+Legion is a Conditional Keyword. 
+738.1.a. 
+It can be present on Spells, Units, Rune Abilities, Legend Abilities and Permanent 
+Abilities. 
+738.1.b. 
+It is formatted as "Legion — [Text]". 
+738.1.c. 
+Starting from the Keyword to the end of the clause, the entire statement is the Legion 
+Ability. 
+738.1.c.1. 
+On spells and on play effects of permanents, it is functionally short for “If you have 
+played another Main Deck card before this one already this turn, apply [Text].” 
+738.1.c.2. 
+On other abilities and instructions, it is functionally short for “If you have played a 
+Main Deck card this turn, apply [Text].” 
+738.1.c.3. 
+  This is called the Legion condition. 
+738.1.c.4. 
+Legion's conditional can apply to passive abilities, activated abilities, spell 
+instructions, or even abilities active in zones outside of the board. 
+738.2. 
+All instances of Legion on cards a player controls are satisfied by that player playing a single card.  
+Example: One card has three different Legion Abilities. The Legion Text of all three abilities 
+apply as long as one card has been played by the card's controller earlier in the same turn. 
+738.3. 
+Legion, and whether or not a card has Legion, is a characteristic of the card and may be checked or 
+referenced by other Game Effects. 
+739. 
+Reaction 
+739.1. 
+Reaction is a Permissive keyword. 
+739.1.a. 
+It can be present on Spells, Units, Rune Abilities, Legend Abilities and Permanent 
+
+
+=== PAGE 78 ===
+ 
+ 
+Abilities. 
+739.1.b. 
+Reaction grants the corresponding card or effect all abilities and permissions of Action. 
+739.1.c. 
+Reaction, additionally, is functionally short for the following: 
+739.1.c.1. 
+On Spells: "This can be played during Closed States on any player's turn." 
+739.1.c.2. 
+On Units: "This can be played during Closed States on any player's turn." 
+739.1.c.3. 
+On Rune, Legend, or Permanent Abilities: "This can be activated during Closed 
+States on any player's turn." 
+739.2. 
+The corresponding card or effect with this keyword is not restricted to Closed States or Showdowns. 
+This permission is inclusive of all other timings and options available to the ability as written, Action's 
+permissions, or by default. 
+739.3. 
+Reaction does not alter the function of any instruction of the Card, Rune, or Effect it is on. It is only 
+Permission. 
+739.3.a. 
+Playing Units with Reaction still has the inherent restrictions of playing Units without 
+Reaction. It can only be played to the controlling player's base or a battlefield they control. 
+739.4. 
+Reaction is a referencable characteristic. 
+739.4.a. 
+Whether or not a Game Object has Reaction is a characteristic of that Game Object and 
+may be checked or referenced by other Game Effects. 
+739.4.b. 
+Whether or not a Spell has Reaction is a characteristic of that Spell and may be checked or 
+referenced by other Game Effects. 
+739.4.c. 
+Whether or not an Ability has Reaction is a characteristic of that Ability and may be checked 
+or referenced by other Game Effects. 
+740. 
+Shield 
+740.1. 
+Shield is a Passive Ability keyword. 
+740.1.a. 
+It is present on Units. 
+740.1.b. 
+Shield is formatted as "Shield [X]". 
+740.1.b.1. 
+The X is referenced in the functional text of the ability. 
+740.1.b.2. 
+The X is referred to as the Shield Value. 
+740.1.b.3. 
+If X is omitted, it is presumed to be 1. 
+740.1.c. 
+It is functionally short for "While I am a defender, I have +X [M]." 
+740.1.d. 
+Being a defender means the Unit has gained the Defender designation during Combat. 
+See rule 437. Combat for more information. 
+740.1.d.1. 
+Shield remains in effect as long as the Unit maintains the Defender designation. 
+740.2. 
+If a Unit has Shield, or has been granted Shield, and is granted Shield by an additional source, the 
+Shield Value of all granted Shield keywords is summed.  
+Example: Stalwart Poro has Shield. It is chosen as the target of Block, which says "Give a unit 
+[Shield 3] and [Tank] this turn." After Block resolves, Stalwart Poro has Shield 4 this turn. 
+740.3. 
+Shield, and whether or not a unit has Shield, is a characteristic of the Unit and may be checked or 
+referenced by other Game Effects. 
+
+
+=== PAGE 79 ===
+ 
+ 
+741. 
+Tank 
+741.1. 
+Tank is a Passive Ability keyword. 
+741.1.a. 
+It is present on Units. 
+741.1.b. 
+It is functionally short for "I must be assigned lethal damage before any other unit with the 
+same controller as me that does not have [Tank] during combat resolution." 
+741.1.c. 
+It alters how players can elect to assign combat damage during combat. 
+741.1.c.1. 
+Players must still assign lethal damage to a unit before moving to the next when 
+assigning their damage. 
+741.1.c.2. 
+If more than one unit with Tank is present with the same controller in Combat, 
+damage may be assigned to any of them. Units without Tank are invalid 
+assignments until all units with Tank have lethal damage assigned to them. 
+741.2. 
+Multiple instances of Tank are redundant. 
+741.3. 
+Tank, and whether or not a unit has Tank, is a characteristic of the Unit and may be checked or 
+referenced by other Game Effects. 
+742. 
+Temporary 
+742.1. 
+Temporary is a Triggered Ability keyword. 
+742.1.a. 
+It is present on Permanents. 
+742.1.b. 
+It is functionally short for "At the start of this permanent's controller's Beginning Phase, 
+before scoring, kill this." 
+742.1.c. 
+The Trigger Condition is the controller of the permanent's Beginning Phase occurring. 
+742.2. 
+Multiple instances of Temporary are redundant. 
+742.3. 
+Temporary, and whether or not a permanent has Temporary, is a characteristic of the permanent and 
+may be checked or referenced by other Game Effects. 
+743. 
+Vision 
+743.1. 
+Vision is a Triggered Ability keyword. 
+743.1.a. 
+It is present on Permanents. 
+743.1.b. 
+It is functionally short for "When this is played, look at the top card of your Main Deck. You 
+may recycle it." 
+743.1.c. 
+The trigger is the permanent entering the Board. 
+743.2. 
+Multiple instances of Vision trigger separately. 
+743.2.a. 
+The player may choose to recycle or not recycle for each instance of Vision separately. 
+743.2.b. 
+If the player does not recycle the top card and nothing else happens in between the triggers 
+resolving, each instance of Vision will see the same card. 
+743.3. 
+Vision, and whether or not a permanent has Vision, is a characteristic of the permanent and may be 
+checked or referenced by other Game Effects. 
+744. 
+Equip 
+744.1. 
+Equip is an Activated Ability keyword. 
+
+
+=== PAGE 80 ===
+ 
+ 
+744.1.a. 
+Equip is normally present on Gear with the tag Equipment. 
+744.1.b. 
+Equip has a cost to activate and Attaches the card with Equip to a chosen Unit when the 
+cost is paid. 
+744.1.b.1. 
+Equip’s choice is a Target. 
+744.1.b.2. 
+The chosen Unit will become the Top-Most Card for the Attach action. 
+744.1.c. 
+Equip is formatted as “Equip [Cost]” 
+744.1.c.1. 
+If paying costs or making choices for this ability causes triggered abilities to trigger, 
+they will be placed on the chain above this ability in a Pending state. 
+See rule 369 Activated Abilities for more information. 
+744.1.c.2. 
+Equip is functionally short for “[Cost]: Attach this gear to a unit you control.” 
+744.1.c.3. 
+Equip costs may include both resource costs and non-resource costs. 
+744.1.c.4. 
+Equip abilities may also include text that alters the Equip cost. Such text is taken 
+into account when determining a card’s Equip cost for any reason. 
+744.1.c.5. 
+Equip abilities may include text that alters the timing or targeting of the Equip 
+ability. 
+744.2. 
+When the Attach action completes from this keyword, the Unit that was chosen is considered to 
+have been Equipped by the Gear with this ability. 
+744.2.a. 
+This is an event other Game Effects and Triggered Abilities can reference. 
+744.3. 
+Equipped is the state of a Top-Most Card being Attached by one or more cards that are Equipment. 
+744.3.a. 
+The state of being Equipped is synchronous with that of the Attached state of the 
+Equipment. 
+744.3.b. 
+A Top-Most Card is Equipped as long as one or more of its Attached cards are Equipment. 
+744.3.c. 
+The state of being Equipped corresponds to a Top-Most card having a card with Equip that 
+is Attached to it. 
+744.4. 
+Multiple instances of Equip are equivalent to multiple Activated Abilities and can each be activated 
+separately by paying the corresponding costs. 
+744.5. 
+Equip, and whether or not a Gear has Equip, is a characteristic of the Gear and may be checked or 
+referenced by other Game Effects. 
+744.5. 
+Whether or not a Gear has Equip may be referenced even if the Rules Text of the Gear is 
+Inactive. 
+See rule 716 Attachment for more information. 
+745. 
+Quick-Draw 
+745.1. 
+Quick-Draw is a Triggered Ability keyword. It is also a Permissive keyword. 
+745.1.a. 
+Quick-Draw is present on Gear with Equip abilities. 
+745.1.b. 
+Cards with Quick-Draw have Reaction inherently. 
+745.1.c. 
+Quick-Draw allows cards to be played and Attached using Reaction timing. 
+745.1.d. 
+Quick-Draw is functionally short for “[Reaction]” and “When you play this, attach it to a Unit 
+you control.” 
+See rule 716 Attachment for more information. 
+
+
+=== PAGE 81 ===
+ 
+ 
+745.2. 
+Multiple instances of Quick-Draw do not trigger separately and have no effect beyond the first. 
+745.3. 
+Quick-Draw has no function while on the board. 
+745.4. 
+Quick-Draw, and whether or not a gear has Quick-Draw, is a characteristic of the Gear and may be 
+checked or referenced by other Game Effects. 
+746. 
+Repeat 
+746.1. 
+Repeat is an Optional Additional Cost keyword. 
+746.1.a. 
+Repeat is present on Spells. 
+746.1.b. 
+Repeat is an optional cost that player may pay to execute the effect of their spells a second 
+time. 
+746.1.c. 
+Repeat is formatted as “Repeat [Cost]” 
+746.1.c.1. 
+The Cost is an Additional Cost to be paid during the steps of playing the spell. 
+746.1.c.2. 
+If a spell has more than one instance of Repeat, each Cost may be paid or not paid 
+individually.  
+746.1.c.3. 
+Each Repeat Cost can be paid only a single time. 
+746.1.d. 
+Repeat is functionally short for “You may pay [Cost] as an additional cost as you play this 
+spell. If you do, execute the instructions of this spell one additional time.” 
+746.1.d.1. 
+When the additional cost is paid, the effect of the spell, upon resolution, will be 
+performed an additional time. 
+Example: Desert’s Call is a spell with [Repeat] [2] and “Play a 2 [S] Sand 
+Soldier unit token.” If its controller pays its Repeat cost as they play it, the 
+card’s instruction to play a Sand Soldier is executed twice, as though the 
+card says “Play a 2 [S] Sand Soldier unit token. Play a 2 [S] Sand Soldier 
+unit token.” 
+746.2. 
+When a spell’s effect is performed an additional time with Repeat, choices must be made at the 
+usual time during the Make Relevant Choices step of Playing a Card. 
+See rule 346 Playing Cards for more information. 
+746.2.a. 
+Choices made for the additional execution do not have to be the same as the choices made 
+for the initial execution. 
+Example: Rocket Barrage is a spell with [Repeat] [4][C] and “Choose one 
+— Deal 4 to a unit in a base. [or] Kill a gear.” If Rocket Barrage’s controller 
+pays its Repeat cost as they play it, they may choose the same mode or a 
+different one, and if they choose the same mode, may choose the same 
+target or a different one. If they choose “Kill a gear” twice and choose two 
+different gear, they must specify which gear is the first target and which 
+is the second. As the spell resolves, those two gear will be killed in the 
+chosen order. 
+746.3. 
+Multiple instances of Repeat can be paid for separately. The spell’s instructions  will be executed an 
+additional time for each instance of Repeat that is paid for. 
+746.3.a. 
+Regardless of the number of times a spell's instructions are executed with this keyword, the 
+spell is only Played once. 
+746.4. 
+Repeat, and whether or not a spell has Repeat, is a characteristic of the Spell and may be checked or 
+referenced by other Game Effects. 
+747. 
+Weaponmaster 
+
+
+=== PAGE 82 ===
+ 
+ 
+747.1. 
+Weaponmaster is a Triggered Ability keyword. 
+747.1.a. 
+Weaponmaster is present on Units. 
+747.1.b. 
+Weaponmaster is a Play Effect that chooses an Equipment you control and allows you to 
+pay its Equip cost at a discount, regardless of the usual timing of the Equip ability, to Attach 
+that Equipment to the unit with Weaponmaster. 
+747.1.c. 
+Weaponmaster is functionally short for: “When you play me, choose a Card you control with 
+the Equipment tag. Necessary portions of its Rules Text are no longer Inactive if they are 
+currently Inactive. Pay the cost of its Equip ability, reduced by [A], to attach it to this unit.” 
+See rule 716 Attachment for more information. 
+747.1.c.1. 
+Weaponmaster can choose an Equipment whether it has an Equip ability or not. 
+747.1.c.2. 
+The cost of the Equip ability is determined as though that Equip ability was being 
+activated choosing the unit with the Weaponmaster ability, as modulated by any 
+abilities that alter Equip costs. 
+747.1.c.3. 
+If the chosen card’s Equip cost does not contain [A], it can still be paid, but will not 
+be reduced. 
+747.1.c.4. 
+If the chosen card doesn’t have an Equip cost, it can’t be paid. 
+747.1.c.5. 
+If the chosen card’s Equip cost can’t be paid, if it can’t be detached from its current 
+Top-Most card, or if it can’t be attached to the unit with the Weaponmaster ability, 
+it stays in its current location, Attached to anything it was already Attached to. 
+747.1.c.6. 
+The Equip ability is not activated this way, and the unit with the Weaponmaster 
+ability is not chosen. 
+747.2. 
+Multiple instances of Weaponmaster trigger separately, and can choose different targets. 
+747.2.a. 
+If you choose the same target with multiple instances of Weaponmaster, each will resolve 
+separately. 
+747.3. 
+Weaponmaster has no function while on the board. 
+747.4 
+Weaponmaster, and whether or not a unit has Weaponmaster, is a characteristic of the Unit and 
+may be checked or referenced by other Game Effects. 
+  

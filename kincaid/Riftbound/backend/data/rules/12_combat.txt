@@ -1,0 +1,345 @@
+================================================================================
+RIFTBOUND RULES: Showdowns & Combat
+Source sections: 337-349, 437-449
+Backend modules: combat.py
+================================================================================
+
+340. 
+A Showdown begins when Control of a Battlefield is Contested and the turn is in a Neutral Open State. 
+340.1. 
+If Control of a Battlefield is Contested between two players, then a Showdown will be opened as the 
+first step of Combat.  
+See rule 437. Combat for more information. 
+340.2. 
+If Control of a Battlefield is Contested and the Battlefield in question is uncontrolled when it 
+becomes Contested, a Showdown is opened during the Cleanup at the end of the action that 
+caused the Battlefield to become Contested. 
+341. 
+As a Showdown begins, the player who applied Contested status to the Battlefield gains Focus. 
+342. 
+When a Showdown begins, it may or may not begin with an Initial Chain. 
+342.1. 
+Showdowns that open as a result of Combat may have an Initial Chain of Triggered Abilities. 
+342.1.a. 
+These Triggered Abilities should be put on the chain first by the player with Focus, then 
+proceeding with players without the Defender designation in Turn Order. Finally, the player 
+with the Defender designation will add their Triggered Abilities, if any, to the Chain. 
+342.1.b. 
+If there are no such Triggered Abilities present during a Combat-initiated Showdown then 
+no Initial Chain is created, but the Showdown will still proceed. 
+343. 
+When the last item on the chain resolves during a Showdown, Focus passes, and the next Player gains both 
+Focus and Priority. 
+343.1. 
+Focus does not pass when the last item on the Initial Chain resolves, if there was one. Instead the 
+player with Focus proceeds with play. 
+344. 
+During a Showdown, the player with Focus may do one of the following: 
+344.1. 
+Play a spell that is legally timed. 
+344.1.a. 
+The spell will start a Chain as normal. 
+344.2. 
+Activate Abilities of Game Objects that are legally timed.  
+See rule 357. Abilities for more information. 
+344.3. 
+Pass. 
+
+
+=== PAGE 30 ===
+ 
+ 
+344.3.a. 
+If all Players have passed once in sequence, the Showdown ends. 
+344.3.a.1. 
+Perform a Cleanup. 
+344.4. 
+Otherwise, Focus passes to the next Player in Turn Order. 
+345. 
+If all players pass Focus without playing a spell or activating an ability, then the Showdown Closes. 
+345.1. 
+If this Showdown opened as a result of Combat, proceed with the remaining steps of Combat to 
+resolve the phase.  
+See rule 441. The Steps of Combat for more information. 
+345.2. 
+If this Showdown opened as a result of Contested being applied to a Battlefield without a controller, 
+do one of the following: 
+345.2.a. 
+If only one player’s Units remain at the Battlefield, and if that player does not already Control 
+the Battlefield, that player establishes Control over the Battlefield. 
+See rule 179. Control for more information on Control.  
+See rule 446.1. for more information on Conquering. 
+345.2.a.1. 
+This results in a Conquer if that player has not yet scored that Battlefield this turn. 
+345.2.b. 
+If two players’ Units remain at the Battlefield, Control cannot be established and the 
+Battlefield remains Contested. This results in a Staged Combat. 
+See rule 437. Combat for more information. 
+345.2.b.1. 
+The player who applied Contested to the Battlefield will be the Attacker in the 
+subsequent Combat. 
+346. 
+Playing Cards 
+347. 
+Playing a card is the act of a player utilizing their cards. 
+347.1. 
+A card is Played when it has finished this process in its entirety. 
+347.2. 
+Tokens are not cards, but can still be Played.  
+See rule 173. Tokens for more information. 
+348. 
+Cards have different behaviors when played. 
+348.1. 
+Permanents become Game Objects when Played. 
+348.2. 
+Spells create game effects that are executed, then the card is placed in the trash when Played. 
+349. 
+Cards have different states during the process of being played. 
+349.1. 
+When initially being played cards are Pending, as Pending Chain Items. 
+349.2. 
+Near the end of the process cards will cease being Pending and become Finalized Chain Items. 
+
+
+440. 
+Combat can only occur between Units controlled by exactly two players. 
+440.1. 
+In Modes of Play with more than two players, Battlefields with Staged Combats or Combats in 
+Progress are Invalid Destinations for Moves of all kinds (Standard Moves or otherwise) by Units 
+controlled by Players who don't already have Units at that Battlefield.  
+See rule 425.2.a. for more information on Invalid Destinations. 
+440.2. 
+In Modes of Play with more than two players, Battlefields with Staged Combats or Combats in 
+Progress are Invalid to be chosen as a location to play one or more Units by a player not involved in 
+that Combat by any means, 
+440.2.a. 
+If an effect would require a Unit be played to a Battlefield with a Staged Combat or a 
+Combat in Progress, where the controller of the played unit is not a participant, instead the 
+Unit is played to its controller's Base. 
+440.2.b. 
+Any subsequent reference to "here" in the corresponding effect is reassigned to the 
+Controller's Base, where the Unit was played. Any further effects that may be invalidated are 
+invalidated as if the effect was mistargeted. 
+See rule 352.5. Targeting for more information on Mistargeting. 
+440.3. 
+All choices that would result in a Combat occurring between more than two players simultaneously 
+are invalid and ineligible to be completed. 
+441. 
+The Steps of Combat 
+442. 
+Step 1: The Showdown Step 
+442.1. 
+A Showdown opens at this time. 
+442.1.a. 
+Establish who is Attacker and who is Defender. 
+442.1.a.1. 
+The Attacker is the player whose unit(s) applied the Contested status to the 
+Battlefield. They gain the Attacker designation now. 
+442.1.a.1.a. 
+This player gains Focus as this Showdown begins. 
+442.1.a.2. 
+The Defender is the player who did not apply the Contested status to the 
+Battlefield. They gain the Defender designation now. 
+442.1.a.3. 
+Units at the Contested Battlefield controlled by the Attacker gain the Attacker 
+designation now. 
+442.1.a.3.a. 
+If a Unit controlled by the Attacker becomes present at this Battlefield 
+after this moment, it will gain the Attacker designation during the 
+Cleanup phase following the action that caused it to become present 
+442.1.a.4. 
+Units at the Contested Battlefield controlled by the Defender gain the Defender 
+designation now. 
+442.1.a.4.a. 
+If a Unit controlled by the Defender becomes present at this Battlefield 
+after this moment it will gain the Defender designation during the 
+Cleanup phase following the action that caused it to become present 
+442.1.b. 
+Finalize items on the Initial Chain if establishing Attacker and Defender has caused 
+Triggered Abilities to become Pending. 
+442.1.b.1. 
+The Attacking player, who has Focus, places Triggered Abilities on the Chain first, 
+followed by all non-Defender players in Turn Order, followed by the Defending 
+Player. 
+
+
+=== PAGE 60 ===
+ 
+ 
+442.1.c. 
+The State Closes if an Initial Chain was created. 
+442.1.c.1. 
+Otherwise the Showdown continues, with the State Open as normal. 
+442.1.d. 
+Players proceed with any play on the Chain as normal. 
+442.1.e. 
+Focus does not pass upon closure of the Initial Chain, if any. 
+443. 
+Step 2: The Combat Damage Step 
+443.1. 
+When the Showdown closes, Attackers and Defenders resolve Combat Damage at the Battlefield 
+that was attacked, using their current Might. 
+443.1.a. 
+The Combat Damage Step only occurs if both Attacking and Defending units remain at 
+the location. 
+443.1.a.1. 
+If neither Attacking Units nor Defending Units remain at this stage, the Combat 
+Damage Step is skipped. 
+443.1.b. 
+Sum the Might of all Attacking Units. 
+443.1.c. 
+Sum the Might of all Defending Units. 
+443.1.d. 
+Starting with the Attacker, each player assigns an amount of damage equal to their 
+summed Might among the other's Units. 
+443.1.d.1. 
+Assigning Damage is not Dealing Damage. 
+443.1.d.1.a. 
+When all Damage is assigned, it will be Dealt simultaneously. These 
+actions are not synonymous. 
+443.1.d.2. 
+Abilities or effects may influence the order in which damage is assigned. Reminder: 
+Lethal Damage is non-zero damage equaling or exceeding the Might of a Unit. 
+443.1.d.3. 
+Units must have lethal damage assigned to them in full before damage is assigned 
+to a different Unit.  
+Example: If a player has 5 damage to distribute among four 3 Might units, 
+they may not choose to assign 2 damage to one of the units and 1 damage 
+to each of the remaining 3. They must assign at least 3 damage to one, 
+and the remaining 2 to another. 
+443.1.d.4. 
+Units cannot have more damage assigned to them than the minimum required to 
+constitute lethal damage unless no further units remain to have damage assigned 
+to them. 
+443.1.d.5. 
+A player must obey all requirements and restrictions on damage assignment if 
+able.  
+Example: A player is assigning damage to the following units: a unit with 
+Tank ("I must be assigned combat damage first."); Caitlyn, Patrolling ("I 
+must be assigned combat damage last."); and another unit without any 
+abilities. That player must assign combat damage first to the unit with 
+Tank, then to the unit with no abilities, then to Caitlyn. 
+443.1.d.6. 
+If multiple Units have abilities or effects that require a player to assign them 
+damage with the same priority, that player may assign damage to those units in 
+any order.  
+Example: A player is assigning damage to the following units: two units 
+with Tank ("I must be assigned combat damage first.") and one unit with 
+no abilities. That player chooses one of the units with Tank and assigns 
+combat damage to it. Then they must assign any remaining damage first 
+to the other unit with Tank, then to the unit with no abilities. 
+
+
+=== PAGE 61 ===
+ 
+ 
+443.1.d.7. 
+If a Unit has one or more Abilities or effects applying to it that demand it be 
+assigned damage in a specific way that is exclusionary, then the assigning player 
+chooses only one of those abilities to apply when assigning damage. 
+Example: Caitlyn, Patrolling ("I must be assigned combat damage last.") 
+has been given the Tank ability ("I must be assigned combat damage 
+first."). A player is assigning damage to this Caitlyn with Tank and two units 
+with no abilities. That player can’t fulfill both of Caitlyn’s damage 
+requirements, so they may choose to assign damage to Caitlyn first, 
+fulfilling the Tank requirement, or last, fulfilling Caitlyn’s printed 
+requirement. They can’t choose to apply damage to Caitlyn in between the 
+other two units, because that wouldn’t fulfill either requirement. 
+443.1.d.8. 
+If there is more than one unit in which this situation applies to, each unit is dealt 
+with individually. The assigning player chooses which ability or effect applies, and 
+then resolves the assignment. If this creates a situation where now more than one 
+unit must be assigned with the same priority, those units may be assigned damage 
+in any order as normal within that priority.   
+Example: Two copies of Caitlyn, Patrolling ("I must be assigned combat 
+damage last.") have been given the Tank ability ("I must be assigned 
+combat damage first."). A player assigning damage to these two Caitlyns 
+and one unit with no abilities could choose to fulfill both Caitlyns’ Tank 
+requirements by assigning them both damage before the other unit. 
+443.1.d.9. 
+If a unit cannot be dealt damage, then no amount of damage can be considered 
+lethal. Such a unit is exempt from any considerations of mandatory assignment.   
+Example: Kayn, Unleashed says “If I have moved twice this turn, I don't 
+take damage.” While Kayn can’t take damage, it is ignored for the 
+purposes of assigning lethal damage in combat. 
+443.1.e. 
+Deal Damage to each unit equal to the amount assigned to it. 
+444. 
+Step 3: The Resolution Step 
+444.1. 
+1. Perform a Combat Cleanup. 
+444.1.a. 
+Invoke a Combat Special Cleanup. 
+444.1.a.1. 
+Insert “2c. Heal  all Units.” 
+444.1.a.2. 
+Insert “2d. Recall Attackers present at the Battlefield if Defenders are still present.”  
+See rule 432. Recalls for more information. 
+444.1.a.3. 
+Insert “2e. Remove Attacker and Defender Designation from all Units and Players.” 
+444.2. 
+2. If no Showdown or Combat is staged at this location, the player with Units remaining here 
+Establishes Control. 
+444.2.a. 
+Clear the Contested Status. 
+444.2.b. 
+This results in a Conquer if that player has not yet scored that Battlefield this turn. 
+See rule 182. Control for more information on Control.  
+See rule 446.1. for more information on Conquering. 
+444.2.c. 
+This does not have to be the player that applied Contested to the Battlefield. 
+444.2.d. 
+If there are no Units remaining here controlled by any player, the Battlefield becomes 
+Uncontrolled. 
+445. 
+Scoring 
+446. 
+A player Scores in one of two ways: 
+
+
+=== PAGE 62 ===
+ 
+ 
+446.1. 
+Conquer: A player gains Control of a Battlefield they did not yet Score this turn. 
+446.1.a. 
+In Modes of Play with teammates, Battlefields under the Control of a teammate during the 
+Beginning Phase are also disqualified from being Scored through Conquer by any means. 
+446.1.b. 
+A player will gain control of a Battlefield after establishing Control by applying Contested 
+first. 
+446.2. 
+Hold: A player maintains Control of a Battlefield during their Beginning Phase. 
+447. 
+A player may only Score, from either method, once per Battlefield per turn. 
+448. 
+When a player Scores, two things occur: 
+448.1. 
+The player earns up to one Point, depending on their current score. 
+448.1.a. 
+The Final Point has additional restrictions. 
+448.1.a.1. 
+Notably, points earned from sources that are not Conquer or Hold are not beholden 
+to these restrictions. 
+448.1.b. 
+When a player tries to earn a Point through a Score, and their current Point Total is 1 point 
+from the Victory Score of the Mode of Play, the following occurs: 
+448.1.b.1. 
+If the player has Scored through Hold, that player scores the Final Point. 
+448.1.b.2. 
+If the player has Scored through a Conquer and has Scored every Battlefield 
+through either method this turn, that player scores the Final Point. If the player has 
+Scored through a Conquer and has not Scored every Battlefield this turn, that 
+player draws a card. 
+448.2. 
+Trigger Score abilities at the Battlefield that Scored. 
+448.2.a. 
+Conquer abilities trigger at a Battlefield that was Conquered. 
+448.2.b. 
+Hold abilities trigger at a Battlefield that was Held. 
+448.2.c. 
+These will only trigger when the Battlefield is Scored; I.E. These cannot be triggered more 
+than once per turn for a player. 
+449. 
+When a player accrues Points equal to the Victory Score for their Mode of Play, they Win the Game 
+immediately. 

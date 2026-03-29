@@ -1,0 +1,138 @@
+================================================================================
+RIFTBOUND RULES: Tokens
+Source sections: 173-186
+Backend modules: card_types.py, effect_primitives.py
+================================================================================
+
+180. 
+Tokens are created on the board and cannot exist elsewhere. 
+180.1. 
+If a token is put into any Non-Board Zone, it ceases to exist immediately after moving to its new zone. 
+181. 
+The spell or ability that creates a token specifies some of its characteristics. It may have other characteristics, as 
+listed below. 
+181.1. 
+A 1[M] Recruit token is a domainless unit token with 1 Might and the Recruit tag. 
+181.2. 
+A 3[M] Sprite token with Temporary is a domainless unit token with 3 Might, the Fae tag, and the 
+Temporary keyword. 
+See rule 742. Temporary for more information. 
+182. 
+Control 
+183. 
+Control is the concept of a player having influence of a Game Object and applies differently to different card 
+types. 
+184. 
+Battlefields 
+184.1. 
+Control is established over Battlefields through the course of play. 
+184.2. 
+Control is a binary state for Battlefields and an Identifier for players. 
+184.2.a. 
+A Battlefield is Controlled or Uncontrolled. 
+184.2.b. 
+A Battlefield is Controlled by a specific player or Controlled by no one. 
+184.3. 
+Control can be Contested through the course of play. 
+184.3.a. 
+Contested is a temporary status applied to the battlefield when a Unit controlled by a Player 
+who does not currently Control that Battlefield Moves or otherwise becomes present there. 
+184.3.a.1. 
+Units moving to or being played to a battlefield apply Contested status if that 
+battlefield is not already contested and that Unit’s controller does not already 
+
+
+=== PAGE 20 ===
+ 
+ 
+control that battlefield. 
+184.3.b. 
+A Battlefield remains Contested until Control is established or re-established. 
+184.3.c. 
+While a Battlefield remains Contested, Control of a Battlefield cannot change. 
+184.3.d. 
+The state of a Battlefield being Contested is used to determine when Combat should occur, 
+when a Showdown without a Combat should occur, and when Control will change. 
+184.3.e. 
+At this time Game Effects cannot reference this status. 
+184.4. 
+Control is established by having Units at a Battlefield at the end of a Showdown or Combat after 
+applying the contested status. 
+184.4.a. 
+If a player controls Units at a Battlefield, outside of Combat, they maintain Control of that 
+Battlefield for as long as they have Units at that Battlefield. 
+184.4.b. 
+A player maintains control of a Battlefield while it is being Contested by an opponent. 
+184.4.c. 
+If a player has no Units at a Battlefield, they lose Control of that Battlefield immediately, 
+unless it is Contested. 
+184.5. 
+Control is a constant state. 
+184.6. 
+Control of a Battlefield determines Control of its Abilities. 
+184.6.a. 
+While a Battlefield is Controlled, its Controller controls its Abilities. That player takes 
+responsibility for adding them to the Chain if applicable, and makes all choices required by 
+them unless otherwise specified. 
+184.6.b. 
+While a Battlefield is Uncontrolled, its Abilities are also Uncontrolled. The Turn Player 
+takes responsibility for adding them to the Chain if applicable, makes all choices required by 
+them unless otherwise specified, and is treated as their Controller if any game rule or effect 
+requires one. Example: The Arena’s Greatest is a battlefield that reads “At the start of each 
+player's first Beginning Phase, that player gains 1 point.” This ability will usually trigger while 
+the battlefield has no controller. If it does, the Turn Player goes through the steps of adding 
+the ability to the chain and receives priority after doing so, exactly as if they controlled the 
+ability. 
+184.6.c. 
+“You” in a battlefield’s abilities refers to the battlefield’s Controller, as does the implied “you” 
+in instructions like “draw 1.” If the battlefield has no Controller, “you” refers to no one, and all 
+such instructions are ignored. 
+185. 
+Everything Else 
+185.1. 
+When a player Plays a Card or other Game Object, they are established as that Game Object's 
+Controller. 
+185.2. 
+For Spells, they are the Spell's Controller. 
+185.2.a. 
+That player chooses targets. 
+185.2.b. 
+That player chooses modes. 
+185.2.c. 
+That player pays costs. 
+
+
+=== PAGE 21 ===
+ 
+ 
+185.3. 
+For Permanents and Runes, when they Enter the Board, that player is assigned as that Game 
+Object's Controller. 
+185.3.a. 
+That player may make decisions about the Game Object's Inherent Abilities. 
+185.3.b. 
+That player may make decisions about the Game Object's Unique Abilities. 
+185.3.c. 
+That player may make decisions about any game effects or decisions necessary while the 
+card is being played. 
+185.3.d. 
+That player may make decisions about any game effects created from "When you play me" 
+effects of Permanents. 
+185.4. 
+For Abilities, they are the Ability’s Controller. 
+185.4.a. 
+By default, the Controller of an Ability’s Source is the Controller of that Ability. 
+185.4.b. 
+Changes to Control of an Ability’s Source do not change Control of that Ability. 
+185.4.c. 
+That player chooses targets. 
+185.4.d. 
+That player chooses modes. 
+185.4.e. 
+That player pays costs. 
+186. 
+When a game effect or rules text refers to the Controller of a specific object, it can be referring to either 
+context interchangeably. 
+186.1. 
+The method of assignment of control is different, but the status of Control is the same across all 
+Game Objects. 

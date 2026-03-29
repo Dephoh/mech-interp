@@ -51,6 +51,14 @@ def score_hold(gs: GameState, player_id: str) -> list[str]:
 def score_conquer(gs: GameState, player_id: str, battlefield_id: str) -> list[str]:
     """
     Called when a player takes control of a battlefield after Showdown/Combat.
+
+    Rule 446.1: Conquer = gaining control of a battlefield not yet scored
+    this turn.
+    Rule 448.1: The player earns up to one Point.
+    Rule 448.1.b.2: At the final point, Conquer only earns the point if
+    every battlefield has been Scored this turn; otherwise draw a card.
+    Rule 448.2: Conquer triggers fire at the battlefield regardless of
+    whether the point was awarded.
     """
     ps = gs.players[player_id]
     bf = gs.battlefields[battlefield_id]
@@ -60,25 +68,30 @@ def score_conquer(gs: GameState, player_id: str, battlefield_id: str) -> list[st
         logs.append(f"{_bf_name(gs, battlefield_id)} already scored this turn")
         return logs
 
+    # The battlefield is Scored regardless of whether the point is awarded
+    # (rule 447: once per battlefield per turn).
+    ps.battlefields_scored_this_turn.add(battlefield_id)
+    bf.scored_this_turn_by = player_id
+
     if _can_score_point(gs, player_id, "conquer"):
         ps.score += 1
-        ps.battlefields_scored_this_turn.add(battlefield_id)
-        bf.scored_this_turn_by = player_id
         logs.append(f"{ps.display_name} scores 1 point from Conquering {_bf_name(gs, battlefield_id)}")
         gs.log.add(f"Conquer: {ps.display_name} +1 (total: {ps.score})")
-        # Fire conquer triggers for units at this battlefield
-        evt_logs = fire_event(gs, GameEvent.CONQUER, {
-            "player_id": player_id,
-            "battlefield_id": battlefield_id,
-        })
-        logs.extend(evt_logs)
     else:
-        # At 7 points but haven't scored all battlefields — draw a card instead
-        drawn = _draw_cards(gs, player_id, 1)
+        # At victory_score-1 but haven't scored all battlefields —
+        # draw a card instead of earning the point (rule 448.1.b.2)
+        _draw_cards(gs, player_id, 1)
         logs.append(
             f"{ps.display_name} at {ps.score} points — must score all battlefields "
             f"to conquer for the final point. Draws a card instead."
         )
+
+    # Rule 448.2: Conquer triggers fire at the scored battlefield
+    evt_logs = fire_event(gs, GameEvent.CONQUER, {
+        "player_id": player_id,
+        "battlefield_id": battlefield_id,
+    })
+    logs.extend(evt_logs)
 
     return logs
 

@@ -18,13 +18,19 @@ from dataclasses import dataclass
 from .enums import (
     ActionType,
     CardType,
+    ControlStatus,
     Keyword,
     Phase,
     TurnState,
     ZoneType,
 )
 from .game_state import GameState
-from .keywords import can_play_in_state
+from .keywords import (
+    can_play_in_state,
+    check_unique_violation,
+    get_accelerate_cost,
+    get_deflect_cost,
+)
 from .target_system import count_available_targets, validate_target
 
 logger = logging.getLogger("riftbound.validator")
@@ -59,6 +65,7 @@ def validate_action(
         ActionType.ACTIVATE_ABILITY: _validate_activate_ability,
         ActionType.ASSIGN_DAMAGE: _validate_assign_damage,
         ActionType.CONCEDE: _validate_concede,
+        ActionType.SUBMIT_CHOICE: _validate_submit_choice,
     }
 
     validator = validators.get(action_type)
@@ -160,6 +167,25 @@ def _validate_play_card(gs: GameState, player_id: str, payload: dict) -> Validat
         if not can_play_in_state(list(card.definition.keywords), is_showdown, is_closed):
             return ValidationResult(False, "Card cannot be played in current state")
 
+    # --- UNIQUE CHECK (rule 355.2 / Unique keyword) ---
+    # A player cannot play a second copy of a Unique card they already control.
+    if check_unique_violation(card, gs):
+        return ValidationResult(
+            False,
+            f"Cannot play {card.name}: Unique card already on the board"
+        )
+
+    # --- ADDITIONAL COST FEASIBILITY (rule 353.2.a) ---
+    # If the card has mandatory additional costs (e.g., "kill a friendly unit"),
+    # verify the cost can actually be paid before allowing play.
+    if card.definition.abilities:
+        for ability in card.definition.abilities:
+            if ability.cost and ability.cost.additional_costs:
+                for add_cost in ability.cost.additional_costs:
+                    result = _validate_additional_cost_feasible(gs, player_id, add_cost, card)
+                    if not result.ok:
+                        return result
+
     # --- COST CHECK ---
     if card.zone != ZoneType.FACEDOWN_ZONE:  # Hidden cards play for free
         ps = gs.players[player_id]
@@ -173,14 +199,62 @@ def _validate_play_card(gs: GameState, player_id: str, payload: dict) -> Validat
             cost_e, cost_p,
         )
 
-        if not ps.rune_pool.can_pay(cost_e, cost_p):
+        # If paying Accelerate, include that cost in the check (rule 731)
+        if payload.get("pay_accelerate") and card.has_keyword(Keyword.ACCELERATE):
+            acc_e, acc_p = get_accelerate_cost(card)
+            total_e = cost_e + acc_e
+            total_p = dict(cost_p)
+            for dom, amt in acc_p.items():
+                total_p[dom] = total_p.get(dom, 0) + amt
+            if not ps.rune_pool.can_pay(total_e, total_p):
+                return ValidationResult(
+                    False,
+                    f"Cannot afford {card.name} with Accelerate "
+                    f"(need E={total_e} P={total_p}, "
+                    f"have E={ps.rune_pool.energy} P={dict(ps.rune_pool.power)})"
+                )
+        elif not ps.rune_pool.can_pay(cost_e, cost_p):
             return ValidationResult(
                 False,
                 f"Cannot afford {card.name} (need E={cost_e} P={cost_p}, "
                 f"have E={ps.rune_pool.energy} P={dict(ps.rune_pool.power)})"
             )
 
-    # --- TARGET VALIDATION (rule 352.7) ---
+    # --- UNIT DESTINATION VALIDATION (rule 352.2) ---
+    if card.card_type == CardType.UNIT:
+        destination = payload.get("destination")
+        if destination:
+            dest_zone = destination.get("zone")
+            dest_id = destination.get("id")
+            if dest_zone == "battlefield":
+                if dest_id not in gs.battlefields:
+                    return ValidationResult(False, "Destination battlefield not found")
+                bf = gs.battlefields[dest_id]
+                # Rule 352.2.a: can play to base or a battlefield the controller controls
+                if bf.control_status != ControlStatus.CONTROLLED or bf.controller_id != player_id:
+                    return ValidationResult(
+                        False,
+                        "Can only play units to your Base or a Battlefield you control"
+                    )
+            elif dest_zone not in ("base", None):
+                return ValidationResult(False, "Invalid destination for unit")
+        # No destination specified: defaults to base (rule 352.2.a)
+
+    # --- GEAR DESTINATION VALIDATION (rule 356.2.d) ---
+    # Gear always enters the player's Base — reject attempts to send it elsewhere.
+    if card.card_type == CardType.GEAR:
+        destination = payload.get("destination")
+        if destination:
+            dest_zone = destination.get("zone")
+            if dest_zone and dest_zone not in ("base",):
+                return ValidationResult(
+                    False,
+                    "Gear must enter the base (rule 356.2.d)"
+                )
+
+    # --- TARGET VALIDATION (rule 352.7 / 352.9.c) ---
+    # Rule 352.9.c: Units and gear never have targets (their abilities may,
+    # but those are validated when the abilities are activated, not at play time).
     targets = payload.get("targets", [])
     if card.card_type == CardType.SPELL:
         result = _validate_spell_targets(gs, card, player_id, targets)
@@ -199,6 +273,8 @@ def _validate_spell_targets(
     """
     Rule 352.7: 'In order to put a spell or ability on the chain,
     valid choices must be made for all targets.'
+    Rule 352.8.c: A spell cannot target itself on the chain.
+    Rule 353.2.a.2 / 735: Deflect imposes mandatory additional Power cost.
     """
     for ability in card.definition.abilities:
         if ability.targets_required > 0:
@@ -225,13 +301,56 @@ def _validate_spell_targets(
 
             # Validate each target is legal
             for tid in targets[:ability.targets_required]:
+                # Rule 352.8.c: A spell cannot target itself
+                if tid == card.instance_id:
+                    return ValidationResult(
+                        False,
+                        f"{card.name} cannot target itself"
+                    )
+
                 if spec:
                     if not validate_target(gs, tid, spec, controller_id=player_id):
                         return ValidationResult(False, f"Invalid target for {card.name}")
                 else:
                     if not _is_valid_target(gs, tid, ability.target_type, player_id):
                         return ValidationResult(False, f"Invalid target for {card.name}")
+
+                # Rule 353.2.a.2 / 735: Deflect — if the target has Deflect,
+                # the caster must pay additional Power (mandatory additional cost).
+                target_inst = gs.get_instance(tid)
+                if target_inst:
+                    deflect_cost = get_deflect_cost(target_inst)
+                    if deflect_cost > 0:
+                        extra_power = payload_deflect_power(
+                            gs, player_id, card, deflect_cost
+                        )
+                        if not extra_power:
+                            return ValidationResult(
+                                False,
+                                f"Cannot afford Deflect cost of {deflect_cost} "
+                                f"Power to target {target_inst.name}"
+                            )
     return ValidationResult(True)
+
+
+def payload_deflect_power(
+    gs: GameState,
+    player_id: str,
+    card,
+    deflect_cost: int,
+) -> bool:
+    """Check if the player can afford the Deflect additional cost.
+
+    Rule 735: Spells/abilities that choose a permanent with Deflect [X]
+    must pay [X] additional Power of any domain. This is checked AFTER
+    the base cost has been validated (so the pool might already be committed).
+    We do a conservative check: total available power minus what the card's
+    base power cost requires must cover the deflect cost.
+    """
+    ps = gs.players[player_id]
+    base_power = card.definition.cost_power_dict()
+    remaining_power = sum(ps.rune_pool.power.values()) - sum(base_power.values())
+    return remaining_power >= deflect_cost
 
 
 def _build_target_spec(ability, player_id: str) -> dict | None:
@@ -321,6 +440,49 @@ def _is_valid_target(gs: GameState, target_id: str, target_type: str, player_id:
 
     # Unknown type — allow
     return True
+
+
+def _validate_additional_cost_feasible(
+    gs: GameState,
+    player_id: str,
+    cost_key: str,
+    card,
+) -> ValidationResult:
+    """Rule 353.2.a: Validate that a mandatory additional cost can be paid.
+
+    Additional costs are encoded as short keys in CostDefinition.additional_costs,
+    e.g. "kill_friendly_unit", "discard_card". This checks the game state has
+    at least one valid object to pay each cost type.
+    """
+    if cost_key == "kill_friendly_unit":
+        # Must control at least one unit on the board
+        friendly_units = 0
+        for uid_list in gs.base_units.values():
+            for uid in uid_list:
+                inst = gs.get_instance(uid)
+                if inst and inst.controller_id == player_id:
+                    friendly_units += 1
+        for bf in gs.battlefields.values():
+            for uid in bf.units:
+                inst = gs.get_instance(uid)
+                if inst and inst.controller_id == player_id:
+                    friendly_units += 1
+        if friendly_units == 0:
+            return ValidationResult(
+                False,
+                f"Cannot play {card.name}: no friendly unit to pay additional cost"
+            )
+    elif cost_key == "discard_card":
+        ps = gs.players[player_id]
+        # Must have at least one card in hand (besides the card being played)
+        other_cards = [c for c in ps.hand if c != card.instance_id]
+        if len(other_cards) == 0:
+            return ValidationResult(
+                False,
+                f"Cannot play {card.name}: no card in hand to discard for additional cost"
+            )
+    # Unknown additional cost keys are allowed through (future-proof)
+    return ValidationResult(True)
 
 
 def _validate_move_unit(gs: GameState, player_id: str, payload: dict) -> ValidationResult:
@@ -447,6 +609,13 @@ def _validate_activate_ability(gs: GameState, player_id: str, payload: dict) -> 
     if ability.cost and ability.cost.exhaust_source and source.exhausted:
         return ValidationResult(False, "Source is exhausted")
 
+    # Check energy/power cost (rule 369)
+    if ability.cost and (ability.cost.energy > 0 or ability.cost.power):
+        ps = gs.players[player_id]
+        cost_power = ability.cost.power_dict()
+        if not ps.rune_pool.can_pay(ability.cost.energy, cost_power):
+            return ValidationResult(False, "Cannot afford ability cost")
+
     return ValidationResult(True)
 
 
@@ -464,6 +633,14 @@ def _validate_assign_damage(gs: GameState, player_id: str, payload: dict) -> Val
     if player_id not in (combat.attacker_id, combat.defender_id):
         return ValidationResult(False, "Not a combat participant")
 
+    return ValidationResult(True)
+
+
+def _validate_submit_choice(gs: GameState, player_id: str, payload: dict) -> ValidationResult:
+    if gs.pending_choice is None:
+        return ValidationResult(False, "No pending choice")
+    if gs.pending_choice.get("controller_id") != player_id:
+        return ValidationResult(False, "Not your choice to make")
     return ValidationResult(True)
 
 

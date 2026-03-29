@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 import random
 import uuid
 from dataclasses import dataclass, field
+from typing import Any
 
 from .card_types import CardDefinition, CardInstance
 from .enums import (
+    AbilityType,
+    CardType,
     CombatRole,
     ControlStatus,
     Domain,
@@ -15,6 +19,8 @@ from .enums import (
     TurnState,
     ZoneType,
 )
+
+logger = logging.getLogger("riftbound.game_state")
 
 
 @dataclass
@@ -199,6 +205,39 @@ class GameLog:
 
 
 @dataclass
+class ActiveModifier:
+    """A continuous modifier currently active on the board.
+
+    Tracked on GameState so derived stats can be recalculated dynamically
+    without mutating base CardDefinition data.
+    """
+
+    source_instance_id: str      # card that owns this modifier
+    ability_id: str              # which ability on the source
+    stat: str                    # "might", "shield", "assault"
+    amount: int                  # signed adjustment
+    target_spec: dict[str, Any]  # serialized TargetSpec dict
+    exclude_self: bool = False
+    duration: str = "continuous"
+
+
+@dataclass
+class ActiveReplacement:
+    """A replacement effect currently active on the board.
+
+    When the watched event is about to occur and the condition evaluates
+    to true, the original effect is replaced with `alternative_ir`.
+    """
+
+    source_instance_id: str       # card that owns this replacement
+    ability_id: str               # which ability on the source
+    watch_event: str              # primitive type or game event to intercept
+    condition: dict[str, Any]     # serialized ConditionSpec
+    alternative_ir: dict[str, Any]  # IR subtree to execute instead
+    target_spec: dict[str, Any]   # who this replacement protects
+
+
+@dataclass
 class GameState:
     """The complete, authoritative state of one game."""
 
@@ -241,6 +280,16 @@ class GameState:
     # Mode of play constants
     victory_score: int = 8
 
+    # Active continuous modifiers (auras) and replacement effects
+    active_modifiers: list[ActiveModifier] = field(default_factory=list)
+    active_replacements: list[ActiveReplacement] = field(default_factory=list)
+
+    # Choice state machine (set when effect_resolver hits a player_choice node)
+    pending_choice: dict[str, Any] | None = None
+
+    # Resolution context: did the last primitive/optional in a sequence succeed?
+    last_effect_succeeded: bool = False
+
     def get_turn_state(self) -> TurnState:
         in_showdown = (
             self.active_showdown is not None
@@ -274,6 +323,234 @@ class GameState:
         if player_id:
             units = [u for u in units if u.controller_id == player_id]
         return units
+
+    # ------------------------------------------------------------------
+    # Legend protections (rules 170.2.a, 170.3, 170.4)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def can_play_target(target: CardInstance) -> bool:
+        """Return True if the target card can be played.
+
+        Rule 170.2.a: Legends are not played during the course of regular play.
+        """
+        return target.can_be_played
+
+    @staticmethod
+    def can_kill_target(target: CardInstance) -> bool:
+        """Return True if the target can be killed.
+
+        Rule 170.3: Legends cannot be Killed during the course of regular play.
+        """
+        if target.is_legend:
+            return False
+        return True
+
+    @staticmethod
+    def can_move_target(target: CardInstance) -> bool:
+        """Return True if the target can be moved.
+
+        Rule 170.4: Legends cannot be Moved.
+        """
+        if target.is_legend:
+            return False
+        return True
+
+    # ------------------------------------------------------------------
+    # Zone transition helpers (rule 719.5)
+    # ------------------------------------------------------------------
+
+    def move_to_zone(
+        self,
+        instance_id: str,
+        new_zone: ZoneType,
+        new_location: str | None = None,
+    ) -> list[str]:
+        """Move a card to a new zone, handling detachment and state reset.
+
+        Rule 719.5: When a Top-Most Card changes zones from a board zone
+        to a non-board zone, all Attached cards Detach, remaining in their
+        current zones.
+
+        Returns log messages.
+        """
+        inst = self.get_instance(instance_id)
+        if not inst:
+            return []
+
+        logs: list[str] = []
+        was_on_board = inst.is_on_board
+
+        # Rule 719.5: detach all attached cards if leaving the board
+        if was_on_board and new_zone not in CardInstance._BOARD_ZONES:
+            if inst.attached_cards:
+                detached = inst.detach_all(self.instances)
+                for did in detached:
+                    gear = self.get_instance(did)
+                    if gear:
+                        logs.append(f"{gear.name} detached from {inst.name} (left board)")
+
+        # Reset mutable state when leaving play
+        if was_on_board and new_zone not in CardInstance._BOARD_ZONES:
+            inst.reset_on_zone_exit()
+
+        inst.zone = new_zone
+        inst.location_id = new_location
+        return logs
+
+    # ------------------------------------------------------------------
+    # Modifier registration & recalculation
+    # ------------------------------------------------------------------
+
+    def register_modifier(self, source: CardInstance, ability_id: str, ir_node: dict) -> None:
+        """Register an active modifier from a card entering the board."""
+        mod = ActiveModifier(
+            source_instance_id=source.instance_id,
+            ability_id=ability_id,
+            stat=ir_node.get("stat", "might"),
+            amount=ir_node.get("amount", 0),
+            target_spec=ir_node.get("target", {}),
+            exclude_self=ir_node.get("exclude_self", False),
+            duration=ir_node.get("duration", "continuous"),
+        )
+        self.active_modifiers.append(mod)
+
+    def register_replacement(self, source: CardInstance, ability_id: str, ir_node: dict) -> None:
+        """Register an active replacement effect from a card entering the board."""
+        rep = ActiveReplacement(
+            source_instance_id=source.instance_id,
+            ability_id=ability_id,
+            watch_event=ir_node.get("watch_event", ""),
+            condition=ir_node.get("condition", {"cond_type": "always"}),
+            alternative_ir=ir_node.get("alternative_ir", {}),
+            target_spec=ir_node.get("target", {}),
+        )
+        self.active_replacements.append(rep)
+
+    def unregister_card(self, instance_id: str) -> None:
+        """Remove all modifiers and replacements owned by a card leaving the board."""
+        self.active_modifiers = [
+            m for m in self.active_modifiers if m.source_instance_id != instance_id
+        ]
+        self.active_replacements = [
+            r for r in self.active_replacements if r.source_instance_id != instance_id
+        ]
+
+    def recalculate_modifiers(self) -> None:
+        """Recompute aura_might_bonus on every card from active continuous modifiers.
+
+        Called during cleanup and after any board change. Never mutates
+        base card definitions — only sets the derived `aura_might_bonus` field
+        on CardInstance.
+        """
+        from .effect_ir import TargetSpec
+
+        # 1. Zero all aura and gear bonuses
+        for inst in self.instances.values():
+            inst.aura_might_bonus = 0
+            inst.gear_might_bonus = 0
+
+        # 2. Prune modifiers whose source has left the board
+        board_ids = self._get_board_instance_ids()
+        self.active_modifiers = [
+            m for m in self.active_modifiers if m.source_instance_id in board_ids
+        ]
+
+        # Also prune replacements
+        self.active_replacements = [
+            r for r in self.active_replacements if r.source_instance_id in board_ids
+        ]
+
+        # 3. Apply each active modifier to matching targets
+        for mod in self.active_modifiers:
+            if mod.stat != "might":
+                continue  # only might recalculation for now
+
+            source = self.get_instance(mod.source_instance_id)
+            if not source:
+                continue
+
+            spec = TargetSpec.from_dict(mod.target_spec)
+            matched = self._resolve_modifier_targets(spec, source, mod.exclude_self)
+            for iid in matched:
+                inst = self.get_instance(iid)
+                if inst:
+                    inst.aura_might_bonus += mod.amount
+
+        # 4. Apply gear attachment might bonuses
+        for inst in self.instances.values():
+            if inst.attached_cards:
+                for gear_id in inst.attached_cards:
+                    gear = self.get_instance(gear_id)
+                    if gear and gear.definition.might_bonus:
+                        inst.gear_might_bonus += gear.definition.might_bonus
+
+    def _get_board_instance_ids(self) -> set[str]:
+        """Return instance_ids of all cards currently on the board.
+
+        Includes: base units/gear/runes, battlefield units, battlefield cards
+        themselves, legend zone, and champion zone.
+        """
+        ids: set[str] = set()
+        for uid_list in self.base_units.values():
+            ids.update(uid_list)
+        for bf in self.battlefields.values():
+            ids.update(bf.units)
+            # Battlefield cards themselves are board objects
+            ids.add(bf.card_instance_id)
+            # Facedown cards at battlefields
+            if bf.facedown_card:
+                ids.add(bf.facedown_card)
+        for gid_list in self.base_gear.values():
+            ids.update(gid_list)
+        for rid_list in self.base_runes.values():
+            ids.update(rid_list)
+        for ps in self.players.values():
+            if ps.legend_zone:
+                ids.add(ps.legend_zone)
+            if ps.champion_zone:
+                ids.add(ps.champion_zone)
+        return ids
+
+    def _resolve_modifier_targets(
+        self,
+        spec: Any,  # TargetSpec
+        source: CardInstance,
+        exclude_self: bool,
+    ) -> list[str]:
+        """Resolve which board objects a modifier applies to."""
+        controller = source.controller_id
+        candidates: list[str] = []
+
+        if spec.obj_type in ("unit", "permanent", "card"):
+            for uid_list in self.base_units.values():
+                candidates.extend(uid_list)
+            for bf in self.battlefields.values():
+                candidates.extend(bf.units)
+
+        if spec.obj_type in ("gear", "permanent", "card"):
+            for gid_list in self.base_gear.values():
+                candidates.extend(gid_list)
+
+        matched: list[str] = []
+        for cid in candidates:
+            card = self.get_instance(cid)
+            if not card:
+                continue
+            if exclude_self and cid == source.instance_id:
+                continue
+            if spec.scope == "friendly" and card.controller_id != controller:
+                continue
+            if spec.scope == "enemy" and card.controller_id == controller:
+                continue
+            if spec.scope == "self" and cid != source.instance_id:
+                continue
+            if spec.location == "here" and source.location_id:
+                if card.location_id != source.location_id:
+                    continue
+            matched.append(cid)
+
+        return matched
 
 
 def create_game(

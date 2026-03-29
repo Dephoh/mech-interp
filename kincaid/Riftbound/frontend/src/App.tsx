@@ -1,8 +1,11 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "./App.css";
+import { CardHoverPortal } from "./components/cards/CardHoverPortal";
 import { GameBoard } from "./components/layout/GameBoard";
 import { LobbyPage } from "./lobby/LobbyPage";
 import { useGameStore } from "./store/gameStore";
+import { useTestLabStore } from "./store/testlabStore";
+import { useUIStore } from "./store/uiStore";
 import type { ClientMessage, ServerMessage } from "./ws/messageTypes";
 import { useWebSocket } from "./ws/useWebSocket";
 
@@ -48,6 +51,10 @@ function makeStarterDeck() {
   };
 }
 
+const API_BASE =
+  import.meta.env.VITE_API_URL ??
+  `${window.location.protocol}//${window.location.host}`;
+
 function App() {
   const [inGame, setInGame] = useState(false);
   const roomId = useGameStore((s) => s.roomId);
@@ -59,6 +66,13 @@ function App() {
   const addLogs = useGameStore((s) => s.addLogs);
   const setGameOver = useGameStore((s) => s.setGameOver);
   const setError = useGameStore((s) => s.setError);
+
+  const setTestLab = useTestLabStore((s) => s.setTestLab);
+  const setScenarios = useTestLabStore((s) => s.setScenarios);
+  const setCurrentIndex = useTestLabStore((s) => s.setCurrentIndex);
+  const setCurrentScenario = useTestLabStore((s) => s.setCurrentScenario);
+  const setTestLabRoomId = useTestLabStore((s) => s.setRoomId);
+  const setTestLabLoading = useTestLabStore((s) => s.setLoading);
 
   const handleMessage = useCallback((msg: ServerMessage) => {
     switch (msg.type) {
@@ -87,6 +101,19 @@ function App() {
       case "ERROR":
         setError(msg.message);
         break;
+      case "CHOICE_REQUIRED":
+        useUIStore.getState().setPendingChoice({
+          prompt: msg.prompt,
+          options: msg.options ?? [],
+          target: msg.target ?? null,
+          minChoices: msg.min_choices ?? 1,
+          maxChoices: msg.max_choices ?? 1,
+          controllerId: msg.controller_id,
+        });
+        break;
+      case "TESTLAB_RESET":
+      case "TESTLAB_SCENARIO_CHANGED":
+        break;
     }
   }, [setPlayer, updateState, addLogs, setGameOver, setError, setWaiting]);
 
@@ -107,8 +134,90 @@ function App() {
     [setRoom, connect]
   );
 
+  const handleSandbox = useCallback(
+    (rid: string) => {
+      setRoom(rid);
+      setInGame(true);
+      // Sandbox: no deck needed, game already created on server
+      const joinMsg: ClientMessage = {
+        type: "JOIN_ROOM" as const,
+        player_name: "Sandbox Player",
+      };
+      connect(rid, joinMsg);
+    },
+    [setRoom, connect]
+  );
+
+  const handleTestLab = useCallback(async () => {
+    setTestLabLoading(true);
+    try {
+      // Retry fetching scenarios — server may still be booting
+      let scenarios: any[] = [];
+      for (let attempt = 0; attempt < 15; attempt++) {
+        try {
+          const res = await fetch(`${API_BASE}/testlab/scenarios`);
+          if (res.ok) {
+            scenarios = await res.json();
+            break;
+          }
+        } catch {
+          // Server not ready yet
+        }
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+      if (!scenarios.length) {
+        setError("Failed to load test lab scenarios. Is the server running?");
+        return;
+      }
+
+      setScenarios(scenarios);
+      setTestLab(true);
+
+      const first = scenarios[0];
+      const loadRes = await fetch(`${API_BASE}/testlab/load`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scenario_id: first.scenario_id }),
+      });
+      const loadData = await loadRes.json();
+
+      setTestLabRoomId(loadData.room_id);
+      setCurrentIndex(0);
+      setCurrentScenario(first);
+      setRoom(loadData.room_id);
+      setInGame(true);
+
+      const joinMsg: ClientMessage = {
+        type: "JOIN_ROOM" as const,
+        player_name: "Test Lab",
+      };
+      connect(loadData.room_id, joinMsg);
+    } finally {
+      setTestLabLoading(false);
+    }
+  }, [setRoom, connect, setTestLab, setScenarios, setCurrentIndex, setCurrentScenario, setTestLabRoomId, setTestLabLoading, setError]);
+
+  // Auto-detect ?mode=testlab in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("mode") === "testlab") {
+      handleTestLab();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const testLabLoading = useTestLabStore((s) => s.loading);
+
+  if (!inGame && testLabLoading) {
+    return (
+      <div className="waiting-screen">
+        <h2>Card Test Lab</h2>
+        <p>Loading scenarios...</p>
+      </div>
+    );
+  }
+
   if (!inGame) {
-    return <LobbyPage onJoin={handleJoin} />;
+    return <LobbyPage onJoin={handleJoin} onSandbox={handleSandbox} onTestLab={handleTestLab} />;
   }
 
   if (waiting || status === "connecting") {
@@ -121,7 +230,12 @@ function App() {
     );
   }
 
-  return <GameBoard send={send} />;
+  return (
+    <>
+      <GameBoard send={send} />
+      <CardHoverPortal />
+    </>
+  );
 }
 
 export default App;

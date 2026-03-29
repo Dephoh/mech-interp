@@ -263,6 +263,8 @@ def _serialize_card(card: CardInstance, *, visible: bool) -> dict[str, Any]:
             "entered_this_turn": card.entered_this_turn,
             "accelerated": card.accelerated,
         })
+        if card.attached_cards:
+            data["attached_cards"] = card.attached_cards
 
     # Gear-specific
     if card.card_type == CardType.GEAR:
@@ -285,13 +287,15 @@ def _serialize_card(card: CardInstance, *, visible: bool) -> dict[str, Any]:
         for k in card.all_keywords()
     ]
 
-    # Abilities (public text only)
+    # Abilities (public text + target info)
     data["abilities"] = [
         {
             "ability_id": ab.ability_id,
             "ability_type": ab.ability_type.value,
             "timing": ab.timing,
             "text": ab.text,
+            "targets_required": ab.targets_required,
+            "target_type": ab.target_type,
         }
         for ab in card.definition.abilities
     ]

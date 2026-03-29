@@ -1,0 +1,210 @@
+================================================================================
+RIFTBOUND RULES: Units
+Source sections: 140-148
+Backend modules: card_types.py, effect_primitives.py
+================================================================================
+
+140. 
+Unit is: 
+140.1. 
+A Game Object 
+140.1.a. 
+While on the Board: 
+140.1.a.1. 
+Units are at one of several Locations while on the Board: a Battlefield or their 
+Base. 
+140.1.a.2. 
+Units and their details are Public Information while on the Board. 
+140.1.a.3. 
+Units can be chosen, affected, or manipulated by spells, affects, or game actions 
+that specify Units. 
+140.1.a.4. 
+Units can be Killed.  
+See rule 415. Kill for more information. 
+140.1.b. 
+While in the Trash: 
+140.1.b.1. 
+Units are treated as Cards, similar to when in the Hand. 
+140.1.b.2. 
+They retain the properties of being a Unit, but are not on the Board and thus 
+cannot take actions or be affected by spells, abilities, or game actions that target 
+Units on the Board. 
+140.1.b.3. 
+Units can be affected by spells and game effects that target Units in the Trash. 
+140.2. 
+A Card Type 
+140.2.a. 
+This is a unique identifier that some spells or abilities will use to restrict what they can 
+choose or affect. 
+140.2.b. 
+The card type is relevant in all zones. 
+141. 
+Damage is a marked value that is applied to Units. 
+141.1. 
+Damage is not a Game Object. 
+141.2. 
+Damage is a value tracked per-Unit. 
+
+
+=== PAGE 13 ===
+ 
+ 
+141.3. 
+Damage tracks how close a Unit is to being Killed.  
+See rule 415. Kill for more information. 
+141.4. 
+Damage can be Healed.  
+See rule 405. Heal for more information. 
+142. 
+Units have multiple Intrinsic Properties unique to them: 
+142.1. 
+Tag: A Unit has zero or more Tags representing one or more champions, regions, factions, or species 
+it belongs to. 
+142.1.a. 
+These have no intrinsic rules or behaviors by themselves. 
+142.1.b. 
+Spells, abilities, and game actions can reference these types as part of their execution. 
+142.2. 
+Might: The combat statistic of a Unit. Used to determine a Unit's contribution to Combat, as well as 
+when it is Killed by damaging effects. 
+142.2.a. 
+If a Unit ever has nonzero damage marked on it equalling or exceeding its Might, it is Killed. 
+142.2.b. 
+If a unit's Might is ever less than 0, it is treated as 0 for all purposes. 
+142.3. 
+Units can have damage marked on them. 
+142.3.a. 
+When spells, abilities, or other game effects deal damage, Units mark that damage on them 
+temporarily. This can be tracked with coins, dice, or other markers, or by memory. 
+142.3.b. 
+Damage is Healed from Units at two specific times: 
+142.3.b.1. 
+At the end of each player's turn. 
+142.3.b.2. 
+During a Combat Cleanup. 
+See rule 444.1. for more information about Combat Cleanups. 
+142.4. 
+Units enter the Board exhausted. 
+142.4.a. 
+This can be altered by Accelerate or similar game effects.  
+See rule 731. Accelerate for more information. 
+143. 
+Units have the Inherent Ability to perform a Standard Move. 
+143.1. 
+This action is limited in when it can be performed. 
+143.1.a. 
+This action can be done any time during a player's Action Phase. 
+143.1.b. 
+This action cannot be performed during a Closed State. 
+143.1.c. 
+This action cannot be performed during a Showdown. 
+143.2. 
+Exhausting the Unit is the Cost for this action. 
+143.3. 
+Players may perform multiple Units' standard move simultaneously. 
+143.3.a. 
+When a Move like this is declared by a player, the units' Destination must be the same. 
+143.3.b. 
+When a Move like this is declared by a player, the Origins do not need to be the same. 
+143.3.c. 
+The Costs of Exhausting the Units are also paid Simultaneously. 
+143.4. 
+The Destinations where Units can Move to with their Standard Move are restricted: 
+143.4.a. 
+Units may move from their Base to a Battlefield. 
+
+
+=== PAGE 14 ===
+ 
+ 
+143.4.a.1. 
+Units cannot Move to a Battlefield that already has units from 2 other players 
+present. 
+143.4.b. 
+Units may move from a Battlefield to their Base. 
+143.4.c. 
+Ganking is a unique ability that affects a Unit's Standard Move 
+143.4.c.1. 
+Units with Ganking may use their Standard Move to Move from Battlefield to 
+Battlefield.  
+See rule 736. Ganking for more information. 
+144. 
+Units may have Activated Abilities. 
+144.1. 
+Activated Abilities are Game Effects that are written as Costs followed by a ":", and then succeeded 
+by an effect.  
+See rule 369. Activated Abilities for more information. 
+144.2. 
+The Activated Ability of Units may be executed at any time during the controlling player's Action 
+Phase during an Open State, and not during a Showdown. 
+144.2.a. 
+This follows the same process as playing a card.  
+See rule 346. Playing Cards for more information. 
+144.2.a.1. 
+This behaves, once activated, like a spell without an associated card. 
+145. 
+Gear 
+146. 
+Gear are: 
+146.1. 
+A Game Object 
+146.1.a. 
+While on the Board. 
+146.1.a.1. 
+Gear can only be played to a player's Base. 
+146.1.a.2. 
+Gear and their details are Public Information while on the Board. 
+146.1.a.3. 
+Gear can be chosen, affected, or manipulated by spells, effects, or game actions 
+that specify Gear. 
+146.1.a.4. 
+Gear can be Killed. 
+See rule 415. Kill for more information. 
+146.1.b. 
+While in the Trash 
+146.1.b.1. 
+Gear are treated as Cards before Game Objects, similar to the Hand. 
+146.1.b.2. 
+They retain the properties of being Gear, but are not on the Board and thus cannot 
+take actions or be affected by spells, abilities, or game actions that affect Gear on 
+the Board. 
+146.1.b.3. 
+Gear can be affected by spells and game effects that affect Gear in the Trash. 
+146.2. 
+A Card Type 
+146.2.a. 
+This is a unique identifier that some spells or abilities will use to restrict what they can 
+choose or affect. 
+146.2.b. 
+The card type is relevant in all zones. 
+147. 
+Gear have several Intrinsic Properties unique to them. 
+
+
+=== PAGE 15 ===
+ 
+ 
+147.1. 
+Gear enters play Ready. 
+147.2. 
+Gear can only be played to a player's Base. 
+147.3. 
+If a Gear is at a Battlefield for any reason, then it is immediately recalled to its controller's Base as a 
+corrective action.  
+See rule 432. Recalls for more information. 
+148. 
+Gear may have Activated Abilities. 
+148.1. 
+Activated Abilities are Game Effects that are written as Costs followed by a ":", and then succeeded 
+by an effect.  
+See rule 369. Activated Abilities for more information. 
+148.2. 
+The Activated Ability of Gear may be executed at any time during the controlling player's Action 
+Phase during an Open State, and not during a Showdown. 
+148.2.a. 
+This follows the same process as playing a card. 
+See rule 346. Playing Cards for more information. 
+148.2.a.1. 
+This behaves, once activated, like a spell without an associated card. 
+149. 
+Spells 

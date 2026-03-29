@@ -22,13 +22,37 @@ def advance_phase(gs: GameState) -> list[str]:
 
     elif gs.phase == Phase.AWAKEN:
         logs.extend(_execute_awaken(gs))
+
+        # Rule 319.2: cleanup after each phase transition
+        logs.extend(run_cleanup(gs))
+        if gs.game_over:
+            return logs
+
         gs.phase = Phase.BEGINNING
         logs.extend(_execute_beginning(gs))
+
+        # Rule 319.2: cleanup after phase transition
+        logs.extend(run_cleanup(gs))
+        if gs.game_over:
+            return logs
+
         # Auto-advance through Channel and Draw (non-interactive)
         gs.phase = Phase.CHANNEL
         logs.extend(_execute_channel(gs))
+
+        # Rule 319.2: cleanup after phase transition
+        logs.extend(run_cleanup(gs))
+        if gs.game_over:
+            return logs
+
         gs.phase = Phase.DRAW
         logs.extend(_execute_draw(gs))
+
+        # Rule 319.2: cleanup after phase transition
+        logs.extend(run_cleanup(gs))
+        if gs.game_over:
+            return logs
+
         gs.phase = Phase.ACTION
         gs.active_player_id = gs.turn_player_id
         logs.append(f"Action Phase begins for {gs.players[gs.turn_player_id].display_name}")
@@ -37,6 +61,8 @@ def advance_phase(gs: GameState) -> list[str]:
         # Player is ending their turn
         gs.phase = Phase.END_OF_TURN
         logs.extend(_execute_end_of_turn(gs))
+        if gs.game_over:
+            return logs
         # Move to next player's turn
         logs.extend(_start_next_turn(gs))
 
@@ -113,9 +139,17 @@ def _execute_awaken(gs: GameState) -> list[str]:
 
 
 def _execute_beginning(gs: GameState) -> list[str]:
-    """Beginning Phase: kill Temporary units, then score Hold, then triggers."""
+    """Beginning Phase: Beginning Step triggers, kill Temporary units, then Scoring Step (Hold).
+
+    Rule 315.2.a.1: At the start of Beginning Phase, game effects take place.
+    Rule 315.2.b.1: Holding occurs at the Scoring Step.
+    """
     pid = gs.turn_player_id
     logs: list[str] = []
+
+    # Rule 315.2.a.1: Beginning Step — fire beginning-phase triggers
+    evt_logs = fire_event(gs, GameEvent.BEGINNING_PHASE, {"player_id": pid})
+    logs.extend(evt_logs)
 
     # Kill Temporary units before scoring
     temp_logs = kill_temporary_units(gs)
@@ -128,7 +162,7 @@ def _execute_beginning(gs: GameState) -> list[str]:
     if gs.game_over:
         return logs
 
-    # Scoring Step: Hold
+    # Scoring Step (315.2.b): Hold
     hold_logs = score_hold(gs, pid)
     logs.extend(hold_logs)
 
@@ -200,22 +234,39 @@ def _execute_draw(gs: GameState) -> list[str]:
 
 
 def _execute_end_of_turn(gs: GameState) -> list[str]:
-    """End of Turn Phase: heal all units, expire 'this turn' effects, empty rune pool."""
+    """End of Turn Phase per rules 317.1-317.3:
+
+    317.1 Ending Step — fire end-of-turn triggers
+    317.2 End of Turn Cleanup — heal all units
+    317.3 Expiration Step — expire "this turn" effects, then empty all rune pools
+    """
     pid = gs.turn_player_id
     ps = gs.players[pid]
     logs: list[str] = []
 
-    # Heal all units on the board
+    # --- 317.1 Ending Step ---
+    # Fire turn-end triggers FIRST ("At the end of your turn, ...")
+    evt_logs = fire_event(gs, GameEvent.TURN_END, {"player_id": pid})
+    logs.extend(evt_logs)
+
+    # Run cleanup after triggers resolve (rule 319.2)
+    cleanup_logs = run_cleanup(gs)
+    logs.extend(cleanup_logs)
+    if gs.game_over:
+        return logs
+
+    # --- 317.2 End of Turn Cleanup: Heal all units ---
     for inst in gs.instances.values():
         if inst.card_type.value == "unit" and inst.zone in (ZoneType.BASE, ZoneType.BATTLEFIELD):
             inst.heal()
 
-    # Expire "this turn" effects on all game objects
+    # --- 317.3 Expiration Step ---
+    # 317.3.a: All "this turn" effects expire simultaneously
     for inst in gs.instances.values():
         if inst.zone in (ZoneType.BASE, ZoneType.BATTLEFIELD, ZoneType.RUNE_BOARD):
             inst.clear_turn_state()
 
-    # Empty all players' rune pools
+    # 317.3.b: All players' Rune Pools empty
     for p in gs.players.values():
         p.rune_pool.empty()
 
@@ -223,11 +274,7 @@ def _execute_end_of_turn(gs: GameState) -> list[str]:
     if ps.is_first_turn:
         ps.is_first_turn = False
 
-    # Fire turn-end triggers ("At the end of your turn, ...")
-    evt_logs = fire_event(gs, GameEvent.TURN_END, {"player_id": pid})
-    logs.extend(evt_logs)
-
-    logs.append("End of turn: all units healed, effects expired, rune pools emptied")
+    logs.append("End of turn: triggers fired, all units healed, effects expired, rune pools emptied")
     return logs
 
 

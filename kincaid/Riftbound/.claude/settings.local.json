@@ -40,7 +40,14 @@
       "Bash(grep -o card__art C:/Users/Kincaid/Documents/GitHub/mech-interp/kincaid/Riftbound/frontend/dist/assets/*.js)",
       "Bash(grep -o 'NO ART' C:/Users/Kincaid/Documents/GitHub/mech-interp/kincaid/Riftbound/frontend/dist/assets/*.js)",
       "Bash(ls:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(done)",
+      "Bash(rm 00_golden_silver_rules.txt 01_game_concepts.txt 02_setup.txt 03_game_objects.txt 04_costs.txt 05_units.txt 06_spells.txt 07_runes.txt 08_legends.txt 09_tokens.txt 10_turn_structure.txt 11_cleanup.txt 12_chain.txt 13_showdowns.txt 14_process_of_play.txt 15_passive_abilities.txt 16_activated_abilities.txt 17_triggered_abilities.txt 18_draw.txt 19_stun.txt 20_movement_swap.txt 21_combat.txt 22_layers.txt 23_modes_concede.txt 24_additional_rules.txt 25_might_inactive.txt 26_keyword_glossary.txt)",
+      "Bash(mv _new/* .)",
+      "Bash(rmdir _new)",
+      "Bash(reg query:*)",
+      "Read(//c/Windows/Fonts/**)"
     ]
   }
 }

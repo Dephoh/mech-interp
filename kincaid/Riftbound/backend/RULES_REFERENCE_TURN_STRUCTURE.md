@@ -1,5 +1,5 @@
 # Riftbound Turn Structure - Rules Reference
-> Source of truth: rules_extracted.txt (rules 300-317, 458-466)
+> Source of truth: backend/data/rules/09_turn_structure.txt, backend/data/rules/19_scoring_and_modes.txt
 
 ## Turn Phases (in strict order)
 

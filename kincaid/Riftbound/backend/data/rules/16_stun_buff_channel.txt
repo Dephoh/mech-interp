@@ -1,0 +1,349 @@
+================================================================================
+RIFTBOUND RULES: Stun, Buff, Channel & Misc Actions
+Source sections: 405-419
+Backend modules: effect_primitives.py
+================================================================================
+
+410. 
+Stun 
+410.1. 
+Stunning is the act of selecting one or more Units on the Board and rendering them Stunned. 
+410.1.a. 
+Stunned is a binary state. A Unit is Stunned or it isn't. 
+410.1.a.1. 
+A Stunned Unit can not be Stunned again.  
+Example: Eclipse Herald has the ability "When you stun an enemy unit, 
+ready me and give me +1 [M] this turn." Its controller plays a spell that 
+reads "Stun a unit." They may choose a unit that's already stunned, but if 
+they do, Eclipse Herald will not trigger. 
+410.1.a.2. 
+Stunned Units lose the Stunned status at the beginning of the next Ending Step. 
+410.1.b. 
+A Stunned Unit does not contribute its might to damage in combat. 
+410.1.c. 
+A Stunned Unit must still have damage applied to it equal to, or greater than, its full might 
+value to be killed. 
+410.2. 
+Stunning is a Limited Action. 
+410.2.a. 
+Players may only Stun Units when directed to by Game Effects. 
+411. 
+Reveal 
+411.1. 
+Revealing is the act of presenting a card to all players from a zone that one or more players do not 
+have access to the information of. 
+
+
+=== PAGE 51 ===
+ 
+ 
+411.1.a. 
+Revealed is a temporary state and is not a zone. 
+411.1.a.1. 
+Other cards, including the card being revealed, can reference the act of being 
+Revealed. 
+411.1.a.2. 
+Cards remain in the zone they are being Revealed from. Example: If a card is being 
+Revealed from the top of a player's Main Deck, it is still the top card of that player's 
+Main Deck. 
+411.1.b. 
+Unless otherwise described, Revealed cards do nothing else beyond become temporarily 
+known information to all players. 
+411.2. 
+Revealing is a Limited Action. 
+411.2.a. 
+Players may only Reveal cards from Private or Secret zones when instructed to do so by 
+Game Effects. 
+411.2.b. 
+During the course of a game of Riftbound, a player may choose to show Private information 
+to one or more other players. This does not count as revealing and does not trigger any 
+effects that trigger when cards are revealed. 
+411.3. 
+This action is formatted as "Reveal cards from [zone]."  
+Example: "Reveal 2 cards from the top of your Main Deck" would be executed by taking the 
+two cards from the top of your Main Deck, and then presenting them to all players to clearly 
+read and understand at the table. Then, when all players have had a chance to understand 
+the revealed information, return them to the top of the deck in the same order. 
+411.4. 
+Game Effects can manipulate or modify the cards Revealed while they are Revealed 
+411.4.a. 
+While cards are Revealed, those cards can be further manipulated, or accessed. They can 
+even have their destination modified for when the Reveal ends.  
+Example: "Reveal 2 cards from the top of your Main Deck. Put one into your hand 
+and Recycle the other" would be executed by taking the top two cards from your 
+Main Deck to the table, and once every player present has had a chance to 
+understand them you would make the selection of one of them to add to your 
+hand. The one you did not select would then be Recycled to the bottom of the 
+Main Deck. 
+412. 
+Counter 
+412.1. 
+Countering is the act of negating the execution, activation, or otherwise playing of a card by a player. 
+412.1.a. 
+A card that is Countered does nothing and is then placed in the Trash. 
+412.1.b. 
+A card that is Countered is not considered to have been played. 
+412.1.c. 
+Countering does not refund any costs paid to play a card. 
+412.1.c.1. 
+This includes additional costs. 
+412.2. 
+Countering is a Limited Action. 
+412.2.a. 
+Players may only Counter cards when directed to by Game Effects. 
+412.3. 
+This action is formatted as "Counter [a card or ability on the chain]." 
+413. 
+Buff 
+413.1. 
+Buffing is the action of placing a Buff counter on a Unit.  
+See rule 701. Buffs for more information. 
+413.1.a. 
+A Buff is also an object. 
+
+
+=== PAGE 52 ===
+ 
+ 
+413.1.b. 
+To Buff a unit, place a Buff Counter on it if it does not have one already 
+413.1.b.1. 
+If the unit already has a Buff Counter on it, it does not get another one. 
+413.1.c. 
+Units with Buff Counters can still be chosen for actions that Buff units, but will not be 
+Buffed as part of the execution.  
+Example: A spell reads "Buff a unit. Then, if it was buffed this way, draw a card." It 
+will place a buff counter on a unit that has no buff counter, and then its controller 
+will draw a card. However, if the player chooses a unit with a buff counter on it 
+already, then the card will not be drawn. 
+413.2. 
+Buffing is a Limited Action. 
+413.2.a. 
+Players may only Buff units when Game Effects direct them to do so. 
+413.3. 
+This action is formatted as "Buff [one or more units]."  
+e.g., "Buff a unit."  
+e.g., "Buff a friendly unit."  
+e.g., "Buff two friendly units at the same battlefield." 
+414. 
+Banish 
+414.1. 
+Banishing is the action of placing a card from any zone to Banishment.  
+See 107.5. Banishment for more information. 
+414.2. 
+When a card is Banished it is placed directly into the Banishment zone from its origin. 
+414.2.a. 
+Banish is not a subset of Kill. 
+414.2.b. 
+Banish is not a subset of Discard. 
+414.3. 
+Cards and effects can refer to cards that were banished by the same object. 
+414.3.a. 
+Separate instances of an object or effect banishing cards do not reference other banished 
+cards by objects of the same name or effects originating from cards of the same name.  
+Example: A spell reads "Banish the top card of your Main Deck. When you conquer 
+this turn, draw it." This card effect allows you to draw the banished card from 
+banishment if a condition is met. If more than one of these effects is played, each 
+one triggers separately. Each card will be drawn separately. If the turn player passes 
+the turn without playing the card, the card remains in banishment indefinitely. If 
+the same player plays another copy of the same spell, banishes another card, and 
+satisfies its condition, they could play the new banished card, but not the original 
+banished card. 
+414.4. 
+Banishing is a Limited Action. 
+414.4.a. 
+Players may only Banish cards or permanents when Game Effects direct them to do so. 
+414.5. 
+This action is formatted as "Banish [one or more permanents or cards]."  
+e.g., "Banish a card from your hand."  
+e.g., "Banish 2 cards from your trash." 
+e.g., "Look at the top 2 cards of your Main Deck. Draw one of them and banish the other." 
+415. 
+Kill 
+415.1. 
+Killing is the action of a Permanent going to the trash from the board. 
+415.1.a. 
+This can be Active or Passive. 
+415.1.a.1. 
+Active Kill is when the action is taken when instructed by a game effect or as a cost 
+for a card or ability. 
+
+
+=== PAGE 53 ===
+ 
+ 
+415.1.a.1.a. 
+This is referred to as a Kill Instruction. 
+415.1.a.1.b. 
+When a unit with a Deathknell  is to be put in the Trash due to a Kill 
+Instruction, it first has its Deathknell added to the chain as a Pending 
+Item. Note the unit’s location, attributes, and other relevant information to 
+process its Deathknell when finalized before completing this Kill 
+Instruction. 
+415.1.a.2. 
+Passive Kill is when the action is taken as a result of Lethal Damage or as a 
+consequence for any other state. 
+415.2. 
+When a permanent is killed it is placed directly in the trash from its place of origin. 
+415.2.a. 
+It is only considered Killed if its origin was any zone on the board. 
+415.2.b. 
+This is not a subset of Move. 
+415.3. 
+Killing is a Limited Action. 
+415.3.a. 
+Players may only Kill units when Game Effects direct them to do so. 
+415.4. 
+Killing can also be the result of resolving a Cleanup. 
+415.5. 
+Killing can be attributed to one or more Game Objects. 
+415.5.a. 
+The Killed Unit or Gear is said to be Killed by that Game Object. 
+415.5.b. 
+A spell or ability that contains a Kill instruction is responsible for Killing the Unit or Gear. 
+415.5.c. 
+When one or more Units is killed due to a Cleanup, the spell or ability that resolved 
+immediately prior to that Cleanup that applied damage to the Unit or Units is responsible 
+for that Kill action. 
+415.5.d. 
+Abilities originating from Game Objects that are responsible for Kill Actions are responsible 
+in addition to the Game Object that created them.  
+Example: Falling Star is a spell that says “Do this twice: Deal 3 to a unit.” Immortal 
+Phoenix is a unit that says “When you kill a unit with a spell, you may pay [1][C] to 
+play me from your trash.” A player plays Falling Star while Immortal Phoenix is in 
+their trash. The “do this” phrasing on Falling Star means that it has a reflexive 
+triggered ability, which places two triggered abilities on the chain. As each of those 
+triggered abilities resolve, it deals damage to the unit chosen for that ability. If one 
+of these abilities deals lethal damage to a unit, both Falling Star and its ability are 
+considered sources of the damage, and so both Falling Star and its ability are 
+responsible for killing the unit. This means that Falling Star’s controller killed a unit 
+with a spell, so Immortal Phoenix’s ability will trigger. 
+415.6. 
+This action is formatted as "Kill [one or more permanents]."  
+e.g., "Kill an enemy unit."  
+e.g., "Kill this, [2]: Draw 1."  
+e.g., "Kill all gear." 
+416. 
+Add 
+416.1. 
+Adding is the action of putting resources into a player's Rune Pool. 
+416.2. 
+Spells, triggered abilities, and activated abilities that Add resources finalize immediately. 
+416.2.a. 
+Priority and Focus will not pass from Add abilities being finalized, and will resolve before any 
+other outstanding items on the chain are finalized. 
+
+
+=== PAGE 54 ===
+ 
+ 
+416.3. 
+Activated abilities that Add resources and have the Reaction tag can be activated during the playing 
+or resolution of other spells and abilities, any time that those spells or abilities require that resources 
+be paid.  
+Example: A player can add Energy and Power through any means before initiating the 
+process of playing a spell. After initiating that process, in the Pay Costs step, they may 
+activate Add Reactions to add Energy or Power to pay costs. 
+416.4. 
+Adding is a Limited Action. 
+416.4.a. 
+Players may only Add resources when Game Effects direct them to do so. 
+416.5. 
+This action is formatted as "Add [one or more resources]."  
+e.g., "Add [2]." means "Add 2 Energy."  
+e.g., "[E]: Add [Y]." means "Add 1 Power of the Order domain."  
+e.g., "Add [1][G]." means "Add 1 Energy and 1 Power of the Calm domain." 
+417. 
+Channel 
+417.1. 
+Channeling is the action of taking one or more Runes from the top of a player's Rune Deck and 
+putting them on the board. 
+417.2. 
+The Game Effect that instructs a player to channel 1 or more runes may specify the conditions or 
+circumstances under which those runes enter the board. Example: A spell reads "Channel 1 rune 
+exhausted." As that spell resolves, its controller puts the top rune of their rune deck onto the board 
+and that rune enters the board exhausted rather than ready. 
+417.3. 
+Channeling is a Limited Action. 
+417.3.a. 
+Players may only channel runes when Game Effects direct them to do so. 
+417.4. 
+This action is formatted as "Channel X rune(s)," optionally followed by conditions or stipulations.  
+e.g., "Channel 1 rune."  
+e.g., "When you play me, channel 1 rune exhausted."  
+e.g., "Channel 2 runes exhausted. If you couldn't channel 2 runes this way, draw 1." 
+418. 
+Burn Out 
+418.1. 
+Burning Out is an action a player must perform if they attempt to move one or more cards from their 
+Main Deck to any other zone in excess of the number of cards remaining in their Main Deck: 
+418.1.a. 
+If a player must Draw cards in excess to the number of cards in their deck, they will Draw as 
+many as possible, perform this action, then Draw the remaining amount instructed. 
+418.1.b. 
+If a player must put one or more cards from their Main Deck in any other zone, such as the 
+Trash, in excess of the number of cards in their deck they will do so as much as possible, 
+perform this action, and then complete the remaining number required by the instruction. 
+418.1.c. 
+If an instruction directs a player to look at or reveal cards in excess to the number of cards in 
+a player’s Main Deck, that player looks at or Reveals as many as possible, but does not Burn 
+Out, then proceeds with the rest of the instruction. 
+418.1.c.1. 
+If there are insufficient cards among the looked at or revealed cards to perform 
+subsequent actions to the revealed or looked at cards, any further instructions are 
+ignored. This does not cause a Burn Out, even if those instructions would cause 
+those cards to change zones.  
+Reminder: Cards are considered in the zone of origin while being looked at 
+or revealed, in this case the Main Deck. 
+418.2. 
+To Burn Out, a player does the following in sequence: 
+418.2.a. 
+Performs as much of the prescribed action as possible. 
+
+
+=== PAGE 55 ===
+ 
+ 
+418.2.b. 
+Recycles their trash into their Main Deck.  
+Reminder: When multiple cards are Recycled to the Main Deck at the same time, 
+those cards must be randomized 
+418.2.c. 
+Chooses an opponent to gain 1 point. 
+418.2.d. 
+Completes the remainder of the action that caused them to burn out.  
+Example: A player attempts to draw 1 during their Draw Phase while their Main 
+Deck is empty. That player instead recycles their trash into their Main Deck, 
+randomizing it as normal, then chooses an opponent to gain 1 point, and then 
+draws 1. 
+418.3. 
+A player's Main Deck may remain empty as they Burn Out, usually because their trash is also empty. 
+When they attempt to perform the original action again, it will cause another Burn Out. 
+418.3.a. 
+Unless some effect intervenes, this will result in them burning out repeatedly, giving 1 point 
+to an opponent each time, until an opponent passes the Victory Score and wins the game. 
+418.4. 
+Burning Out is a Limited Action. 
+418.4.a. 
+Players may only burn out when Game Effects direct them to do so. 
+418.5. 
+Burning Out is a Replacement Effect.  
+See rule 364. Replacement Effects for more information. 
+419. 
+Double 
+419.1. 
+Doubling is the act of increasing  a numeric attribute by an amount equal to that attribute’s current 
+value. 
+419.1.a. 
+This creates an effect that modulates that attribute by that specific amount for the duration 
+specified by the Game Effect that instructed the player to perform this action. 
+Example: A unit with 3 base Might and Shield 2 is in combat as a Defender. Since 
+Shield applies, its current Might is 5. A player chooses it as the target for Last 
+Stand, a spell that reads in part “Double a friendly unit's Might this turn.” Its 
+current Might is 5, so it gets +5 Might this turn, for a current Might of 10. After 
+combat, Shield no longer applies, but the +5 Might from Last Stand does, so the 
+unit’s Might is 8. 
+419.2 
+Doubling is a Limited Action. 
+419.2.a. 
+Players may only Double when Game Effects direct them to do so. 

@@ -1,0 +1,515 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "riftbound-effect-ir",
+  "title": "Riftbound Effect IR Schema",
+  "description": "JSON Schema for validating Effect IR node trees used in card abilities.",
+
+  "$defs": {
+    "target_spec": {
+      "type": "object",
+      "properties": {
+        "obj_type": {
+          "type": "string",
+          "enum": ["unit", "gear", "spell", "rune", "card", "player", "permanent"]
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["friendly", "enemy", "any", "self"]
+        },
+        "zone": {
+          "type": "string",
+          "enum": ["base", "battlefield", "chain", "hand", "trash", "any"]
+        },
+        "location": { "type": "string" },
+        "count": {
+          "oneOf": [
+            { "type": "integer" },
+            { "type": "string", "const": "all" }
+          ]
+        },
+        "chooser": {
+          "type": "string",
+          "enum": ["controller", "opponent", "auto"]
+        },
+        "filters": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/filter_spec" }
+        },
+        "exclude_self": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+
+    "filter_spec": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "type": "string",
+          "enum": ["keyword", "might", "tag", "card_type", "domain", "name", "controller", "is_exhausted"]
+        },
+        "op": {
+          "type": "string",
+          "enum": ["eq", "neq", "lte", "gte", "has", "not_has"]
+        },
+        "value": {}
+      },
+      "required": ["field"],
+      "additionalProperties": false
+    },
+
+    "condition_spec": {
+      "type": "object",
+      "properties": {
+        "cond_type": {
+          "type": "string",
+          "enum": [
+            "legion", "mighty", "xp_gte", "has_keyword", "unit_count_gte",
+            "controls_battlefield", "has_buff", "is_attacker", "is_defender",
+            "card_played_this_turn", "hand_count_lte", "always", "never"
+          ]
+        },
+        "params": { "type": "object" }
+      },
+      "required": ["cond_type"],
+      "additionalProperties": false
+    },
+
+    "destination_spec": {
+      "type": "object",
+      "properties": {
+        "zone": {
+          "type": "string",
+          "enum": ["base", "battlefield", "hand", "trash", "deck_top", "deck_bottom", "banishment"]
+        },
+        "location": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+
+    "choice_option": {
+      "type": "object",
+      "properties": {
+        "label": { "type": "string" },
+        "effect": { "$ref": "#/$defs/effect_node" }
+      },
+      "required": ["label", "effect"],
+      "additionalProperties": false
+    },
+
+    "effect_node": {
+      "type": "object",
+      "required": ["type"],
+      "oneOf": [
+        { "$ref": "#/$defs/deal_damage_node" },
+        { "$ref": "#/$defs/draw_cards_node" },
+        { "$ref": "#/$defs/give_might_node" },
+        { "$ref": "#/$defs/buff_node" },
+        { "$ref": "#/$defs/stun_node" },
+        { "$ref": "#/$defs/heal_node" },
+        { "$ref": "#/$defs/kill_node" },
+        { "$ref": "#/$defs/move_node" },
+        { "$ref": "#/$defs/ready_node" },
+        { "$ref": "#/$defs/exhaust_node" },
+        { "$ref": "#/$defs/discard_node" },
+        { "$ref": "#/$defs/banish_node" },
+        { "$ref": "#/$defs/counter_node" },
+        { "$ref": "#/$defs/return_to_hand_node" },
+        { "$ref": "#/$defs/return_to_deck_node" },
+        { "$ref": "#/$defs/recycle_node" },
+        { "$ref": "#/$defs/play_token_node" },
+        { "$ref": "#/$defs/add_energy_node" },
+        { "$ref": "#/$defs/add_power_node" },
+        { "$ref": "#/$defs/channel_rune_node" },
+        { "$ref": "#/$defs/attach_node" },
+        { "$ref": "#/$defs/detach_node" },
+        { "$ref": "#/$defs/score_points_node" },
+        { "$ref": "#/$defs/gain_xp_node" },
+        { "$ref": "#/$defs/spend_xp_node" },
+        { "$ref": "#/$defs/look_at_top_node" },
+        { "$ref": "#/$defs/give_keyword_node" },
+        { "$ref": "#/$defs/restrict_node" },
+        { "$ref": "#/$defs/sequence_node" },
+        { "$ref": "#/$defs/conditional_node" },
+        { "$ref": "#/$defs/for_each_node" },
+        { "$ref": "#/$defs/choose_one_node" },
+        { "$ref": "#/$defs/optional_node" },
+        { "$ref": "#/$defs/repeat_effect_node" },
+        { "$ref": "#/$defs/modifier_node" },
+        { "$ref": "#/$defs/replacement_node" },
+        { "$ref": "#/$defs/player_choice_node" }
+      ]
+    },
+
+    "deal_damage_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "deal_damage" },
+        "amount": { "type": "integer", "minimum": 0 },
+        "target": { "$ref": "#/$defs/target_spec" }
+      },
+      "required": ["type", "amount"]
+    },
+    "draw_cards_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "draw_cards" },
+        "count": { "type": "integer", "minimum": 1 },
+        "player": { "type": "string" }
+      },
+      "required": ["type"]
+    },
+    "give_might_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "give_might" },
+        "amount": { "type": "integer" },
+        "target": { "$ref": "#/$defs/target_spec" },
+        "duration": { "type": "string", "enum": ["turn", "permanent"] }
+      },
+      "required": ["type", "amount"]
+    },
+    "buff_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "buff" },
+        "target": { "$ref": "#/$defs/target_spec" }
+      },
+      "required": ["type"]
+    },
+    "stun_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "stun" },
+        "target": { "$ref": "#/$defs/target_spec" }
+      },
+      "required": ["type"]
+    },
+    "heal_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "heal" },
+        "amount": {
+          "oneOf": [
+            { "type": "integer", "minimum": 0 },
+            { "type": "string", "const": "all" }
+          ]
+        },
+        "target": { "$ref": "#/$defs/target_spec" }
+      },
+      "required": ["type"]
+    },
+    "kill_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "kill" },
+        "target": { "$ref": "#/$defs/target_spec" }
+      },
+      "required": ["type"]
+    },
+    "move_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "move" },
+        "target": { "$ref": "#/$defs/target_spec" },
+        "destination": { "$ref": "#/$defs/destination_spec" }
+      },
+      "required": ["type"]
+    },
+    "ready_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "ready" },
+        "target": { "$ref": "#/$defs/target_spec" }
+      },
+      "required": ["type"]
+    },
+    "exhaust_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "exhaust" },
+        "target": { "$ref": "#/$defs/target_spec" }
+      },
+      "required": ["type"]
+    },
+    "discard_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "discard" },
+        "count": { "type": "integer", "minimum": 1 },
+        "player": { "type": "string" }
+      },
+      "required": ["type"]
+    },
+    "banish_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "banish" },
+        "target": { "$ref": "#/$defs/target_spec" }
+      },
+      "required": ["type"]
+    },
+    "counter_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "counter" },
+        "target": { "$ref": "#/$defs/target_spec" }
+      },
+      "required": ["type"]
+    },
+    "return_to_hand_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "return_to_hand" },
+        "target": { "$ref": "#/$defs/target_spec" }
+      },
+      "required": ["type"]
+    },
+    "return_to_deck_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "return_to_deck" },
+        "target": { "$ref": "#/$defs/target_spec" },
+        "position": { "type": "string", "enum": ["top", "bottom"] }
+      },
+      "required": ["type"]
+    },
+    "recycle_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "recycle" },
+        "target": { "$ref": "#/$defs/target_spec" }
+      },
+      "required": ["type"]
+    },
+    "play_token_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "play_token" },
+        "name": { "type": "string" },
+        "might": { "type": "integer", "minimum": 0 },
+        "temporary": { "type": "boolean" },
+        "ready_on_enter": { "type": "boolean" },
+        "count": { "type": "integer", "minimum": 1 },
+        "token_type": { "type": "string", "enum": ["unit", "gear"] },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "keyword": { "type": "string" },
+              "value": { "type": "integer" }
+            },
+            "required": ["keyword"]
+          }
+        }
+      },
+      "required": ["type"]
+    },
+    "add_energy_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "add_energy" },
+        "amount": { "type": "integer" },
+        "player": { "type": "string" }
+      },
+      "required": ["type"]
+    },
+    "add_power_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "add_power" },
+        "domain": { "type": "string" },
+        "amount": { "type": "integer" },
+        "player": { "type": "string" }
+      },
+      "required": ["type", "domain"]
+    },
+    "channel_rune_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "channel_rune" },
+        "count": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["type"]
+    },
+    "attach_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "attach" },
+        "gear": { "$ref": "#/$defs/target_spec" },
+        "unit": { "$ref": "#/$defs/target_spec" }
+      },
+      "required": ["type"]
+    },
+    "detach_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "detach" },
+        "target": { "$ref": "#/$defs/target_spec" }
+      },
+      "required": ["type"]
+    },
+    "score_points_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "score_points" },
+        "amount": { "type": "integer", "minimum": 1 },
+        "player": { "type": "string" }
+      },
+      "required": ["type"]
+    },
+    "gain_xp_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "gain_xp" },
+        "amount": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["type"]
+    },
+    "spend_xp_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "spend_xp" },
+        "amount": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["type"]
+    },
+    "look_at_top_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "look_at_top" },
+        "count": { "type": "integer", "minimum": 1 },
+        "may_recycle": { "type": "boolean" }
+      },
+      "required": ["type"]
+    },
+    "give_keyword_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "give_keyword" },
+        "keyword": { "type": "string" },
+        "duration": { "type": "string", "enum": ["turn", "permanent"] },
+        "target": { "$ref": "#/$defs/target_spec" }
+      },
+      "required": ["type", "keyword"]
+    },
+    "restrict_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "restrict" },
+        "restriction": { "type": "string" },
+        "scope": { "type": "string" },
+        "duration": { "type": "string" }
+      },
+      "required": ["type"]
+    },
+
+    "sequence_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "sequence" },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/effect_node" },
+          "minItems": 1
+        }
+      },
+      "required": ["type", "steps"]
+    },
+    "conditional_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "conditional" },
+        "condition": { "$ref": "#/$defs/condition_spec" },
+        "then": { "$ref": "#/$defs/effect_node" },
+        "else": { "$ref": "#/$defs/effect_node" }
+      },
+      "required": ["type", "condition", "then"]
+    },
+    "for_each_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "for_each" },
+        "targets": { "$ref": "#/$defs/target_spec" },
+        "effect": { "$ref": "#/$defs/effect_node" }
+      },
+      "required": ["type", "targets", "effect"]
+    },
+    "choose_one_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "choose_one" },
+        "options": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/effect_node" },
+          "minItems": 1
+        }
+      },
+      "required": ["type", "options"]
+    },
+    "optional_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "optional" },
+        "effect": { "$ref": "#/$defs/effect_node" }
+      },
+      "required": ["type", "effect"]
+    },
+    "repeat_effect_node": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "repeat_effect" },
+        "effect": { "$ref": "#/$defs/effect_node" }
+      },
+      "required": ["type", "effect"]
+    },
+
+    "modifier_node": {
+      "type": "object",
+      "description": "Continuous stat adjustment (aura). While source is on board, matching targets have stats modified.",
+      "properties": {
+        "type": { "const": "modifier" },
+        "stat": { "type": "string", "enum": ["might", "shield", "assault"] },
+        "amount": { "type": "integer" },
+        "target": { "$ref": "#/$defs/target_spec" },
+        "duration": { "type": "string", "enum": ["continuous", "turn", "permanent"] },
+        "exclude_self": { "type": "boolean" }
+      },
+      "required": ["type", "stat", "amount"]
+    },
+    "replacement_node": {
+      "type": "object",
+      "description": "Event interception: watches for an event and replaces it with an alternative action.",
+      "properties": {
+        "type": { "const": "replacement" },
+        "watch_event": {
+          "type": "string",
+          "description": "The primitive type name or game event to intercept (e.g., 'deal_damage')."
+        },
+        "condition": { "$ref": "#/$defs/condition_spec" },
+        "alternative_ir": { "$ref": "#/$defs/effect_node" },
+        "target": { "$ref": "#/$defs/target_spec" }
+      },
+      "required": ["type", "watch_event"]
+    },
+    "player_choice_node": {
+      "type": "object",
+      "description": "Halts execution and asks the player to make a choice or select targets.",
+      "properties": {
+        "type": { "const": "player_choice" },
+        "prompt": { "type": "string" },
+        "options": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/choice_option" },
+          "minItems": 1
+        },
+        "target": { "$ref": "#/$defs/target_spec" },
+        "min_choices": { "type": "integer", "minimum": 0 },
+        "max_choices": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["type", "prompt"]
+    }
+  },
+
+  "$ref": "#/$defs/effect_node"
+}

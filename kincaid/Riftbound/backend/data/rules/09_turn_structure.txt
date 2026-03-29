@@ -1,0 +1,287 @@
+================================================================================
+RIFTBOUND RULES: Turn Structure & Phases
+Source sections: 300-317
+Backend modules: state_machine.py
+================================================================================
+
+300. Playing the Game 
+301. 
+The Turn 
+302. 
+Play continues cyclically until one player wins. 
+303. 
+The phases of a turn are rigid, but the actions taken during those steps can be done in any order, unless 
+otherwise specified. 
+303.1. 
+Game Actions of any nature are performed one at a time and are executed completely. 
+303.2. 
+Game Actions cannot be performed simultaneously for any reason. 
+303.2.a. 
+If one or more actions, game effects, or Triggered Abilities are activated simultaneously, 
+then Turn Order is referenced to organize the sequence of actions.  
+See rule 375. Triggered Abilities for more information. 
+304. 
+The Turn Player is the player taking the current turn. 
+305. 
+When there are no items on the Chain and the Turn Player cannot or chooses not to perform any 
+Discretionary Actions, the current phase or step of the turn ends and the next phase, step, or turn begins. 
+306. 
+The Turn Player changes when the current Turn Player reaches the End of all of the Phases of their Turn. 
+307. 
+States of the Turn 
+308. 
+At any given time, the turn is in either a Neutral State or a Showdown State. 
+
+
+=== PAGE 22 ===
+ 
+ 
+308.1. 
+If a Showdown is in progress, the turn is in a Showdown State. 
+308.1.a. 
+Only cards and abilities with the Action or Reaction keywords can be played or activated in 
+a Showdown State. 
+308.2. 
+If no Showdown is in progress, the turn is in a Neutral State. 
+309. 
+At any given time, the turn is in either an Open State or a Closed State. 
+309.1. 
+If a Chain exists, the turn is in a Closed State. 
+309.1.a. 
+Only cards and abilities with the Reaction keyword can be played or activated in a Closed 
+State. 
+309.2. 
+If no Chain exists, the turn is in an Open State. 
+310. 
+These descriptions can be combined, such that the turn is always in one of these four states: 
+310.1. 
+Neutral Open: There is no Showdown in progress and no Chain exists. 
+310.1.a. 
+By default, cards can be played and abilities activated only when a player has priority on their 
+turn in a Neutral Open state. 
+310.2. 
+Neutral Closed: There is no Showdown in progress and a Chain exists. 
+310.3. 
+Showdown Open: A Showdown is in progress and no Chain exists. 
+310.4. 
+Showdown Closed: A Showdown is in progress and a Chain exists. 
+311. 
+Priority and Focus 
+312. 
+At any given time, up to one player has Priority. 
+312.1. 
+Priority is the singular exclusive right to take Discretionary Actions. 
+See rule 398.1. Discretionary Actions for more information. 
+312.1.a. 
+The player with Priority can take appropriately timed Discretionary Actions. 
+312.1.b. 
+If no player has Priority, no player can take Discretionary Actions. 
+312.1.b.1. 
+Players can always take and make choices for Limited Actions when instructed, 
+regardless of Priority. 
+312.2. 
+A player receives Priority at the following times: 
+312.2.a. 
+When the turn is in a Neutral Open State during their Action Phase. 
+312.2.b. 
+When the turn is in a Showdown State and they gain Focus. 
+312.2.c. 
+When the turn is in a Closed State and they control the next item on the Chain. 
+312.2.d. 
+When the turn is in a Closed State, they are the next Player in Turn Order, and the player 
+with Priority passes. 
+312.3 
+When a player is granted Priority, it is either created if no player has it or taken from the player with 
+Priority. 
+313. 
+At any given time, up to one player has Focus. 
+313.1. 
+Focus is the permission to take appropriately timed Discretionary Actions when the turn is in a 
+Showdown Open State.  
+
+
+=== PAGE 23 ===
+ 
+ 
+See rule 307. States of the Turn for more information. 
+313.1.a. 
+The player with Focus must obey any additional restrictions on which Discretionary Actions 
+may be performed.  
+Example: A player with Focus may not play spells or activate abilities that don't 
+have the Action or Reaction keywords. 
+313.2. 
+A player who gains Focus also gains Priority. 
+313.3. 
+A player who passes Priority retains Focus. 
+313.4 
+A player may not make discretionary actions with Focus unless they also possess Priority. 
+313.5. 
+If the turn is in a Neutral State, no player has Focus. 
+314. 
+Phases of the Turn 
+315. 
+Start of Turn 
+315.1. 
+Awaken Phase 
+315.1.a. 
+The Turn Player readies all Game Objects they control that are able to be readied.  
+See rule 402. Ready for more information. 
+315.2. 
+Beginning Phase 
+315.2.a. 
+Beginning Step 
+315.2.a.1. 
+At the start of Beginning Phase game effects take place. 
+315.2.b. 
+Scoring Step 
+315.2.b.1. 
+Holding occurs at this time.  
+See rule 445. Scoring for more information. 
+315.2.b.2. 
+Reminder: In Modes of Play with Teams, Battlefields held by a Teammate of the 
+Turn Player during this phase are disqualified from being scored this turn by the 
+Turn Player. 
+315.2.c. 
+Specific game effects or abilities will reference this timing and phase as necessary. 
+315.3. 
+Channel Phase 
+315.3.a. 
+The Turn Player gains their additional runes for the turn. 
+315.3.b. 
+The Turn Player channels 2 runes from their Rune Deck.  
+See rule 417. Channel for more information. 
+315.3.b.1. 
+If there are fewer than 2 runes in the Rune Deck, they channel as many as possible. 
+315.3.c. 
+Perform any actions as instructed by game objects during this time. 
+315.4. 
+Draw Phase 
+315.4.a. 
+The Turn Player gains their additional card for the turn. 
+315.4.b. 
+The Turn Player draws 1. 
+315.4.b.1. 
+If there are no cards remaining in their Main Deck to draw, the Turn Player has 
+been Burned Out.  
+See rule 418. Burn Out for more information. 
+
+
+=== PAGE 24 ===
+ 
+ 
+315.4.b.2. 
+After completing the Burn Out the Turn Player still Draws 1. 
+315.4.c. 
+Perform any actions as instructed by game objects during this time. 
+315.4.d. 
+As the Draw Phase ends, each player's Rune Pool empties. 
+See rule 161. Rune Pools for more information. 
+316. 
+Action Phase 
+316.1. 
+When all steps of the Start of Turn have been completed, the Action Phase begins. 
+316.2. 
+The Action Phase has no defined structure. 
+316.2.a. 
+A player may take any number of Discretionary Actions they are able to perform during this 
+phase.  
+See rule 398.1. Discretionary Actions for more information. 
+316.2.b. 
+This is denoted as a Neutral Open State, and only the Turn Player has the ability to play 
+spells or activate abilities.  
+See rule 307. States of the Turn for more information. 
+316.2.b.1. 
+In Modes of Play with teammates, the Turn Player's teammates may play spells 
+and activate abilities, including ones without Action or Reaction. 
+316.2.c. 
+In Modes of Play with Teammates, spells may be played by Teammates of the Turn Player 
+during this time, but the actions of the Turn Player take precedence. 
+316.3. 
+As a result of a player taking Discretionary Actions, one or more structured phases may occur. 
+316.4. 
+Combat 
+316.4.a. 
+A Combat phase occurs as a result of Units controlled by opposing players being present at 
+the same Battlefield. 
+316.4.b. 
+This could be the result of a Standard Move Standard Action, a Spell, or other Game Effect. 
+316.4.c. 
+The source effect does not change the structure or flow of Combat once initiated. 
+316.4.d. 
+A Combat can only occur between two players.  
+See rule 437. Combat for more information. 
+316.4.e. 
+Play proceeds following the steps of combat.  
+See rule 441. Steps of Combat for more information. 
+316.4.f. 
+Combat will also include a Showdown. 
+316.5. 
+Showdowns 
+316.5.a. 
+A Showdown occurs when a Combat occurs. 
+316.5.a.1. 
+Showdowns that occur as a result of Combat are a Sub-Phase of Combat. 
+316.5.b. 
+A Showdown is marked as Staged at a Battlefield when the Contested status is applied to a 
+Battlefield with no current controller. 
+316.5.b.1. 
+Showdowns that occur as a result of a player moving to an empty Battlefield are a 
+stand-alone Phase and do not create a Combat. 
+316.5.c. 
+A Showdown is a structured Window of Opportunity where Players may play cards and 
+activate abilities with Action or Reaction. 
+See rule 337. Showdowns for more information. 
+
+
+=== PAGE 25 ===
+ 
+ 
+316.6. 
+When a player has no more Discretionary Actions they wish to execute, they must indicate they are 
+ending their turn. 
+316.6.a. 
+This ends the Action Phase. 
+316.6.b. 
+Play proceeds to the End of Turn. 
+317. 
+End of Turn Phase 
+317.1. 
+Ending Step 
+317.1.a. 
+At the end of the turn Game Effects take place. 
+317.1.b. 
+Specific game effects and abilities will reference this timing and phase as necessary. 
+317.2. 
+End of Turn Cleanup 
+317.2.a. 
+Invoke an End of Turn Special Cleanup.  
+See rule 318. Cleanups for more information. 
+317.2.b. 
+Insert “2c. Heal all Units.” 
+317.3. 
+Expiration Step 
+317.3.a. 
+All "this turn" effects expire simultaneously. 
+317.3.b. 
+As the Expiration Step ends, all players' Rune Pools empty. Any unspent Energy and Power 
+are lost. 
+317.4. 
+The Turn Player then becomes the next player in Turn Order. 
+318. 
+Cleanups 
+319. 
+A Cleanup occurs at the following times: 
+319.1. 
+After the game transitions to or from an Open or Closed state 
+319.2. 
+After the game transitions between Phases 
+319.3. 
+After a Pending Item becomes a Legal Item on the Chain 
+319.4. 
+After a Chain Item is removed from the Chain for any reason 
+319.5. 
+After any number of Game Objects enter or leave the Board 
+319.6. 
+After the status of any number of Game Objects changes for any reason 
+319.7. 
+After a Move is completed 

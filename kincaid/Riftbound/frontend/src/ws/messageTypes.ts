@@ -15,7 +15,7 @@ export interface DeckPayload {
 export interface JoinRoomMsg {
   type: "JOIN_ROOM";
   player_name: string;
-  deck: DeckPayload;
+  deck?: DeckPayload;
 }
 
 export interface MulliganChoiceMsg {
@@ -40,6 +40,7 @@ export interface PlayCardMsg {
   instance_id: string;
   targets: string[];
   pay_accelerate?: boolean;
+  destination?: { zone: string; id?: string };
 }
 
 export interface ActivateAbilityMsg {
@@ -74,6 +75,12 @@ export interface ConcedeMsg {
   type: "CONCEDE";
 }
 
+export interface SubmitChoiceMsg {
+  type: "SUBMIT_CHOICE";
+  chosen_option_index?: number;
+  chosen_target_ids?: string[];
+}
+
 export type ClientMessage =
   | JoinRoomMsg
   | MulliganChoiceMsg
@@ -86,7 +93,8 @@ export type ClientMessage =
   | ExhaustRuneMsg
   | RecycleRuneMsg
   | AssignDamageMsg
-  | ConcedeMsg;
+  | ConcedeMsg
+  | SubmitChoiceMsg;
 
 // ---------------------------------------------------------------------------
 // Server → Client
@@ -133,6 +141,27 @@ export interface ErrorMsg {
   message: string;
 }
 
+export interface ChoiceRequiredMsg {
+  type: "CHOICE_REQUIRED";
+  prompt: string;
+  options: { label: string; effect_ir?: unknown }[];
+  target: unknown | null;
+  min_choices: number;
+  max_choices: number;
+  controller_id: string;
+}
+
+export interface TestLabResetMsg {
+  type: "TESTLAB_RESET";
+  scenario_id: string;
+}
+
+export interface TestLabScenarioChangedMsg {
+  type: "TESTLAB_SCENARIO_CHANGED";
+  scenario_id: string;
+  scenario_name: string;
+}
+
 export type ServerMessage =
   | RoomJoinedMsg
   | GameStartedMsg
@@ -141,7 +170,10 @@ export type ServerMessage =
   | GameLogMsg
   | GameOverMsg
   | WaitingForOpponentMsg
-  | ErrorMsg;
+  | ErrorMsg
+  | ChoiceRequiredMsg
+  | TestLabResetMsg
+  | TestLabScenarioChangedMsg;
 
 // ---------------------------------------------------------------------------
 // Game State (client view)
@@ -207,7 +239,10 @@ export interface CardView {
   buff_counter?: boolean;
   combat_role?: string;
   keywords?: { keyword: string; value: number }[];
-  abilities?: { ability_id: string; ability_type: string; timing: string; text: string }[];
+  abilities?: { ability_id: string; ability_type: string; timing: string; text: string; targets_required: number; target_type: string }[];
+  attached_to?: string;
+  attached_cards?: string[];
+  might_bonus?: number;
   facedown?: boolean;
 }
 

@@ -2,12 +2,15 @@ import { useState } from "react";
 
 interface LobbyPageProps {
   onJoin: (roomId: string, playerName: string) => void;
+  onSandbox: (roomId: string) => void;
+  onTestLab: () => void;
 }
 
-export function LobbyPage({ onJoin }: LobbyPageProps) {
+export function LobbyPage({ onJoin, onSandbox, onTestLab }: LobbyPageProps) {
   const [roomId, setRoomId] = useState("");
   const [playerName, setPlayerName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [creatingSandbox, setCreatingSandbox] = useState(false);
 
   // Derive API base from current page host so it works on any machine.
   const API_BASE = import.meta.env.VITE_API_URL ?? `${window.location.protocol}//${window.location.host}`;
@@ -26,6 +29,17 @@ export function LobbyPage({ onJoin }: LobbyPageProps) {
   function handleJoin() {
     if (!roomId.trim() || !playerName.trim()) return;
     onJoin(roomId.trim(), playerName.trim());
+  }
+
+  async function handleSandbox() {
+    setCreatingSandbox(true);
+    try {
+      const res = await fetch(`${API_BASE}/sandbox`, { method: "POST" });
+      const data = await res.json();
+      onSandbox(data.room_id);
+    } finally {
+      setCreatingSandbox(false);
+    }
   }
 
   return (
@@ -65,6 +79,29 @@ export function LobbyPage({ onJoin }: LobbyPageProps) {
         <button className="join-btn" onClick={handleJoin} disabled={!roomId || !playerName}>
           Join Game
         </button>
+
+        <hr style={{ margin: "1rem 0", borderColor: "#444" }} />
+
+        <button
+          className="join-btn sandbox-btn"
+          onClick={handleSandbox}
+          disabled={creatingSandbox}
+        >
+          {creatingSandbox ? "Creating..." : "Sandbox (Test Mode)"}
+        </button>
+        <p style={{ fontSize: "0.8rem", color: "#888", marginTop: "0.25rem" }}>
+          Pre-built game with boosted resources. Open two tabs to play both sides.
+        </p>
+
+        <button
+          className="join-btn testlab-btn"
+          onClick={onTestLab}
+        >
+          Card Test Lab
+        </button>
+        <p style={{ fontSize: "0.8rem", color: "#888", marginTop: "0.25rem" }}>
+          Test every card with pre-built scenarios, infinite resources, and reset controls.
+        </p>
       </div>
     </div>
   );

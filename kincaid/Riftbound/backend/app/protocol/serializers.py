@@ -239,10 +239,12 @@ def _serialize_card(card: CardInstance, *, visible: bool) -> dict[str, Any]:
         "owner_id": card.owner_id,
         "controller_id": card.controller_id,
         "zone": card.zone.value,
+        "location_id": card.location_id,
         "domains": [d.value for d in card.definition.domains],
         "cost_energy": card.definition.cost_energy,
         "cost_power": {d.value: v for d, v in card.definition.cost_power},
         "text": card.definition.text,
+        "facedown": card.facedown,
     }
 
     # Unit-specific fields
@@ -256,15 +258,26 @@ def _serialize_card(card: CardInstance, *, visible: bool) -> dict[str, Any]:
             "stunned": card.stunned,
             "buff_counter": card.buff_counter,
             "combat_role": card.combat_role.value,
+            "hidden_at_battlefield": card.hidden_at_battlefield,
+            "hidden_ready": card.hidden_ready,
+            "entered_this_turn": card.entered_this_turn,
+            "accelerated": card.accelerated,
         })
 
     # Gear-specific
     if card.card_type == CardType.GEAR:
         data["exhausted"] = card.exhausted
+        data["might_bonus"] = card.definition.might_bonus
+        data["attached_to"] = card.attached_to
 
     # Rune-specific
     if card.card_type == CardType.RUNE:
         data["exhausted"] = card.exhausted
+
+    # Attachment tracking (units and gear can have attachments)
+    if card.card_type in (CardType.UNIT, CardType.GEAR):
+        data["attached_to"] = card.attached_to
+        data["attached_cards"] = list(card.attached_cards)
 
     # Keywords
     data["keywords"] = [

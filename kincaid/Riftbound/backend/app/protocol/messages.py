@@ -94,6 +94,11 @@ class Concede(BaseModel):
     type: Literal["CONCEDE"] = "CONCEDE"
 
 
+class Reconnect(BaseModel):
+    type: Literal["RECONNECT"] = "RECONNECT"
+    reconnect_token: str
+
+
 # Union of all client messages
 ClientMessage = (
     JoinRoom
@@ -109,6 +114,7 @@ ClientMessage = (
     | HideCard
     | AssignDamage
     | Concede
+    | Reconnect
 )
 
 
@@ -129,6 +135,7 @@ def parse_client_message(data: dict[str, Any]) -> ClientMessage:
         "HIDE_CARD": HideCard,
         "ASSIGN_DAMAGE": AssignDamage,
         "CONCEDE": Concede,
+        "RECONNECT": Reconnect,
     }
     parser = parsers.get(msg_type)
     if not parser:
@@ -145,6 +152,7 @@ class RoomJoined(BaseModel):
     type: Literal["ROOM_JOINED"] = "ROOM_JOINED"
     player_slot: int  # 0 or 1
     room_id: str
+    reconnect_token: str = ""  # UUID token for reconnection
 
 
 class GameStarted(BaseModel):
@@ -184,7 +192,27 @@ class WaitingForOpponent(BaseModel):
 
 class ErrorMessage(BaseModel):
     type: Literal["ERROR"] = "ERROR"
-    message: str
+    action_type: str = ""  # what the player tried to do (e.g. "PLAY_CARD")
+    error_code: str = ""  # machine-readable code (e.g. "INVALID_TARGET")
+    message: str = ""  # human-readable description
+    details: dict[str, Any] = Field(default_factory=dict)  # optional extra context
+
+
+class ReconnectSuccess(BaseModel):
+    type: Literal["RECONNECT_SUCCESS"] = "RECONNECT_SUCCESS"
+    player_slot: int
+    room_id: str
+    your_player_id: str
+
+
+class PlayerDisconnected(BaseModel):
+    type: Literal["PLAYER_DISCONNECTED"] = "PLAYER_DISCONNECTED"
+    player_id: str
+
+
+class PlayerReconnected(BaseModel):
+    type: Literal["PLAYER_RECONNECTED"] = "PLAYER_RECONNECTED"
+    player_id: str
 
 
 # Rebuild models that have forward references

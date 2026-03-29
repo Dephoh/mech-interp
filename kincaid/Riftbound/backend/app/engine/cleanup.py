@@ -197,6 +197,8 @@ def _cleanup_facedown(gs: GameState, logs: list[str]) -> None:
                 # Remove facedown card → trash
                 card.zone = ZoneType.TRASH
                 card.facedown = False
+                card.hidden_at_battlefield = None
+                card.hidden_ready = False
                 gs.players[card.owner_id].trash.append(card.instance_id)
                 bf.facedown_card = None
                 logs.append(f"Hidden card removed from battlefield (lost control)")

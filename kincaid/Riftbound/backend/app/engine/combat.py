@@ -2,16 +2,26 @@
 
 from __future__ import annotations
 
-from .enums import CardType, CombatRole, ControlStatus, ZoneType
+import logging
+
+from .enums import CardType, CombatRole, ControlStatus, Keyword, ZoneType
 from .game_state import (
     BattlefieldState,
     CombatState,
     GameState,
     ShowdownState,
 )
-from .keywords import check_lethal_before_next, check_tank_ordering
+from .keywords import (
+    check_backline_protection,
+    check_lethal_before_next,
+    check_tank_ordering,
+    get_valid_damage_targets,
+    reveal_hidden_card,
+)
 from .scoring import score_conquer
 from .trigger_system import GameEvent, fire_event
+
+logger = logging.getLogger("riftbound.combat")
 
 
 def open_showdown(
@@ -106,11 +116,20 @@ def close_showdown(gs: GameState) -> list[str]:
 def start_combat(gs: GameState, battlefield_id: str) -> list[str]:
     """Initialize combat at a battlefield between two players."""
     bf = gs.battlefields[battlefield_id]
+    logs: list[str] = []
+
+    # ------------------------------------------------------------------
+    # Step 0: Reveal hidden/facedown cards at this battlefield (rule 737)
+    # Hidden cards are revealed BEFORE damage assignment so they
+    # participate in combat.
+    # ------------------------------------------------------------------
+    logs.extend(_reveal_hidden_at_battlefield(gs, bf))
+
     units_by_player = bf.units_by_player(gs.instances)
     players = list(units_by_player.keys())
 
     if len(players) < 2:
-        return [f"Combat requires 2 players at {battlefield_id}"]
+        return logs + [f"Combat requires 2 players at {battlefield_id}"]
 
     # Determine attacker/defender
     attacker_id = bf.contested_by or players[0]
@@ -133,7 +152,7 @@ def start_combat(gs: GameState, battlefield_id: str) -> list[str]:
                 unit.combat_role = CombatRole.DEFENDER
 
     bf.combat_staged = False
-    logs = [f"Combat begins at {battlefield_id}: {attacker_id} attacks, {defender_id} defends"]
+    logs.append(f"Combat begins at {battlefield_id}: {attacker_id} attacks, {defender_id} defends")
 
     # Fire attack/defend triggers for each unit (rule: triggers when designation gained)
     for uid in bf.units:
@@ -273,6 +292,16 @@ def validate_assignment(
         if dmg < 0:
             return "Cannot assign negative damage"
 
+    # Check Backline protection: cannot assign damage to Backline units
+    # while non-Backline units remain without lethal damage
+    valid_targets = get_valid_damage_targets(targets)
+    for uid, dmg in assignment.items():
+        if dmg > 0:
+            target = next((u for u in targets if u.instance_id == uid), None)
+            if target and target not in valid_targets:
+                # Backline unit receiving damage while non-Backline targets exist
+                return "Cannot assign damage to Backline unit while other units remain"
+
     # Check Tank ordering
     if not check_tank_ordering(targets, assignment):
         return "Must assign lethal to Tank units before non-Tank units"
@@ -390,6 +419,15 @@ def resolve_combat(gs: GameState) -> list[str]:
         logs.append("Battlefield becomes uncontrolled")
     # If both sides remain (shouldn't happen after recall), leave contested
 
+    # Clean up any lingering facedown state at the combat battlefield
+    if bf.facedown_card:
+        fd_card = gs.instances.get(bf.facedown_card)
+        if fd_card:
+            fd_card.facedown = False
+            fd_card.hidden_at_battlefield = None
+            fd_card.hidden_ready = False
+        bf.facedown_card = None
+
     # Clear combat state
     gs.active_combat = None
     gs.active_player_id = gs.turn_player_id
@@ -410,3 +448,57 @@ def _recall_unit(gs: GameState, unit) -> None:
     unit.location_id = unit.controller_id
     unit.exhausted = True  # recalled units stay exhausted
     gs.base_units.setdefault(unit.controller_id, []).append(unit.instance_id)
+
+
+def _reveal_hidden_at_battlefield(
+    gs: GameState,
+    bf: BattlefieldState,
+) -> list[str]:
+    """
+    Reveal all hidden/facedown cards at a battlefield when combat begins.
+
+    Per rule 737: Hidden cards are revealed when combat starts at their
+    battlefield. This must happen BEFORE damage assignment so that
+    revealed units participate in combat.
+
+    Handles two cases:
+    1. Units in bf.units that have hidden_at_battlefield set
+    2. The bf.facedown_card slot (a card hidden via the Hide action)
+    """
+    logs: list[str] = []
+
+    # Case 1: Reveal any units already in the units list that are hidden
+    for uid in list(bf.units):
+        unit = gs.instances.get(uid)
+        if unit and unit.hidden_at_battlefield:
+            reveal_logs = reveal_hidden_card(unit, gs)
+            logs.extend(reveal_logs)
+            logger.info(
+                "[COMBAT] Revealed hidden unit %s at %s",
+                unit.name, bf.battlefield_id,
+            )
+
+    # Case 2: Reveal the battlefield's facedown card slot
+    if bf.facedown_card:
+        facedown = gs.instances.get(bf.facedown_card)
+        if facedown:
+            reveal_logs = reveal_hidden_card(facedown, gs)
+            logs.extend(reveal_logs)
+            logger.info(
+                "[COMBAT] Revealed facedown card %s at %s",
+                facedown.name, bf.battlefield_id,
+            )
+            # If it is a unit, add it to the battlefield's units list
+            # so it participates in combat
+            if (
+                facedown.card_type == CardType.UNIT
+                and facedown.instance_id not in bf.units
+            ):
+                bf.units.append(facedown.instance_id)
+                facedown.zone = ZoneType.BATTLEFIELD
+                facedown.location_id = bf.battlefield_id
+                logs.append(
+                    f"{facedown.name} enters the battlefield from facedown"
+                )
+
+    return logs

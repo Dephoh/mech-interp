@@ -460,13 +460,24 @@ def _generate_keyword_scenarios(
         # ----- Reaction-window mechanics (contested BF, bot triggers showdown) -----
 
         elif kw_val == "ambush":
+            # Ambush: play as Reaction to a BF where you have units.
+            # P1 units on BF0 (P1 controls), P2 units also on BF0
+            # (contested — P2 moved in, so bot triggers showdown).
+            # P1 plays ambush units from hand as reactions during the
+            # showdown, targeting BF0 where P1 already has units.
             hand_ids = [c.card_id for c in units[:5]]
-            p1_bf[0] = fodder[:2]   # \
-            p2_bf[0] = fodder[2:4]  # / contested BF0 — bot starts showdown
+            p1_bf[0] = fodder[:2]   # P1 units already at BF0
+            p2_bf[0] = fodder[2:4]  # P2 contests BF0 — bot triggers showdown
             behavior = (
-                "End your turn to let the bot act. The bot will start a "
-                "showdown at the contested BF0. During the showdown window, "
-                "play ambush units as reactions — Ambush grants Reaction timing."
+                "Your units are on BF0 and the bot has moved units there "
+                "(contested). End your turn so the bot triggers a showdown. "
+                "During the showdown window, play ambush units from hand as "
+                "reactions — Ambush grants Reaction timing and lets you play "
+                "directly to BF0 (any BF where you have units). Verify: "
+                "(1) ambush units can be played during the showdown, "
+                "(2) they deploy directly to the contested battlefield, "
+                "(3) their on-play effects fire (e.g. Chakram Dancer gives "
+                "Shield to your other units here)."
             )
 
         elif kw_val == "reaction":

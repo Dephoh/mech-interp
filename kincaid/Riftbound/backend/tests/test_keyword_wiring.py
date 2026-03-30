@@ -34,6 +34,7 @@ from app.engine.card_types import (
 )
 from app.engine.enums import (
     AbilityType,
+    ActionType,
     CardType,
     CombatRole,
     ControlStatus,
@@ -621,6 +622,139 @@ class TestAmbushTiming:
         """Non-Ambush non-Reaction cards should NOT play in Closed State."""
         kws = []
         assert can_play_in_state(kws, is_showdown=False, is_closed=True) is False
+
+
+class TestAmbushDestination:
+    """Ambush relaxes unit destination rules: can play to any BF where you have units."""
+
+    def test_ambush_to_contested_bf_with_friendly_units(self):
+        """Ambush unit can be played to a contested BF where the player has units."""
+        from app.engine.action_validator import validate_action
+
+        gs = make_game()
+        gs.phase = Phase.ACTION
+        gs.turn_player_id = "p1"
+        gs.active_player_id = "p1"
+        gs.players["p1"].rune_pool.energy = 99
+
+        bf = list(gs.battlefields.values())[0]
+
+        # Place a friendly unit on the BF
+        friendly = add_unit(gs, "p1", ZoneType.BATTLEFIELD, name="Ally")
+        friendly.location_id = bf.battlefield_id
+        friendly.controller_id = "p1"
+        bf.units.append(friendly.instance_id)
+
+        # Place an enemy unit (contested)
+        enemy = add_unit(gs, "p2", ZoneType.BATTLEFIELD, name="Enemy")
+        enemy.location_id = bf.battlefield_id
+        enemy.controller_id = "p2"
+        bf.units.append(enemy.instance_id)
+        bf.control_status = ControlStatus.CONTESTED
+        bf.controller_id = None
+
+        # Ambush unit in hand
+        ambush_unit = add_unit(
+            gs, "p1", ZoneType.HAND, name="Chakram Dancer",
+            keywords=(
+                KeywordInstance(keyword=Keyword.AMBUSH),
+                KeywordInstance(keyword=Keyword.REACTION),
+            ),
+        )
+        gs.players["p1"].hand.append(ambush_unit.instance_id)
+
+        result = validate_action(gs, "p1", ActionType.PLAY_CARD, {
+            "instance_id": ambush_unit.instance_id,
+            "destination": {"zone": "battlefield", "id": bf.battlefield_id},
+        })
+        assert result.ok, f"Ambush unit should be playable to contested BF: {result.error}"
+
+    def test_ambush_rejected_to_bf_without_friendly_units(self):
+        """Ambush unit cannot play to a BF where the player has NO units."""
+        from app.engine.action_validator import validate_action
+
+        gs = make_game()
+        gs.phase = Phase.ACTION
+        gs.turn_player_id = "p1"
+        gs.active_player_id = "p1"
+        gs.players["p1"].rune_pool.energy = 99
+
+        bf = list(gs.battlefields.values())[0]
+
+        # Only enemy units on this BF
+        enemy = add_unit(gs, "p2", ZoneType.BATTLEFIELD, name="Enemy")
+        enemy.location_id = bf.battlefield_id
+        enemy.controller_id = "p2"
+        bf.units.append(enemy.instance_id)
+        bf.control_status = ControlStatus.CONTROLLED
+        bf.controller_id = "p2"
+
+        ambush_unit = add_unit(
+            gs, "p1", ZoneType.HAND, name="Ambusher",
+            keywords=(
+                KeywordInstance(keyword=Keyword.AMBUSH),
+                KeywordInstance(keyword=Keyword.REACTION),
+            ),
+        )
+        gs.players["p1"].hand.append(ambush_unit.instance_id)
+
+        result = validate_action(gs, "p1", ActionType.PLAY_CARD, {
+            "instance_id": ambush_unit.instance_id,
+            "destination": {"zone": "battlefield", "id": bf.battlefield_id},
+        })
+        assert not result.ok, "Ambush unit should NOT be playable to BF with no friendly units"
+
+    def test_non_ambush_rejected_to_contested_bf(self):
+        """Normal unit (no Ambush) still cannot play to a contested BF."""
+        from app.engine.action_validator import validate_action
+
+        gs = make_game()
+        gs.phase = Phase.ACTION
+        gs.turn_player_id = "p1"
+        gs.active_player_id = "p1"
+        gs.players["p1"].rune_pool.energy = 99
+
+        bf = list(gs.battlefields.values())[0]
+        bf.control_status = ControlStatus.CONTESTED
+        bf.controller_id = None
+
+        normal_unit = add_unit(gs, "p1", ZoneType.HAND, name="Normal Unit")
+        gs.players["p1"].hand.append(normal_unit.instance_id)
+
+        result = validate_action(gs, "p1", ActionType.PLAY_CARD, {
+            "instance_id": normal_unit.instance_id,
+            "destination": {"zone": "battlefield", "id": bf.battlefield_id},
+        })
+        assert not result.ok, "Normal unit should NOT be playable to contested BF"
+
+    def test_ambush_to_controlled_bf_always_ok(self):
+        """Ambush unit can play to a BF the player controls (normal rule still applies)."""
+        from app.engine.action_validator import validate_action
+
+        gs = make_game()
+        gs.phase = Phase.ACTION
+        gs.turn_player_id = "p1"
+        gs.active_player_id = "p1"
+        gs.players["p1"].rune_pool.energy = 99
+
+        bf = list(gs.battlefields.values())[0]
+        bf.control_status = ControlStatus.CONTROLLED
+        bf.controller_id = "p1"
+
+        ambush_unit = add_unit(
+            gs, "p1", ZoneType.HAND, name="Ambusher",
+            keywords=(
+                KeywordInstance(keyword=Keyword.AMBUSH),
+                KeywordInstance(keyword=Keyword.REACTION),
+            ),
+        )
+        gs.players["p1"].hand.append(ambush_unit.instance_id)
+
+        result = validate_action(gs, "p1", ActionType.PLAY_CARD, {
+            "instance_id": ambush_unit.instance_id,
+            "destination": {"zone": "battlefield", "id": bf.battlefield_id},
+        })
+        assert result.ok, f"Ambush to controlled BF should always work: {result.error}"
 
 
 # ===========================================================================

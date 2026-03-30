@@ -231,7 +231,25 @@ def _validate_play_card(gs: GameState, player_id: str, payload: dict) -> Validat
                     return ValidationResult(False, "Destination battlefield not found")
                 bf = gs.battlefields[dest_id]
                 # Rule 352.2.a: can play to base or a battlefield the controller controls
-                if bf.control_status != ControlStatus.CONTROLLED or bf.controller_id != player_id:
+                # Ambush exception: can play to any BF where you have units
+                has_ambush = card.has_keyword(Keyword.AMBUSH)
+                player_controls_bf = (
+                    bf.control_status == ControlStatus.CONTROLLED
+                    and bf.controller_id == player_id
+                )
+                if has_ambush:
+                    # Ambush allows playing to any BF where the player has units
+                    player_has_units_here = any(
+                        (inst := gs.get_instance(iid)) and
+                        (inst.controller_id == player_id or inst.owner_id == player_id)
+                        for iid in bf.units
+                    )
+                    if not player_controls_bf and not player_has_units_here:
+                        return ValidationResult(
+                            False,
+                            "Ambush units can only be played to a battlefield where you have units"
+                        )
+                elif not player_controls_bf:
                     return ValidationResult(
                         False,
                         "Can only play units to your Base or a Battlefield you control"

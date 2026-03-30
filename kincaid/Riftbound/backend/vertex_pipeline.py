@@ -16,6 +16,7 @@ import argparse
 import asyncio
 import json
 import logging
+import re
 import time
 from pathlib import Path
 from typing import Any, Literal, Optional
@@ -176,6 +177,12 @@ You are an expert at translating card game ability text into structured Effect I
 - For player choice during resolution, use {"type": "player_choice", "prompt": "...", "options": [...]}.
 - "count": -1 means "all matching targets".
 - Target scopes: "friendly" = your stuff, "enemy" = opponent's, "self" = this card, "any" = either player.
+- SCOPE RULE — choose the scope that matches the text EXACTLY:
+  · "a friendly unit" / "your unit" / "another unit you control" / "a unit you control" → scope: "friendly"
+  · "an enemy unit" / "opponent's unit" → scope: "enemy"
+  · "a unit" / "a unit at a battlefield" (NO ownership qualifier) → scope: "any"
+  · "me" / "this card" / "I" → scope: "self"
+  If the text does NOT say "friendly", "your", or "you control", the scope MUST NOT be "friendly". Default to "any" when no ownership is stated.
 - Keywords: accelerate, action, ambush, assault, backline, deathknell, deflect, equip, ganking, hidden, hunt, legion, level, mighty, predict, quick_draw, reaction, repeat, shield, tank, temporary, unique, vision, weaponmaster.
 - Domains: fury, calm, mind, body, chaos, order, any.
 - [S] in card text means the Might stat (Shield icon). +1 [S] = +1 Might this turn.
@@ -196,6 +203,8 @@ Primitives:
   attach(gear:target, unit:target) · detach(target?) · score_points(amount?, player?)
   gain_xp(amount?) · spend_xp(amount?) · look_at_top(count?, may_recycle?)
   give_keyword(keyword, target?, duration?) · restrict(restriction?, scope?, duration?)
+  grant_activated_ability(target?, ability:{cost?, effect:effect_node, params?})
+  share_abilities(target?, sources:[target_spec], ability_filter?:{field, op?, value?})
 
 Composition (nested fields MUST be effect node objects):
   sequence     → steps: [effect_node, ...]
@@ -214,7 +223,7 @@ target_spec: {obj_type?, scope?, zone?, location?, count?, chooser?, filters?: [
 condition_spec: {cond_type, params?}
 
 ## CRITICAL CONSTRAINTS
-1. ONLY use the node types listed above. NEVER invent types like "array", "challenge", or "share_abilities".
+1. ONLY use the node types listed above. NEVER invent types like "array", "challenge", or "trigger_effect".
 2. Every nested effect position (steps items, then, else, effect, options items, alternative_ir) MUST be a valid effect node object with a "type" field. NEVER use plain strings.
 3. Composition nodes MUST include their required nested fields (e.g., sequence needs non-empty "steps").
 4. Omit fields that are not relevant — do not include null or empty values.
@@ -250,6 +259,15 @@ JSON: {"type": "play_token", "name": "Poro", "might": 1, "temporary": true, "cou
 
 Text: "Choose one: Deal 2 damage to a unit, or draw 2 cards."
 JSON: {"type": "choose_one", "options": [{"type": "deal_damage", "amount": 2, "target": {"obj_type": "unit", "scope": "any", "count": 1}}, {"type": "draw_cards", "count": 2}]}
+
+Text: "Deal 3 to a unit at a battlefield."
+JSON: {"type": "deal_damage", "amount": 3, "target": {"obj_type": "unit", "scope": "any", "count": 1, "location": "any"}}
+
+Text: "Kill a unit at a battlefield."
+JSON: {"type": "kill", "target": {"obj_type": "unit", "scope": "any", "count": 1, "location": "any"}}
+
+Text: "Stun a unit."
+JSON: {"type": "stun", "target": {"obj_type": "unit", "scope": "any", "count": 1}}
 """
 
 
@@ -446,6 +464,7 @@ _NODE_REQUIRED: dict[str, set[str]] = {
     "attach": set(), "detach": set(), "score_points": set(),
     "gain_xp": set(), "spend_xp": set(), "look_at_top": set(),
     "give_keyword": {"keyword"}, "restrict": set(),
+    "grant_activated_ability": set(), "share_abilities": set(),
     # Composition
     "sequence": {"steps"}, "conditional": {"condition", "then"},
     "for_each": {"targets", "effect"}, "choose_one": {"options"},
@@ -475,10 +494,11 @@ def validate_ir_node(node: Any, path: str = "root") -> list[str]:
         errors.append(f"{path}: unknown type '{ntype}'. Valid types: {', '.join(sorted(_NODE_REQUIRED))}")
         return errors
 
-    # Check required fields
+    # Check required fields (also reject empty lists — e.g. sequence with steps=[])
     for field in _NODE_REQUIRED[ntype]:
-        if field not in node or node[field] is None:
-            errors.append(f"{path}: type '{ntype}' requires field '{field}'")
+        val = node.get(field)
+        if val is None or (isinstance(val, list) and len(val) == 0):
+            errors.append(f"{path}: type '{ntype}' requires non-empty field '{field}'")
 
     # Validate nested single-effect fields
     for field in _NESTED_SINGLE:
@@ -518,6 +538,45 @@ def validate_ir_node(node: Any, path: str = "root") -> list[str]:
     return errors
 
 
+# Scope words that indicate the target belongs to the caster
+_FRIENDLY_INDICATORS = re.compile(
+    r"\b(friendly|your|you control|another .* you control)\b", re.IGNORECASE,
+)
+
+
+def validate_scope_from_text(node: Any, ability_text: str, path: str = "root") -> list[str]:
+    """Check IR target scopes against ability text. Returns error strings."""
+    errors: list[str] = []
+    if not isinstance(node, dict):
+        return errors
+
+    target = node.get("target")
+    if isinstance(target, dict) and target.get("scope") == "friendly":
+        # Extract just the clause relevant to this node's action
+        ntype = node.get("type", "")
+        if ntype in ("deal_damage", "kill", "stun", "banish", "give_might",
+                      "heal", "ready", "exhaust", "buff", "move",
+                      "return_to_hand", "return_to_deck", "recycle"):
+            if not _FRIENDLY_INDICATORS.search(ability_text):
+                errors.append(
+                    f"{path}: scope is 'friendly' but ability text has no friendly/your qualifier — should be 'any'"
+                )
+
+    # Recurse into nested effects
+    for field in ("then", "else", "effect", "alternative_ir"):
+        val = node.get(field)
+        if isinstance(val, dict):
+            errors.extend(validate_scope_from_text(val, ability_text, f"{path}.{field}"))
+    for field in ("steps", "options"):
+        val = node.get(field)
+        if isinstance(val, list):
+            for i, item in enumerate(val):
+                if isinstance(item, dict):
+                    errors.extend(validate_scope_from_text(item, ability_text, f"{path}.{field}[{i}]"))
+
+    return errors
+
+
 # ---------------------------------------------------------------------------
 # Translation with validation + retry
 # ---------------------------------------------------------------------------
@@ -527,7 +586,7 @@ def translate_ability(
     card_name: str,
     ab_text: str,
     context: str,
-    max_retries: int = 1,
+    max_retries: int = 2,
 ) -> tuple[dict[str, Any] | None, str | None]:
     """Translate one ability to Effect IR. Returns (cleaned_ir, None) or (None, error_msg)."""
     prompt = build_user_prompt(card_name, ab_text, context)
@@ -560,6 +619,7 @@ def translate_ability(
 
             parsed = json.loads(raw_text)
             errs = validate_ir_node(parsed)
+            errs.extend(validate_scope_from_text(parsed, ab_text))
 
             if not errs:
                 return clean_ir_node(parsed), None
@@ -599,7 +659,6 @@ async def translate_batch_async(
                     system_instruction=SYSTEM_PROMPT,
                     temperature=0.0,
                     response_mime_type="application/json",
-                    response_json_schema=BATCH_SCHEMA,
                 ),
             )
 
@@ -616,6 +675,9 @@ async def translate_batch_async(
                 cid = item.get("card_id", "")
                 by_id[cid] = item.get("effect_ir")
 
+            # Build text lookup for scope validation
+            text_by_id = {a[0]: a[2] for a in abilities}
+
             out: list[tuple[str, dict | None, str | None]] = []
             for aid in ab_ids:
                 ir = by_id.get(aid)
@@ -623,6 +685,7 @@ async def translate_batch_async(
                     out.append((aid, None, f"missing from batch response"))
                     continue
                 errs = validate_ir_node(ir)
+                errs.extend(validate_scope_from_text(ir, text_by_id.get(aid, "")))
                 if errs:
                     out.append((aid, None, "; ".join(errs)))
                 else:
@@ -654,8 +717,9 @@ async def run_pipeline_async(
         for card in cards:
             for ab in card.get("abilities", []):
                 ir = ab.get("effect_ir")
-                if ir is not None and validate_ir_node(ir):
-                    logger.info("  Invalidating %s — %s", card.get("name"), ab.get("text", "")[:50])
+                ab_text = ab.get("text", "")
+                if ir is not None and (validate_ir_node(ir) or validate_scope_from_text(ir, ab_text)):
+                    logger.info("  Invalidating %s — %s", card.get("name"), ab_text[:50])
                     ab["effect_ir"] = None
                     invalidated += 1
         logger.info("Revalidation: invalidated %d entries with bad IR", invalidated)

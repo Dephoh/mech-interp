@@ -1,0 +1,773 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "riftbound-state-update",
+  "title": "Riftbound STATE_UPDATE Contract",
+  "description": "Contract schema for the STATE_UPDATE WebSocket message body. Both the backend serializer and frontend TypeScript types must conform to this schema. Run backend/tests/test_contracts.py to validate.",
+  "type": "object",
+  "required": [
+    "game_id",
+    "game_mode",
+    "phase",
+    "turn_number",
+    "turn_player_id",
+    "active_player_id",
+    "has_priority",
+    "is_your_turn",
+    "can_play_cards",
+    "game_over",
+    "winner_id",
+    "you",
+    "opponent",
+    "opponents",
+    "battlefields",
+    "chain",
+    "combat",
+    "showdown",
+    "turn_state",
+    "log"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "game_id": {
+      "type": "string"
+    },
+    "game_mode": {
+      "type": "string",
+      "enum": [
+        "standard_1v1",
+        "ffa3",
+        "ffa4",
+        "2v2"
+      ]
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "setup_mulligan",
+        "awaken",
+        "beginning",
+        "channel",
+        "draw",
+        "action",
+        "end_of_turn",
+        "showdown",
+        "combat_damage",
+        "combat_resolution",
+        "game_over"
+      ]
+    },
+    "turn_number": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "turn_player_id": {
+      "type": "string"
+    },
+    "active_player_id": {
+      "type": "string"
+    },
+    "has_priority": {
+      "type": "boolean"
+    },
+    "is_your_turn": {
+      "type": "boolean"
+    },
+    "can_play_cards": {
+      "type": "boolean"
+    },
+    "game_over": {
+      "type": "boolean"
+    },
+    "winner_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "you": {
+      "$ref": "#/$defs/player_view"
+    },
+    "opponent": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/player_view"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "opponents": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/player_view"
+      }
+    },
+    "teammate": {
+      "$ref": "#/$defs/player_view"
+    },
+    "team_score": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "battlefields": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/battlefield_view"
+      }
+    },
+    "chain": {
+      "$ref": "#/$defs/chain_view"
+    },
+    "combat": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/combat_view"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "showdown": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/showdown_view"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "turn_state": {
+      "type": "string",
+      "enum": [
+        "neutral_open",
+        "neutral_closed",
+        "showdown_open",
+        "showdown_closed"
+      ]
+    },
+    "log": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "domain_power_map": {
+      "description": "Sparse map of domain names to integer amounts (e.g. rune pool power, card costs).",
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "fury",
+          "calm",
+          "mind",
+          "body",
+          "chaos",
+          "order",
+          "any"
+        ]
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "keyword_view": {
+      "type": "object",
+      "required": [
+        "keyword",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "type": "string",
+          "enum": [
+            "accelerate",
+            "action",
+            "ambush",
+            "assault",
+            "backline",
+            "deathknell",
+            "deflect",
+            "equip",
+            "ganking",
+            "hidden",
+            "hunt",
+            "legion",
+            "level",
+            "mighty",
+            "predict",
+            "quick_draw",
+            "reaction",
+            "repeat",
+            "shield",
+            "tank",
+            "temporary",
+            "unique",
+            "vision",
+            "weaponmaster"
+          ]
+        },
+        "value": {
+          "type": "integer"
+        }
+      }
+    },
+    "ability_view": {
+      "type": "object",
+      "required": [
+        "ability_id",
+        "ability_type",
+        "timing",
+        "text",
+        "targets_required",
+        "target_type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "ability_id": {
+          "type": "string"
+        },
+        "ability_type": {
+          "type": "string",
+          "enum": [
+            "activated",
+            "triggered",
+            "passive",
+            "replacement"
+          ]
+        },
+        "timing": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "targets_required": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "target_type": {
+          "type": "string"
+        }
+      }
+    },
+    "rune_pool_view": {
+      "type": "object",
+      "required": [
+        "energy",
+        "power"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "energy": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "power": {
+          "$ref": "#/$defs/domain_power_map"
+        }
+      }
+    },
+    "card_view": {
+      "description": "A card as seen by the client. Either fully visible or facedown (opponent hand / hidden card).",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/visible_card_view"
+        },
+        {
+          "$ref": "#/$defs/facedown_card_view"
+        }
+      ]
+    },
+    "facedown_card_view": {
+      "description": "A card whose identity is hidden from this viewer (opponent hand, opponent facedown).",
+      "type": "object",
+      "required": [
+        "instance_id",
+        "facedown"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "instance_id": {
+          "type": "string"
+        },
+        "facedown": {
+          "const": true
+        }
+      }
+    },
+    "visible_card_view": {
+      "description": "A fully visible card with all type-appropriate fields.",
+      "type": "object",
+      "required": [
+        "instance_id",
+        "card_id",
+        "name",
+        "card_type",
+        "owner_id",
+        "controller_id",
+        "zone",
+        "location_id",
+        "domains",
+        "supertypes",
+        "cost_energy",
+        "cost_power",
+        "text",
+        "effect_text",
+        "facedown",
+        "keywords",
+        "abilities"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "instance_id": {
+          "type": "string"
+        },
+        "card_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "card_type": {
+          "type": "string",
+          "enum": [
+            "unit",
+            "gear",
+            "spell",
+            "rune",
+            "legend",
+            "battlefield"
+          ]
+        },
+        "owner_id": {
+          "type": "string"
+        },
+        "controller_id": {
+          "type": "string"
+        },
+        "zone": {
+          "type": "string",
+          "enum": [
+            "base",
+            "battlefield",
+            "hand",
+            "main_deck",
+            "rune_deck",
+            "rune_board",
+            "legend_zone",
+            "champion_zone",
+            "trash",
+            "banishment",
+            "facedown_zone",
+            "chain"
+          ]
+        },
+        "location_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "fury",
+              "calm",
+              "mind",
+              "body",
+              "chaos",
+              "order",
+              "any"
+            ]
+          }
+        },
+        "supertypes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "champion",
+              "signature",
+              "token"
+            ]
+          }
+        },
+        "cost_energy": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cost_power": {
+          "$ref": "#/$defs/domain_power_map"
+        },
+        "text": {
+          "type": "string"
+        },
+        "effect_text": {
+          "type": "string"
+        },
+        "facedown": {
+          "type": "boolean"
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/keyword_view"
+          }
+        },
+        "abilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ability_view"
+          }
+        },
+        "base_might": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effective_might": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "combat_might": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "damage": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exhausted": {
+          "type": "boolean"
+        },
+        "stunned": {
+          "type": "boolean"
+        },
+        "buff_counter": {
+          "type": "boolean"
+        },
+        "combat_role": {
+          "type": "string",
+          "enum": [
+            "attacker",
+            "defender",
+            "none"
+          ]
+        },
+        "hidden_at_battlefield": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hidden_ready": {
+          "type": "boolean"
+        },
+        "entered_this_turn": {
+          "type": "boolean"
+        },
+        "accelerated": {
+          "type": "boolean"
+        },
+        "attached_to": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "attached_cards": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "might_bonus": {
+          "type": "integer"
+        }
+      }
+    },
+    "player_view": {
+      "type": "object",
+      "required": [
+        "player_id",
+        "display_name",
+        "score",
+        "main_deck_count",
+        "rune_deck_count",
+        "trash_count",
+        "hand_count",
+        "hand",
+        "rune_pool",
+        "legend",
+        "champion",
+        "base_units",
+        "base_gear",
+        "rune_board",
+        "trash"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "player_id": {
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "score": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "main_deck_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rune_deck_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trash_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hand_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hand": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/card_view"
+          }
+        },
+        "rune_pool": {
+          "$ref": "#/$defs/rune_pool_view"
+        },
+        "legend": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/visible_card_view"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "champion": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/visible_card_view"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "base_units": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/visible_card_view"
+          }
+        },
+        "base_gear": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/visible_card_view"
+          }
+        },
+        "rune_board": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/visible_card_view"
+          }
+        },
+        "trash": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/visible_card_view"
+          }
+        }
+      }
+    },
+    "battlefield_view": {
+      "type": "object",
+      "required": [
+        "battlefield_id",
+        "control_status",
+        "controller_id",
+        "contested_by",
+        "showdown_staged",
+        "combat_staged",
+        "scored_this_turn_by",
+        "units",
+        "facedown_card"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "battlefield_id": {
+          "type": "string"
+        },
+        "control_status": {
+          "type": "string",
+          "enum": [
+            "uncontrolled",
+            "controlled",
+            "contested"
+          ]
+        },
+        "controller_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "contested_by": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "showdown_staged": {
+          "type": "boolean"
+        },
+        "combat_staged": {
+          "type": "boolean"
+        },
+        "scored_this_turn_by": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "card_id": {
+          "type": "string"
+        },
+        "units": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/visible_card_view"
+          }
+        },
+        "facedown_card": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/card_view"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "chain_view": {
+      "type": "object",
+      "required": [
+        "items",
+        "is_empty"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/chain_item_view"
+          }
+        },
+        "is_empty": {
+          "type": "boolean"
+        }
+      }
+    },
+    "chain_item_view": {
+      "type": "object",
+      "required": [
+        "item_id",
+        "controller_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "item_id": {
+          "type": "string"
+        },
+        "controller_id": {
+          "type": "string"
+        },
+        "card": {
+          "$ref": "#/$defs/visible_card_view"
+        },
+        "ability_id": {
+          "type": "string"
+        },
+        "source_name": {
+          "type": "string"
+        }
+      }
+    },
+    "combat_view": {
+      "type": "object",
+      "required": [
+        "battlefield_id",
+        "attacker_id",
+        "defender_id",
+        "phase",
+        "attacker_assigned",
+        "defender_assigned"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "battlefield_id": {
+          "type": "string"
+        },
+        "attacker_id": {
+          "type": "string"
+        },
+        "defender_id": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "attacker_assigned": {
+          "type": "boolean"
+        },
+        "defender_assigned": {
+          "type": "boolean"
+        }
+      }
+    },
+    "showdown_view": {
+      "type": "object",
+      "required": [
+        "battlefield_id",
+        "initiator_id",
+        "focus_player_id",
+        "is_combat_showdown"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "battlefield_id": {
+          "type": "string"
+        },
+        "initiator_id": {
+          "type": "string"
+        },
+        "focus_player_id": {
+          "type": "string"
+        },
+        "is_combat_showdown": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

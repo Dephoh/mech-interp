@@ -15,6 +15,7 @@ from .enums import (
     CombatRole,
     ControlStatus,
     Domain,
+    GameMode,
     Phase,
     TurnState,
     ZoneType,
@@ -210,15 +211,20 @@ class ActiveModifier:
 
     Tracked on GameState so derived stats can be recalculated dynamically
     without mutating base CardDefinition data.
+
+    The ``layer`` field classifies which of the three effect layers (rule 454)
+    this modifier belongs to. It is auto-set at registration time via
+    :func:`effect_ir.classify_modifier_layer`.
     """
 
     source_instance_id: str      # card that owns this modifier
     ability_id: str              # which ability on the source
-    stat: str                    # "might", "shield", "assault"
+    stat: str                    # "might", "might_set", "keyword", "shield", "assault"
     amount: int                  # signed adjustment
     target_spec: dict[str, Any]  # serialized TargetSpec dict
     exclude_self: bool = False
     duration: str = "continuous"
+    layer: str = ""              # EffectLayer value (auto-classified)
 
 
 @dataclass
@@ -242,12 +248,16 @@ class GameState:
     """The complete, authoritative state of one game."""
 
     game_id: str
+    game_mode: GameMode = GameMode.STANDARD_1V1
     players: dict[str, PlayerState] = field(default_factory=dict)
-    player_order: list[str] = field(default_factory=list)  # [p0_id, p1_id]
+    player_order: list[str] = field(default_factory=list)  # [p0_id, p1_id, ...]
     turn_player_id: str = ""
     active_player_id: str = ""  # who has priority/focus right now
     phase: Phase = Phase.SETUP_MULLIGAN
     turn_number: int = 0
+
+    # Teams: maps player_id -> team_id (only used in TWO_VS_TWO)
+    teams: dict[str, int] = field(default_factory=dict)
 
     # All card instances in the game
     instances: dict[str, CardInstance] = field(default_factory=dict)
@@ -301,10 +311,50 @@ class GameState:
         return TurnState.NEUTRAL_CLOSED if chain_exists else TurnState.NEUTRAL_OPEN
 
     def opponent_id(self, player_id: str) -> str:
+        """Return the single opponent in a 2-player game.
+
+        For multi-player games, callers should use opponent_ids() instead.
+        This remains for backward compatibility with 1v1 code paths.
+        """
         for pid in self.player_order:
             if pid != player_id:
                 return pid
         raise ValueError(f"No opponent for {player_id}")
+
+    def opponent_ids(self, player_id: str) -> list[str]:
+        """Return all opponent player_ids (excludes teammates in 2v2)."""
+        if self.teams:
+            my_team = self.teams.get(player_id)
+            return [
+                pid for pid in self.player_order
+                if pid != player_id and self.teams.get(pid) != my_team
+            ]
+        return [pid for pid in self.player_order if pid != player_id]
+
+    def teammate_id(self, player_id: str) -> str | None:
+        """Return the teammate's player_id in 2v2 mode, or None."""
+        if not self.teams:
+            return None
+        my_team = self.teams.get(player_id)
+        for pid in self.player_order:
+            if pid != player_id and self.teams.get(pid) == my_team:
+                return pid
+        return None
+
+    def team_score(self, player_id: str) -> int:
+        """Return the combined team score in 2v2, or individual score otherwise."""
+        if not self.teams:
+            return self.players[player_id].score
+        my_team = self.teams.get(player_id)
+        return sum(
+            ps.score for pid, ps in self.players.items()
+            if self.teams.get(pid) == my_team
+        )
+
+    def next_player(self, player_id: str) -> str:
+        """Return the next player in turn order after player_id."""
+        idx = self.player_order.index(player_id)
+        return self.player_order[(idx + 1) % len(self.player_order)]
 
     def get_instance(self, instance_id: str) -> CardInstance | None:
         return self.instances.get(instance_id)
@@ -404,6 +454,10 @@ class GameState:
 
     def register_modifier(self, source: CardInstance, ability_id: str, ir_node: dict) -> None:
         """Register an active modifier from a card entering the board."""
+        from .effect_ir import classify_modifier_layer
+        layer_val = ir_node.get("layer", "")
+        if not layer_val:
+            layer_val = classify_modifier_layer(ir_node).value
         mod = ActiveModifier(
             source_instance_id=source.instance_id,
             ability_id=ability_id,
@@ -412,6 +466,7 @@ class GameState:
             target_spec=ir_node.get("target", {}),
             exclude_self=ir_node.get("exclude_self", False),
             duration=ir_node.get("duration", "continuous"),
+            layer=layer_val,
         )
         self.active_modifiers.append(mod)
 
@@ -437,53 +492,19 @@ class GameState:
         ]
 
     def recalculate_modifiers(self) -> None:
-        """Recompute aura_might_bonus on every card from active continuous modifiers.
+        """Recompute all continuous effects using the 3-layer system (rules 450-457).
 
-        Called during cleanup and after any board change. Never mutates
-        base card definitions — only sets the derived `aura_might_bonus` field
-        on CardInstance.
+        Delegates to :func:`layers.evaluate_layers` which processes modifiers
+        in the correct layer order:
+          1. Trait-Altering (454.1) -- might_set overrides, trait changes
+          2. Ability-Altering (454.2) -- keyword grants/removals
+          3. Arithmetic (454.3) -- increases then decreases
+
+        Called during cleanup (step 0) and after any board change. Never mutates
+        base card definitions -- only sets derived fields on CardInstance.
         """
-        from .effect_ir import TargetSpec
-
-        # 1. Zero all aura and gear bonuses
-        for inst in self.instances.values():
-            inst.aura_might_bonus = 0
-            inst.gear_might_bonus = 0
-
-        # 2. Prune modifiers whose source has left the board
-        board_ids = self._get_board_instance_ids()
-        self.active_modifiers = [
-            m for m in self.active_modifiers if m.source_instance_id in board_ids
-        ]
-
-        # Also prune replacements
-        self.active_replacements = [
-            r for r in self.active_replacements if r.source_instance_id in board_ids
-        ]
-
-        # 3. Apply each active modifier to matching targets
-        for mod in self.active_modifiers:
-            if mod.stat != "might":
-                continue  # only might recalculation for now
-
-            source = self.get_instance(mod.source_instance_id)
-            if not source:
-                continue
-
-            spec = TargetSpec.from_dict(mod.target_spec)
-            matched = self._resolve_modifier_targets(spec, source, mod.exclude_self)
-            for iid in matched:
-                inst = self.get_instance(iid)
-                if inst:
-                    inst.aura_might_bonus += mod.amount
-
-        # 4. Apply gear attachment might bonuses
-        for inst in self.instances.values():
-            if inst.attached_cards:
-                for gear_id in inst.attached_cards:
-                    gear = self.get_instance(gear_id)
-                    if gear and gear.definition.might_bonus:
-                        inst.gear_might_bonus += gear.definition.might_bonus
+        from .layers import evaluate_layers
+        evaluate_layers(self)
 
     def _get_board_instance_ids(self) -> set[str]:
         """Return instance_ids of all cards currently on the board.
@@ -553,10 +574,21 @@ class GameState:
         return matched
 
 
+def _mode_config(mode: GameMode) -> dict:
+    """Return expected player count, battlefield count, and victory score for a mode."""
+    return {
+        GameMode.STANDARD_1V1: {"players": 2, "battlefields": 2, "victory": 8, "teams": False},
+        GameMode.FFA3:         {"players": 3, "battlefields": 3, "victory": 8, "teams": False},
+        GameMode.FFA4:         {"players": 4, "battlefields": 3, "victory": 8, "teams": False},
+        GameMode.TWO_VS_TWO:   {"players": 4, "battlefields": 3, "victory": 11, "teams": True},
+    }[mode]
+
+
 def create_game(
     game_id: str,
     player_configs: list[dict],
     card_db: dict[str, CardDefinition],
+    game_mode: GameMode = GameMode.STANDARD_1V1,
 ) -> GameState:
     """
     Initialize a new game from player configs.
@@ -569,23 +601,54 @@ def create_game(
         "main_deck": [card_id, ...],  # 40 card_ids
         "rune_deck": [card_id, ...],  # 12 card_ids
         "battlefields": [card_id, card_id, card_id],  # 3 battlefield card_ids
+        "team": int (optional, for 2v2 — 0 or 1)
     }
     """
-    gs = GameState(game_id=game_id)
+    mcfg = _mode_config(game_mode)
+    expected_players = mcfg["players"]
+    if len(player_configs) != expected_players:
+        raise ValueError(
+            f"GameMode {game_mode.value} requires {expected_players} players, "
+            f"got {len(player_configs)}"
+        )
+
+    gs = GameState(game_id=game_id, game_mode=game_mode)
+    gs.victory_score = mcfg["victory"]
 
     # Determine turn order (random)
     configs = list(player_configs)
     random.shuffle(configs)
+
+    # 2v2: interleave teams so turn order alternates (rule 466.5.b)
+    if game_mode == GameMode.TWO_VS_TWO:
+        team0 = [c for c in configs if c.get("team", 0) == 0]
+        team1 = [c for c in configs if c.get("team", 0) == 1]
+        random.shuffle(team0)
+        random.shuffle(team1)
+        configs = []
+        for a, b in zip(team0, team1):
+            configs.extend([a, b])
+        # If uneven (shouldn't happen in 2v2), append remainder
+        configs.extend(team0[len(team1):])
+        configs.extend(team1[len(team0):])
+
     gs.player_order = [c["player_id"] for c in configs]
     gs.turn_player_id = gs.player_order[0]
     gs.active_player_id = gs.player_order[0]
 
+    # Set up teams
+    if mcfg["teams"]:
+        for config in configs:
+            gs.teams[config["player_id"]] = config.get("team", 0)
+
     for i, config in enumerate(configs):
         pid = config["player_id"]
+        is_last = (i == len(configs) - 1)
         ps = PlayerState(
             player_id=pid,
             display_name=config["display_name"],
-            goes_second=(i == 1),
+            # goes_second: in 1v1, player index 1; in 3+, last player
+            goes_second=(i == 1) if len(configs) == 2 else is_last,
         )
         gs.players[pid] = ps
         gs.mulligan_done[pid] = False
@@ -623,24 +686,27 @@ def create_game(
             gs.instances[inst.instance_id] = inst
             ps.rune_deck.append(inst.instance_id)
 
-        # Battlefields: randomly select 1 of 3 (1v1 Duel mode)
-        bf_card_ids = config["battlefields"]
-        chosen_bf_cid = random.choice(bf_card_ids)
-        bf_def = card_db[chosen_bf_cid]
-        bf_inst = CardInstance.create(bf_def, pid, ZoneType.BATTLEFIELD)
-        gs.instances[bf_inst.instance_id] = bf_inst
-        bf_state = BattlefieldState(
-            battlefield_id=bf_inst.instance_id,
-            card_instance_id=bf_inst.instance_id,
-        )
-        gs.battlefields[bf_inst.instance_id] = bf_state
+        # Battlefields
+        # FFA4 / 2v2: first player does not contribute a battlefield (rules 465.4.b, 466.4.b)
+        skip_bf = (game_mode in (GameMode.FFA4, GameMode.TWO_VS_TWO) and i == 0)
+        if not skip_bf:
+            bf_card_ids = config["battlefields"]
+            chosen_bf_cid = random.choice(bf_card_ids)
+            bf_def = card_db[chosen_bf_cid]
+            bf_inst = CardInstance.create(bf_def, pid, ZoneType.BATTLEFIELD)
+            gs.instances[bf_inst.instance_id] = bf_inst
+            bf_state = BattlefieldState(
+                battlefield_id=bf_inst.instance_id,
+                card_instance_id=bf_inst.instance_id,
+            )
+            gs.battlefields[bf_inst.instance_id] = bf_state
 
     # Draw 4 cards each
     for pid in gs.player_order:
         _draw_cards(gs, pid, 4)
 
     gs.phase = Phase.SETUP_MULLIGAN
-    gs.log.add("Game started. Mulligan phase.")
+    gs.log.add(f"Game started ({game_mode.value}). Mulligan phase.")
     return gs
 
 

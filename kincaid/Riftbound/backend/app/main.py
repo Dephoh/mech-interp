@@ -2,20 +2,122 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
+import time
 import traceback
+from collections import defaultdict
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from .engine.card_db import CardDB
-from .room_manager import RoomManager
+from .exceptions import RiftboundError, RoomFullError, RoomNotFoundError
+from .room_manager import RoomManager, snapshot_game_state
 from .testlab.routes import router as testlab_router, set_room_manager
+
+
+# ---------------------------------------------------------------------------
+# Rate limiting (in-memory, no external deps)
+# ---------------------------------------------------------------------------
+
+# REST rate limiter: max 60 requests per 60 seconds per IP
+REST_RATE_LIMIT = int(os.environ.get("RIFTBOUND_REST_RATE_LIMIT", "60"))
+REST_RATE_WINDOW = int(os.environ.get("RIFTBOUND_REST_RATE_WINDOW", "60"))
+
+# WebSocket rate limiter: max 30 messages per 1 second per connection
+WS_RATE_LIMIT = int(os.environ.get("RIFTBOUND_WS_RATE_LIMIT", "30"))
+WS_RATE_WINDOW = float(os.environ.get("RIFTBOUND_WS_RATE_WINDOW", "1.0"))
+
+# Optional API key for room creation
+RIFTBOUND_API_KEY = os.environ.get("RIFTBOUND_API_KEY", "")
+
+
+class _RateBucket:
+    """Sliding-window rate limiter for a single key (IP or connection)."""
+
+    __slots__ = ("timestamps",)
+
+    def __init__(self):
+        self.timestamps: list[float] = []
+
+    def check(self, now: float, window: float, limit: int) -> bool:
+        """Return True if the request is allowed, False if rate-limited."""
+        # Prune timestamps outside the window
+        cutoff = now - window
+        self.timestamps = [t for t in self.timestamps if t > cutoff]
+        if len(self.timestamps) >= limit:
+            return False
+        self.timestamps.append(now)
+        return True
+
+
+# Global stores — keyed by IP for REST, by id(websocket) for WS
+_rest_buckets: dict[str, _RateBucket] = defaultdict(_RateBucket)
+_ws_buckets: dict[int, _RateBucket] = {}
+
+# Periodic cleanup threshold: prune stale entries every N checks
+_REST_CLEANUP_INTERVAL = 500
+_rest_check_count = 0
+
+
+def _cleanup_rest_buckets(now: float):
+    """Remove REST buckets that haven't been used within 2x the window."""
+    cutoff = now - REST_RATE_WINDOW * 2
+    stale = [k for k, b in _rest_buckets.items()
+             if not b.timestamps or b.timestamps[-1] < cutoff]
+    for k in stale:
+        del _rest_buckets[k]
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Reject REST requests that exceed the per-IP rate limit."""
+
+    async def dispatch(self, request: Request, call_next):
+        global _rest_check_count
+
+        # Skip rate limiting for WebSocket upgrade requests (handled separately)
+        if request.scope.get("type") == "websocket":
+            return await call_next(request)
+
+        client_ip = request.client.host if request.client else "unknown"
+        now = time.monotonic()
+
+        # Periodic cleanup
+        _rest_check_count += 1
+        if _rest_check_count >= _REST_CLEANUP_INTERVAL:
+            _rest_check_count = 0
+            _cleanup_rest_buckets(now)
+
+        bucket = _rest_buckets[client_ip]
+        if not bucket.check(now, REST_RATE_WINDOW, REST_RATE_LIMIT):
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Rate limit exceeded. Try again later."},
+            )
+
+        return await call_next(request)
+
+
+def _ws_check_rate(ws_id: int) -> bool:
+    """Check WebSocket message rate. Returns True if allowed."""
+    now = time.monotonic()
+    bucket = _ws_buckets.get(ws_id)
+    if bucket is None:
+        bucket = _RateBucket()
+        _ws_buckets[ws_id] = bucket
+    return bucket.check(now, WS_RATE_WINDOW, WS_RATE_LIMIT)
+
+
+def _ws_cleanup(ws_id: int):
+    """Remove the rate bucket for a closed WebSocket."""
+    _ws_buckets.pop(ws_id, None)
 
 # ---------------------------------------------------------------------------
 # Logging setup — writes to file + console
@@ -61,6 +163,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Riftbound Simulator", lifespan=lifespan)
 
+# Rate limiting middleware (applied before CORS so 429s still get CORS headers)
+app.add_middleware(RateLimitMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -83,7 +188,12 @@ async def health():
 
 
 @app.post("/rooms")
-async def create_room():
+async def create_room(request: Request):
+    # Optional API key gate: if RIFTBOUND_API_KEY is set, require it
+    if RIFTBOUND_API_KEY:
+        provided = request.headers.get("X-API-Key", "")
+        if provided != RIFTBOUND_API_KEY:
+            raise HTTPException(status_code=403, detail="Invalid or missing API key")
     room_id = room_manager.create_room()
     return {"room_id": room_id}
 
@@ -99,6 +209,24 @@ async def get_room(room_id: str):
         "is_full": session.is_full,
         "game_started": session.game_state is not None,
     }
+
+
+@app.get("/rooms/{room_id}/state")
+async def get_room_state(room_id: str):
+    """Return the full serialized game state for a room.
+
+    This is the authoritative server-side state (not filtered per-player).
+    Useful for debugging, spectating, and persistence verification.
+    """
+    from .engine.persistence import game_state_to_dict
+
+    session = room_manager.get_room(room_id)
+    if not session:
+        return {"error": "Room not found"}
+    gs = session.game_state
+    if not gs:
+        return {"error": "Game not started", "room_id": room_id}
+    return game_state_to_dict(gs)
 
 
 @app.get("/debug/{room_id}")
@@ -272,7 +400,10 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
     try:
         session = room_manager.get_room(room_id)
         if not session:
-            raise ValueError(f"Room {room_id} not found")
+            raise RoomNotFoundError(
+                f"Room {room_id} not found",
+                details={"room_id": room_id},
+            )
 
         sandbox_pids = getattr(session, "_sandbox_pids", None)
         testlab = getattr(session, "_testlab", None)
@@ -443,21 +574,54 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 await websocket.send_json({"type": "WAITING_FOR_OPPONENT"})
 
         # Main message loop (shared for both join and reconnect)
+        _ws_id = id(websocket)
         while True:
             data = await websocket.receive_json()
+
+            # WebSocket message rate limiting
+            if not _ws_check_rate(_ws_id):
+                logger.warning("[WS] Rate limited room=%s player=%s", room_id, player_id)
+                await websocket.send_json({
+                    "type": "ERROR",
+                    "action_type": data.get("type", "UNKNOWN"),
+                    "error_code": "RATE_LIMITED",
+                    "message": "Too many messages. Slow down.",
+                    "details": {},
+                })
+                continue
+
             msg_type = data.get("type", "UNKNOWN")
             logger.info("[WS] ACTION room=%s player=%s type=%s payload_keys=%s",
                          room_id, player_id, msg_type,
                          [k for k in data.keys() if k != "type"])
             try:
                 await room_manager.handle_action(session, player_id, data)
+
+            except RiftboundError as e:
+                # Structured game error -- send the pre-built error dict.
+                # These are expected errors (validation, unknown action, etc.)
+                # that should NOT tear down the connection.
+                logger.warning(
+                    "[WS] %s handling %s in room=%s player=%s: %s",
+                    type(e).__name__, msg_type, room_id, player_id, e,
+                )
+                await websocket.send_json(e.to_dict())
+
             except Exception:
+                # Unexpected / unknown error -- log full game state snapshot
+                # for debugging, send a generic structured error, but keep
+                # the connection alive so other rooms are unaffected.
                 logger.exception(
-                    "[WS] EXCEPTION handling action %s in room=%s player=%s",
+                    "[WS] UNEXPECTED EXCEPTION handling action %s in room=%s player=%s",
                     msg_type, room_id, player_id,
                 )
-                # Structured error with context about what failed
                 gs = session.game_state if session else None
+                snapshot = snapshot_game_state(gs)
+                logger.error(
+                    "[WS] Game state snapshot for room=%s after error:\n%s",
+                    room_id,
+                    json.dumps(snapshot, indent=2, default=str),
+                )
                 await websocket.send_json({
                     "type": "ERROR",
                     "action_type": msg_type,
@@ -466,11 +630,21 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                     "details": {
                         "phase": gs.phase.value if gs else None,
                         "turn_number": gs.turn_number if gs else None,
+                        "active_player": gs.active_player_id if gs else None,
                     },
                 })
 
     except WebSocketDisconnect:
         logger.info("[WS] Disconnected room=%s player=%s", room_id, player_id)
+    except RiftboundError as e:
+        # Structured error during connection setup (e.g. RoomFullError)
+        logger.error("[WS] %s room=%s player=%s: %s",
+                      type(e).__name__, room_id, player_id, e)
+        try:
+            await websocket.send_json(e.to_dict())
+            await websocket.close()
+        except Exception:
+            pass
     except ValueError as e:
         logger.error("[WS] ValueError room=%s player=%s: %s", room_id, player_id, e)
         try:
@@ -487,6 +661,9 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
     except Exception:
         logger.exception("[WS] Unhandled exception room=%s player=%s", room_id, player_id)
     finally:
+        # Clean up WebSocket rate-limit bucket
+        _ws_cleanup(id(websocket))
+
         if player_id and session:
             # If game is in progress, use grace period; otherwise remove immediately
             if session.game_state and not session.game_state.game_over:

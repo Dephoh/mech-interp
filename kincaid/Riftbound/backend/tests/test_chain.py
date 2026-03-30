@@ -11,7 +11,7 @@ from app.engine.enums import ZoneType
 class TestChainPush:
     def test_push_spell_to_chain(self):
         gs = make_game()
-        spell_def = make_spell_def(effect_script="deal_damage_to_unit")
+        spell_def = make_spell_def(effect_ir={"type": "deal_damage", "amount": 3})
         spell = CardInstance.create(spell_def, "p1", ZoneType.HAND)
         gs.instances[spell.instance_id] = spell
 
@@ -58,7 +58,7 @@ class TestPassPriority:
 class TestResolveTop:
     def test_resolve_spell_goes_to_trash(self):
         gs = make_game()
-        spell_def = make_spell_def(effect_script="deal_damage_to_unit")
+        spell_def = make_spell_def(effect_ir={"type": "deal_damage", "amount": 3})
         spell = CardInstance.create(spell_def, "p1", ZoneType.HAND)
         gs.instances[spell.instance_id] = spell
         gs.players["p1"].hand.append(spell.instance_id)

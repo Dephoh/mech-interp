@@ -43,15 +43,10 @@ export function ChoiceModal({ prompt, options, minChoices, maxChoices, send, onD
     if (submitted) return;
     if (selectedIndices.length < minChoices || selectedIndices.length > maxChoices) return;
     setSubmitted(true);
-    // Send the first selected index for single, or all for multi
-    // The backend SUBMIT_CHOICE supports chosen_option_index for single
-    // and chosen_target_ids for target-based choices.
-    // For multi-option choices, send the first index (protocol may vary).
     if (selectedIndices.length === 1) {
       send({ type: "SUBMIT_CHOICE", chosen_option_index: selectedIndices[0] });
     } else {
-      // For multi-select, send as target IDs if applicable, else first index
-      send({ type: "SUBMIT_CHOICE", chosen_option_index: selectedIndices[0] });
+      send({ type: "SUBMIT_CHOICE", chosen_option_indices: selectedIndices });
     }
     onDone();
   }

@@ -2,16 +2,31 @@
 
 from __future__ import annotations
 
-from .enums import ControlStatus, ZoneType
+from .enums import ControlStatus, GameMode, ZoneType
 from .game_state import GameState, _draw_cards
 from .trigger_system import GameEvent, fire_event
 
 
 def check_win(gs: GameState) -> str | None:
-    """Check if any player has reached the victory score. Returns winner_id or None."""
-    for pid, ps in gs.players.items():
-        if ps.score >= gs.victory_score:
-            return pid
+    """Check if any player (or team) has reached the victory score.
+
+    Returns winner_id or None.  In 2v2 mode, returns the player whose
+    score push caused the team to reach the victory threshold.
+    """
+    if gs.game_mode == GameMode.TWO_VS_TWO:
+        # Team victory: combined score of both teammates
+        checked_teams: set[int] = set()
+        for pid in gs.player_order:
+            team = gs.teams.get(pid, -1)
+            if team in checked_teams:
+                continue
+            checked_teams.add(team)
+            if gs.team_score(pid) >= gs.victory_score:
+                return pid  # representative of winning team
+    else:
+        for pid, ps in gs.players.items():
+            if ps.score >= gs.victory_score:
+                return pid
     return None
 
 
@@ -124,7 +139,7 @@ def perform_burn_out(gs: GameState, player_id: str) -> list[str]:
     """
     Burn Out: player's deck is empty and they need to draw.
     1. Recycle trash into main deck (shuffled)
-    2. Opponent gains 1 point
+    2. Each opponent gains 1 point
     3. Continue the draw
     """
     import random
@@ -150,12 +165,12 @@ def perform_burn_out(gs: GameState, player_id: str) -> list[str]:
         ps.trash.clear()
         logs.append(f"{ps.display_name} burns out: trash recycled into deck")
 
-    # Opponent gains 1 point
-    opp_id = gs.opponent_id(player_id)
-    opp = gs.players[opp_id]
-    opp.score += 1
-    logs.append(f"{opp.display_name} gains 1 point from Burn Out (total: {opp.score})")
-    gs.log.add(f"Burn Out: {opp.display_name} +1 (total: {opp.score})")
+    # Each opponent gains 1 point
+    for opp_id in gs.opponent_ids(player_id):
+        opp = gs.players[opp_id]
+        opp.score += 1
+        logs.append(f"{opp.display_name} gains 1 point from Burn Out (total: {opp.score})")
+        gs.log.add(f"Burn Out: {opp.display_name} +1 (total: {opp.score})")
 
     return logs
 

@@ -106,22 +106,15 @@
         "ability_type": "activated",
         "timing": "action",
         "effect_ir": {
-          "type": "for_each",
-          "targets": {
-            "obj_type": "player",
-            "scope": "any",
-            "count": -1
-          },
-          "effect": {
-            "type": "kill",
-            "target": {
-              "obj_type": "gear",
-              "scope": "friendly",
-              "count": 1,
-              "chooser": "controller"
-            }
+          "type": "kill",
+          "target": {
+            "obj_type": "gear",
+            "scope": "each_player",
+            "count": 1
           }
-        }
+        },
+        "targets_required": 1,
+        "target_type": "gear"
       }
     ]
   },
@@ -736,6 +729,7 @@
         "ability_id": "sfd-131-221_ab_0",
         "text": "I have equal to the number of enemy units here.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "for_each",
           "targets": {
@@ -892,8 +886,10 @@
         "ability_type": "passive",
         "trigger_condition": null,
         "effect_ir": {
-          "type": "modifier",
-          "stat": "spell_power"
+          "type": "aura",
+          "effect": "bonus_damage",
+          "amount": 1,
+          "scope": "controller"
         }
       }
     ],
@@ -1008,34 +1004,8 @@
         "ability_type": "triggered",
         "trigger_condition": "on_move",
         "effect_ir": {
-          "type": "conditional",
-          "condition": {
-            "cond_type": "top_card_filter",
-            "params": {
-              "player": "controller",
-              "filters": [
-                {
-                  "field": "card_type",
-                  "op": "eq",
-                  "value": "gear"
-                }
-              ]
-            }
-          },
-          "then": {
-            "type": "draw_cards",
-            "count": 1,
-            "player": "controller"
-          },
-          "else": {
-            "type": "recycle",
-            "target": {
-              "obj_type": "card",
-              "scope": "friendly",
-              "zone": "deck",
-              "count": 1
-            }
-          }
+          "type": "reveal_top",
+          "count": 1
         }
       }
     ],
@@ -1068,32 +1038,10 @@
         "ability_id": "unl-117-219_ab_0",
         "text": "I can be played to an occupied battlefield if an enemy unit is alone there. Friendly units can be played to an occupied battlefield if an enemy unit is alone there.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
-          "type": "sequence",
-          "steps": [
-            {
-              "type": "give_keyword",
-              "keyword": "CanPlayOnLoneEnemyBattlefield",
-              "duration": "continuous",
-              "target": {
-                "scope": "self"
-              }
-            },
-            {
-              "type": "modifier",
-              "effect": {
-                "type": "give_keyword",
-                "keyword": "CanPlayOnLoneEnemyBattlefield",
-                "duration": "continuous"
-              },
-              "target": {
-                "obj_type": "card",
-                "scope": "friendly",
-                "zone": "hand",
-                "filters": ":[{"
-              }
-            }
-          ]
+          "type": "play_restriction",
+          "allows": "an occupied battlefield if an enemy unit is alone there"
         }
       }
     ],
@@ -1355,10 +1303,10 @@
       {
         "ability_id": "ogn-276-298_ab_0",
         "text": "Increase the points needed to win the game by 1.",
-        "ability_type": "passive",
+        "ability_type": "activated",
         "effect_ir": {
-          "type": "score_points",
-          "amount": 1
+          "type": "modify_win_condition",
+          "points_increase": 1
         }
       }
     ]
@@ -1464,16 +1412,32 @@
         "text": "You may kill a friendly unit as an additional cost to play me. If you do, I cost [1] less for each Energy it costs and [Y] less for each Power it costs. When I attack, the defender must kill one of their units here.",
         "ability_type": "activated",
         "effect_ir": {
-          "type": "optional",
-          "effect": {
-            "type": "kill",
-            "target": {
-              "obj_type": "unit",
-              "scope": "friendly",
-              "count": 1,
-              "location": "any"
+          "type": "sequence",
+          "steps": [
+            {
+              "type": "optional",
+              "effect": {
+                "type": "kill",
+                "target": {
+                  "obj_type": "unit",
+                  "scope": "friendly",
+                  "count": 1,
+                  "location": "any"
+                }
+              }
+            },
+            {
+              "type": "conditional",
+              "condition": {
+                "cond_type": "previous_effect_succeeded"
+              },
+              "then": {
+                "type": "cost_reduction",
+                "amount": 1,
+                "scaling": "Energy it costs and [Y] less for each Power it costs"
+              }
             }
-          }
+          ]
         }
       }
     ],
@@ -1669,10 +1633,17 @@
       {
         "ability_id": "sfd-161-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive",
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "order": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
         "effect_ir": {
-          "type": "modifier",
-          "stat": "might"
+          "type": "attach"
         }
       }
     ],
@@ -1788,15 +1759,17 @@
       {
         "ability_id": "ogn-277-298_ab_0",
         "text": "When a unit moves from here, give it +1 [S] this turn.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_unit_leave_here",
         "effect_ir": {
-          "type": "replacement",
-          "watch_event": "move",
-          "alternative_ir": {
-            "type": "give_might",
-            "amount": 1,
-            "duration": "turn"
-          }
+          "type": "give_might",
+          "amount": 1,
+          "target": {
+            "obj_type": "unit",
+            "scope": "self",
+            "count": 1
+          },
+          "duration": "turn"
         }
       }
     ]
@@ -1833,6 +1806,10 @@
                 "count": 1,
                 "location": "any"
               }
+            },
+            {
+              "type": "look_at_top",
+              "count": 5
             },
             {
               "type": "optional",
@@ -1938,8 +1915,8 @@
           "effect": {
             "type": "exhaust",
             "target": {
-              "obj_type": "unit",
-              "scope": "any",
+              "obj_type": "legend",
+              "scope": "friendly",
               "count": 1
             }
           }
@@ -1968,42 +1945,38 @@
       {
         "ability_id": "unl-147a-219_ab_0",
         "text": "As you play me, add the Baron Pit battlefield token to the board if it's not there already. If you do, I enter there. I can't be chosen by enemy spells and abilities. Other friendly units have +2 [S].",
-        "ability_type": "passive",
+        "ability_type": "activated",
         "effect_ir": {
           "type": "sequence",
           "steps": [
             {
-              "type": "conditional",
-              "condition": {
-                "cond_type": "battlefield_count",
-                "params": [
-                  "name",
-                  "eq",
-                  "Baron Pit"
-                ]
-              },
-              "then": {
-                "type": "play_token",
-                "name": "Baron Pit"
-              }
-            },
-            {
               "type": "give_keyword",
-              "keyword": "untargetable_by_enemies",
+              "keyword": "hexproof",
               "target": {
-                "scope": "self"
+                "obj_type": "unit",
+                "scope": "self",
+                "count": 1
               },
-              "duration": "continuous"
+              "duration": "permanent"
             },
             {
-              "type": "modifier",
-              "stat": "might",
+              "type": "aura",
+              "effect": "give_might",
               "amount": 2,
               "target": {
                 "obj_type": "unit",
                 "scope": "friendly",
-                "exclude_self": true
-              }
+                "count": -1,
+                "location": "any",
+                "filters": [
+                  {
+                    "field": "not_self",
+                    "op": "eq",
+                    "value": true
+                  }
+                ]
+              },
+              "duration": "permanent"
             }
           ]
         }
@@ -2026,10 +1999,11 @@
         "ability_id": "unl-t01_ab_0",
         "text": "Units can move here from anywhere.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
-          "type": "restrict",
-          "restriction": "location_is_global_move_target",
-          "scope": "self"
+          "type": "allow",
+          "permission": "move_here_from_anywhere",
+          "scope": "units"
         }
       }
     ]
@@ -2091,21 +2065,12 @@
         "ability_id": "sfd-012-221_ab_0",
         "text": "I cost [1] less for each card you've played this turn, to a minimum of [1].",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
-          "type": "modifier",
-          "stat": "cost",
-          "alternative_ir": {
-            "type": "set_stat",
-            "stat": "cost",
-            "value": {
-              "op": "max",
-              "values": [
-                1,
-                "subtract(5, count(cards_played_this_turn))"
-              ]
-            }
-          },
-          "prompt": "I cost [1] less for each card you've played this turn, to a minimum of [1]."
+          "type": "cost_reduction",
+          "amount": 1,
+          "scaling": "card you've played this turn",
+          "minimum": 1
         }
       }
     ],
@@ -2177,8 +2142,7 @@
               "target": {
                 "obj_type": "unit",
                 "scope": "friendly",
-                "count": 1,
-                "exclude_self": true
+                "count": 1
               }
             },
             {
@@ -2222,6 +2186,7 @@
         "ability_id": "sfd-080-221_ab_0",
         "text": "[Repeat] [1][C] Deal 1 to up to three units at the same location.",
         "ability_type": "activated",
+        "repeat": true,
         "timing": "action",
         "effect_ir": {
           "type": "deal_damage",
@@ -2229,11 +2194,11 @@
           "target": {
             "obj_type": "unit",
             "scope": "any",
-            "zone": "battlefield",
-            "count": 3,
-            "chooser": "controller"
+            "count": 1
           }
-        }
+        },
+        "targets_required": 1,
+        "target_type": "unit"
       }
     ]
   },
@@ -2354,6 +2319,7 @@
         "ability_id": "unl-208-219_ab_0",
         "text": "Units here with have .",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "modifier",
           "stat": "might",
@@ -2378,11 +2344,15 @@
       {
         "ability_id": "sfd-121-221_ab_0",
         "text": "When you play a card from face down, play a Gold gear token exhausted.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_play_from_facedown",
         "effect_ir": {
           "type": "play_token",
           "name": "Gold",
-          "ready_on_enter": false
+          "token_type": "gear",
+          "might": 0,
+          "count": 1,
+          "exhausted": true
         }
       }
     ],
@@ -2444,29 +2414,18 @@
       {
         "ability_id": "sfd-246-221_ab_0",
         "text": "When you choose a friendly unit, you may exhaust me and pay [A] to ready it. When you conquer, you may pay [1] to ready me.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_choose_friendly",
         "effect_ir": {
-          "type": "array",
-          "options": [
-            {
-              "type": "optional",
-              "effect": {
-                "type": "sequence",
-                "steps": [
-                  "When you choose a friendly unit, you may exhaust me and pay [A] to ready it."
-                ]
-              }
-            },
-            {
-              "type": "optional",
-              "effect": {
-                "type": "sequence",
-                "steps": [
-                  "When you conquer, you may pay [1] to ready me."
-                ]
-              }
+          "type": "optional",
+          "effect": {
+            "type": "exhaust",
+            "target": {
+              "obj_type": "unit",
+              "scope": "any",
+              "count": 1
             }
-          ]
+          }
         }
       }
     ],
@@ -2492,31 +2451,17 @@
       {
         "ability_id": "sfd-178-221_ab_0",
         "text": "[Equip] — [C], Kill a friendly unit",
-        "ability_type": "passive",
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "order": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
         "effect_ir": {
-          "type": "sequence",
-          "steps": [
-            {
-              "type": "attach",
-              "gear": {
-                "obj_type": "card",
-                "scope": "self"
-              },
-              "unit": {
-                "obj_type": "unit",
-                "scope": "friendly",
-                "count": 1
-              }
-            },
-            {
-              "type": "kill",
-              "target": {
-                "obj_type": "unit",
-                "scope": "friendly",
-                "count": 1
-              }
-            }
-          ]
+          "type": "attach"
         }
       }
     ],
@@ -2720,14 +2665,18 @@
       {
         "ability_id": "unl-019-219_ab_0",
         "text": "[Equip] [1][C]",
-        "ability_type": "passive",
-        "effect_ir": {
-          "type": "attach",
-          "target": {
-            "obj_type": "unit",
-            "scope": "friendly",
-            "count": 1
+        "ability_type": "activated",
+        "cost": {
+          "energy": 1,
+          "power": {
+            "fury": 1
           }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
         }
       }
     ],
@@ -3051,8 +3000,23 @@
         "ability_type": "triggered",
         "trigger_condition": "on_unit_played",
         "effect_ir": {
-          "type": "spend_xp",
-          "amount": 3
+          "type": "sequence",
+          "steps": [
+            {
+              "type": "optional",
+              "cost": {
+                "energy": 1
+              },
+              "effect": {
+                "type": "gain_xp",
+                "amount": 1
+              }
+            },
+            {
+              "type": "spend_xp",
+              "amount": 3
+            }
+          ]
         }
       }
     ]
@@ -3083,6 +3047,7 @@
         "ability_id": "sfd-003-221_ab_0",
         "text": "[Repeat] [1] Give a unit this turn.",
         "ability_type": "activated",
+        "repeat": true,
         "timing": "action",
         "effect_ir": {
           "type": "repeat_effect",
@@ -3217,26 +3182,24 @@
         "cost": {
           "exhaust_source": true
         },
-        "effect_script": "rune_add_energy",
-        "timing": "reaction",
-        "text": "Add 1 Energy",
         "effect_ir": {
           "type": "add_energy",
           "amount": 1
-        }
+        },
+        "timing": "reaction",
+        "text": "Add 1 Energy"
       },
       {
         "ability_id": "ogn-126a-298_recycle",
         "ability_type": "activated",
         "cost": {},
-        "effect_script": "rune_recycle_power",
-        "timing": "reaction",
-        "text": "Recycle: Add 1 Body Power",
         "effect_ir": {
           "type": "add_power",
           "amount": 1,
           "domain": "body"
-        }
+        },
+        "timing": "reaction",
+        "text": "Recycle: Add 1 Body Power"
       }
     ]
   },
@@ -3262,21 +3225,20 @@
         "ability_id": "sfd-151-221_ab_0",
         "text": "[Repeat] [2] Give two friendly units each +1 [S] this turn.",
         "ability_type": "activated",
+        "repeat": true,
         "timing": "reaction",
         "effect_ir": {
-          "type": "repeat_effect",
-          "count": 2,
-          "effect": {
-            "type": "give_might",
-            "amount": 1,
-            "target": {
-              "obj_type": "unit",
-              "scope": "friendly",
-              "count": 2
-            },
-            "duration": "turn"
-          }
-        }
+          "type": "give_might",
+          "amount": 1,
+          "target": {
+            "obj_type": "unit",
+            "scope": "any",
+            "count": 1
+          },
+          "duration": "turn"
+        },
+        "targets_required": 1,
+        "target_type": "unit"
       }
     ]
   },
@@ -3347,17 +3309,18 @@
       {
         "ability_id": "sfd-118-221_ab_0",
         "text": "[Equip] [1][C]",
-        "ability_type": "passive",
-        "effect_ir": {
-          "type": "attach",
-          "gear": {
-            "scope": "self"
-          },
-          "unit": {
-            "obj_type": "unit",
-            "scope": "friendly",
-            "count": 1
+        "ability_type": "activated",
+        "cost": {
+          "energy": 1,
+          "power": {
+            "body": 1
           }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
         }
       }
     ],
@@ -3382,18 +3345,17 @@
       {
         "ability_id": "sfd-133-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive",
-        "effect_ir": {
-          "type": "attach",
-          "gear": {
-            "obj_type": "gear",
-            "scope": "self"
-          },
-          "unit": {
-            "obj_type": "unit",
-            "scope": "friendly",
-            "count": 1
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "chaos": 1
           }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
         }
       }
     ],
@@ -3588,26 +3550,17 @@
       {
         "ability_id": "sfd-042-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive",
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "calm": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
         "effect_ir": {
-          "type": "sequence",
-          "steps": [
-            {
-              "type": "attach",
-              "gear": {
-                "scope": "self"
-              },
-              "unit": {
-                "obj_type": "unit",
-                "scope": "friendly",
-                "count": 1
-              }
-            },
-            {
-              "type": "channel_rune",
-              "domain": "calm"
-            }
-          ]
+          "type": "attach"
         }
       }
     ],
@@ -3772,8 +3725,8 @@
       {
         "ability_id": "sfd-004-221_ab_0",
         "text": "Friendly units enter ready this turn. Play a Gold gear token exhausted.",
-        "ability_type": "activated",
-        "timing": "default",
+        "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "play_token",
           "name": "Gold",
@@ -3804,6 +3757,7 @@
         "ability_id": "ogn-068-298_ab_0",
         "text": "I must be assigned combat damage last. [T]: Deal damage equal to my Might to a unit at a battlefield. Use this ability only while I'm at a battlefield.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "deal_damage",
           "amount": "source_might",
@@ -3935,12 +3889,11 @@
         "ability_id": "sfd-122-221_ab_0",
         "text": "[Repeat] [C] Look at the top 2 cards of your Main Deck. Draw one and recycle the other.",
         "ability_type": "activated",
+        "repeat": true,
         "timing": "action",
         "effect_ir": {
-          "type": "player_choice",
-          "prompt": "Look at the top 2 cards of your Main Deck. Choose one to draw and recycle the other.",
-          "min_choices": 1,
-          "max_choices": 1
+          "type": "look_at_top",
+          "count": 2
         }
       }
     ]
@@ -3962,26 +3915,24 @@
         "cost": {
           "exhaust_source": true
         },
-        "effect_script": "rune_add_energy",
-        "timing": "reaction",
-        "text": "Add 1 Energy",
         "effect_ir": {
           "type": "add_energy",
           "amount": 1
-        }
+        },
+        "timing": "reaction",
+        "text": "Add 1 Energy"
       },
       {
         "ability_id": "ogn-042a-298_recycle",
         "ability_type": "activated",
         "cost": {},
-        "effect_script": "rune_recycle_power",
-        "timing": "reaction",
-        "text": "Recycle: Add 1 Calm Power",
         "effect_ir": {
           "type": "add_power",
           "amount": 1,
           "domain": "calm"
-        }
+        },
+        "timing": "reaction",
+        "text": "Recycle: Add 1 Calm Power"
       }
     ]
   },
@@ -4050,6 +4001,7 @@
         "ability_id": "ogn-015-298_ab_0",
         "text": "Other friendly units here have .",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "modifier",
           "stat": "assault",
@@ -4380,28 +4332,24 @@
         "cost": {
           "exhaust_source": true
         },
-        "effect_script": "rune_add_energy",
-        "timing": "reaction",
-        "text": "Add 1 Energy",
         "effect_ir": {
           "type": "add_energy",
-          "amount": 1,
-          "player": "controller"
-        }
+          "amount": 1
+        },
+        "timing": "reaction",
+        "text": "Add 1 Energy"
       },
       {
         "ability_id": "ogn-166a-298_recycle",
         "ability_type": "activated",
         "cost": {},
-        "effect_script": "rune_recycle_power",
-        "timing": "reaction",
-        "text": "Recycle: Add 1 Chaos Power",
         "effect_ir": {
           "type": "add_power",
           "amount": 1,
-          "domain": "chaos",
-          "scope": "friendly"
-        }
+          "domain": "chaos"
+        },
+        "timing": "reaction",
+        "text": "Recycle: Add 1 Chaos Power"
       }
     ]
   },
@@ -4560,14 +4508,14 @@
       {
         "ability_id": "ogn-139-298_ab_0",
         "text": "When you play another unit, buff me.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_unit_played",
         "effect_ir": {
-          "type": "give_might",
-          "amount": 1,
-          "duration": "permanent",
-          "targets": {
+          "type": "buff",
+          "target": {
             "obj_type": "unit",
-            "scope": "self"
+            "scope": "self",
+            "count": 1
           }
         }
       }
@@ -4710,21 +4658,17 @@
       {
         "ability_id": "sfd-064-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive",
-        "effect_ir": {
-          "type": "attach",
-          "unit": {
-            "obj_type": "unit",
-            "scope": "friendly",
-            "count": 1,
-            "filters": [
-              {
-                "field": "domain",
-                "op": "eq",
-                "value": "calm"
-              }
-            ]
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "mind": 1
           }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
         }
       }
     ],
@@ -4895,8 +4839,8 @@
       {
         "ability_id": "ogn-129-298_ab_0",
         "text": "Units you play this turn enter ready. Draw 1.",
-        "ability_type": "activated",
-        "timing": "action",
+        "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "draw_cards",
           "count": 1,
@@ -4926,11 +4870,24 @@
         "ability_type": "activated",
         "timing": "default",
         "effect_ir": {
-          "type": "optional",
-          "effect": {
-            "type": "spend_xp",
-            "amount": 5
-          }
+          "type": "sequence",
+          "steps": [
+            {
+              "type": "optional",
+              "effect": {
+                "type": "spend_xp",
+                "amount": 5
+              }
+            },
+            {
+              "type": "gain_control",
+              "target": {
+                "obj_type": "unit",
+                "scope": "any",
+                "count": 1
+              }
+            }
+          ]
         }
       }
     ]
@@ -5238,7 +5195,8 @@
       {
         "ability_id": "unl-154-219_ab_0",
         "text": "I have +2 [S] while I'm attacking with another unit.",
-        "ability_type": "activated",
+        "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "give_might",
           "amount": 2,
@@ -5333,17 +5291,17 @@
       {
         "ability_id": "sfd-134-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive",
-        "effect_ir": {
-          "type": "attach",
-          "gear": {
-            "obj_type": "self"
-          },
-          "unit": {
-            "obj_type": "unit",
-            "scope": "friendly",
-            "count": 1
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "chaos": 1
           }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
         }
       }
     ],
@@ -5374,27 +5332,15 @@
         "ability_type": "activated",
         "timing": "default",
         "effect_ir": {
-          "type": "sequence",
-          "steps": [
-            {
-              "type": "kill",
-              "target": {
-                "obj_type": "unit",
-                "scope": "friendly",
-                "count": 1
-              }
-            },
-            {
-              "type": "kill",
-              "target": {
-                "obj_type": "unit",
-                "scope": "enemy",
-                "count": 1,
-                "chooser": "opponent"
-              }
-            }
-          ]
-        }
+          "type": "kill",
+          "target": {
+            "obj_type": "unit",
+            "scope": "each_player",
+            "count": 1
+          }
+        },
+        "targets_required": 1,
+        "target_type": "unit"
       }
     ]
   },
@@ -5447,6 +5393,7 @@
         "ability_id": "unl-182-219_ab_0",
         "text": "[Repeat] — [1] / [A] / [1][A] Choose one you haven't already chosen — - Draw 1. - Deal 2 to a unit at a battlefield. - Deal 3 to a unit at a base. - Give a unit at a battlefield -4 [S] this turn.",
         "ability_type": "activated",
+        "repeat": true,
         "timing": "default",
         "effect_ir": {
           "type": "choose_one",
@@ -5556,7 +5503,7 @@
           "amount": 2,
           "target": {
             "obj_type": "unit",
-            "scope": "any",
+            "scope": "friendly",
             "count": 1,
             "location": "any"
           }
@@ -5592,24 +5539,20 @@
         "ability_id": "sfd-182-221_ab_0",
         "text": "[Repeat] [1][C] Give your Mechs +1 [S] this turn.",
         "ability_type": "activated",
+        "repeat": true,
         "timing": "reaction",
         "effect_ir": {
           "type": "give_might",
           "amount": 1,
-          "duration": "turn",
-          "targets": {
+          "target": {
             "obj_type": "unit",
-            "scope": "friendly",
-            "count": -1,
-            "filters": [
-              {
-                "field": "tag",
-                "op": "has",
-                "value": "Mech"
-              }
-            ]
-          }
-        }
+            "scope": "any",
+            "count": 1
+          },
+          "duration": "turn"
+        },
+        "targets_required": 1,
+        "target_type": "unit"
       }
     ],
     "tags": [
@@ -5637,14 +5580,16 @@
       {
         "ability_id": "ogn-016-298_ab_0",
         "text": "— When you play me, give a unit +2 [S] this turn.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_play",
         "effect_ir": {
           "type": "give_might",
           "amount": 2,
           "target": {
             "obj_type": "unit",
-            "scope": "any",
-            "count": 1
+            "scope": "friendly",
+            "count": 1,
+            "location": "any"
           },
           "duration": "turn"
         }
@@ -5700,7 +5645,8 @@
       {
         "ability_id": "sfd-236-star-221_ab_0",
         "text": "— When you play me, ready me. Other friendly units have +1 [S] here.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_play",
         "effect_ir": {
           "type": "sequence",
           "steps": [
@@ -5708,19 +5654,28 @@
               "type": "ready",
               "target": {
                 "obj_type": "unit",
-                "scope": "self"
+                "scope": "self",
+                "count": 1
               }
             },
             {
-              "type": "modifier",
-              "stat": "might",
+              "type": "aura",
+              "effect": "give_might",
               "amount": 1,
               "target": {
                 "obj_type": "unit",
                 "scope": "friendly",
+                "count": -1,
                 "location": "here",
-                "exclude_self": true
-              }
+                "filters": [
+                  {
+                    "field": "not_self",
+                    "op": "eq",
+                    "value": true
+                  }
+                ]
+              },
+              "duration": "permanent"
             }
           ]
         }
@@ -5749,25 +5704,17 @@
       {
         "ability_id": "ogn-027a-298_ab_0",
         "text": "When you play your second card in a turn, give me +2 [S] this turn and ready me.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_second_play",
         "effect_ir": {
-          "type": "sequence",
-          "steps": [
-            {
-              "type": "give_might",
-              "amount": 2,
-              "target": {
-                "scope": "self"
-              },
-              "duration": "turn"
-            },
-            {
-              "type": "ready",
-              "target": {
-                "scope": "self"
-              }
-            }
-          ]
+          "type": "give_might",
+          "amount": 2,
+          "target": {
+            "obj_type": "unit",
+            "scope": "self",
+            "count": 1
+          },
+          "duration": "turn"
         }
       }
     ],
@@ -5837,11 +5784,9 @@
         },
         "timing": "reaction",
         "effect_ir": {
-          "type": "add_energy",
-          "amount": 1,
-          "domain": "chaos",
-          "restriction": "use_only_for",
-          "scope": "spell"
+          "type": "add_power",
+          "domain": "any",
+          "amount": 1
         }
       }
     ],
@@ -5867,9 +5812,10 @@
       {
         "ability_id": "sfd-093-221_ab_0",
         "text": "You may play me to an occupied enemy battlefield.",
-        "ability_type": "passive",
+        "ability_type": "activated",
         "effect_ir": {
-          "type": "sequence"
+          "type": "play_restriction",
+          "allows": "occupied_enemy_battlefield"
         }
       }
     ],
@@ -5962,21 +5908,10 @@
       {
         "ability_id": "ogn-161-298_ab_0",
         "text": "You may play me to an occupied enemy battlefield.",
-        "ability_type": "passive",
+        "ability_type": "activated",
         "effect_ir": {
-          "type": "give_keyword",
-          "keyword": "ganking",
-          "targets": {
-            "scope": "self"
-          },
-          "effect": {
-            "type": "give_keyword",
-            "keyword": "ganking",
-            "target": {
-              "scope": "self"
-            },
-            "duration": "continuous"
-          }
+          "type": "play_restriction",
+          "allows": "occupied_enemy_battlefield"
         }
       }
     ],
@@ -6317,15 +6252,14 @@
         "ability_id": "sfd-031-221_ab_0",
         "text": "[Repeat] [2] Play a 2 [S] Sand Soldier unit token.",
         "ability_type": "activated",
+        "repeat": true,
         "timing": "default",
         "effect_ir": {
-          "type": "repeat_effect",
-          "count": 2,
-          "effect": {
-            "type": "play_token",
-            "name": "Sand Soldier",
-            "might": 2
-          }
+          "type": "play_token",
+          "name": "Sand Soldier",
+          "might": 2,
+          "temporary": false,
+          "ready_on_enter": false
         }
       }
     ]
@@ -6346,14 +6280,12 @@
         "ability_id": "unl-111-219_ab_0",
         "text": "I can't move to base.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "restrict",
-          "restriction": "move_to_zone",
-          "scope": "base",
-          "targets": {
-            "obj_type": "unit",
-            "scope": "self"
-          }
+          "restriction": "cant_move_to_base",
+          "scope": "self",
+          "duration": "permanent"
         }
       }
     ],
@@ -6416,7 +6348,8 @@
       {
         "ability_id": "unl-079-219_ab_0",
         "text": "When a showdown begins here, you may pay [1]. If you do, , then reveal the top card of your Main Deck. If it's a spell, draw it.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_showdown_here",
         "effect_ir": {
           "type": "optional",
           "effect": {
@@ -6635,7 +6568,7 @@
           "amount": 3,
           "target": {
             "obj_type": "unit",
-            "scope": "any",
+            "scope": "friendly",
             "count": 1,
             "location": "any"
           }
@@ -6777,21 +6710,17 @@
       {
         "ability_id": "sfd-095-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive",
-        "effect_ir": {
-          "type": "attach",
-          "target": {
-            "obj_type": "unit",
-            "scope": "friendly",
-            "count": 1,
-            "filters": [
-              {
-                "field": "domain",
-                "op": "eq",
-                "value": "calm"
-              }
-            ]
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "body": 1
           }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
         }
       }
     ],
@@ -6815,21 +6744,17 @@
       {
         "ability_id": "sfd-124-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive",
-        "effect_ir": {
-          "type": "attach",
-          "unit": {
-            "obj_type": "unit",
-            "scope": "friendly",
-            "count": 1,
-            "filters": [
-              {
-                "field": "domain",
-                "op": "eq",
-                "value": "chaos"
-              }
-            ]
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "chaos": 1
           }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
         }
       }
     ],
@@ -6854,25 +6779,17 @@
       {
         "ability_id": "sfd-033-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive",
-        "effect_ir": {
-          "type": "attach",
-          "gear": {
-            "obj_type": "gear",
-            "scope": "self"
-          },
-          "unit": {
-            "obj_type": "unit",
-            "scope": "friendly",
-            "count": 1,
-            "filters": [
-              {
-                "field": "domain",
-                "op": "eq",
-                "value": "calm"
-              }
-            ]
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "calm": 1
           }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
         }
       }
     ],
@@ -6898,14 +6815,24 @@
         "ability_id": "unl-032-219_ab_0",
         "text": "[Repeat] [2] Look at the top 3 cards of your Main Deck. You may reveal a unit from among them and draw it. Recycle the rest.",
         "ability_type": "activated",
+        "repeat": true,
         "timing": "default",
         "effect_ir": {
-          "type": "recycle",
-          "target": {
-            "obj_type": "unit",
-            "scope": "any",
-            "count": 1
-          }
+          "type": "sequence",
+          "steps": [
+            {
+              "type": "look_at_top",
+              "count": 3
+            },
+            {
+              "type": "recycle",
+              "target": {
+                "obj_type": "unit",
+                "scope": "any",
+                "count": 1
+              }
+            }
+          ]
         }
       }
     ]
@@ -6932,14 +6859,12 @@
         "ability_id": "unl-061-219_ab_0",
         "text": "[Repeat] [2] Draw 1.",
         "ability_type": "activated",
+        "repeat": true,
         "timing": "reaction",
         "effect_ir": {
-          "type": "repeat_effect",
-          "count": 2,
-          "effect": {
-            "type": "draw_cards",
-            "count": 1
-          }
+          "type": "draw_cards",
+          "count": 1,
+          "player": "controller"
         }
       }
     ]
@@ -6965,28 +6890,14 @@
         "ability_type": "activated",
         "timing": "default",
         "effect_ir": {
-          "type": "sequence",
-          "steps": [
-            {
-              "type": "return_to_hand",
-              "target": {
-                "obj_type": "unit",
-                "scope": "any",
-                "zone": "battlefield",
-                "count": -1
-              }
-            },
-            {
-              "type": "return_to_hand",
-              "target": {
-                "obj_type": "gear",
-                "scope": "any",
-                "zone": "battlefield",
-                "count": -1
-              }
-            }
-          ]
-        }
+          "type": "return_to_hand",
+          "target": {
+            "obj_type": "unit",
+            "scope": "any",
+            "count": -1
+          }
+        },
+        "targets_required": 0
       }
     ]
   },
@@ -7009,33 +6920,17 @@
         "ability_id": "ogn-109-298_ab_0",
         "text": "My Might is increased by the number of cards in your trash. At the start of your Beginning Phase, recycle 3 from your trash.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
-          "type": "array",
-          "options": [
-            {
-              "type": "for_each",
-              "targets": {
-                "obj_type": "card",
-                "scope": "friendly",
-                "zone": "trash"
-              },
-              "effect": {
-                "type": "give_might",
-                "amount": 1,
-                "target": "self",
-                "duration": "continuous"
-              }
-            },
-            {
-              "type": "recycle",
-              "count": 3,
-              "target": {
-                "obj_type": "card",
-                "scope": "friendly",
-                "zone": "trash"
-              }
-            }
-          ]
+          "type": "give_might",
+          "amount": "variable",
+          "scaling": "the number of cards in your trash",
+          "target": {
+            "obj_type": "unit",
+            "scope": "self",
+            "count": 1
+          },
+          "duration": "permanent"
         }
       }
     ],
@@ -7068,8 +6963,8 @@
       {
         "ability_id": "sfd-164-221_ab_0",
         "text": "I cost [2] less to play from anywhere other than your hand. Kill a unit at a battlefield.",
-        "ability_type": "activated",
-        "timing": "action",
+        "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "kill",
           "target": {
@@ -7078,9 +6973,7 @@
             "count": 1,
             "location": "any"
           }
-        },
-        "targets_required": 1,
-        "target_type": "friendly_unit"
+        }
       }
     ]
   },
@@ -7141,12 +7034,15 @@
       {
         "ability_id": "unl-093-219_ab_0",
         "text": "[>] [T]: [Add] [1].",
-        "ability_type": "passive",
+        "ability_type": "activated",
         "level_ability": true,
+        "cost": {
+          "exhaust_source": true
+        },
+        "timing": "default",
         "effect_ir": {
           "type": "add_energy",
-          "amount": 1,
-          "player": "controller"
+          "amount": 1
         }
       }
     ],
@@ -7218,6 +7114,7 @@
         "ability_id": "sfd-148-221_ab_0",
         "text": "The first time I win a combat each turn, you score 1 point. When I die in combat, choose an opponent. They score 1 point.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "array",
           "prompt": "Card: Draven, Audacious\nContext: unit, domains=['chaos'], might=6, cost=6, keywords=['deflect']\nAbility text: The first time I win a combat each turn, you score 1 point. When I die in combat, choose an opponent. They score 1 point.\n\nTranslate this ability into Effect IR JSON.",
@@ -7249,9 +7146,17 @@
         "ability_id": "ogn-028-298_ab_0",
         "text": "My Might is increased by your points.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
-          "type": "modifier",
-          "stat": "might"
+          "type": "give_might",
+          "amount": "variable",
+          "scaling": "your points",
+          "target": {
+            "obj_type": "unit",
+            "scope": "self",
+            "count": 1
+          },
+          "duration": "permanent"
         }
       }
     ],
@@ -7275,22 +7180,36 @@
       {
         "ability_id": "sfd-020-221_ab_0",
         "text": "When I win a combat, play a Gold gear token exhausted. When I attack or defend, you may pay [C]. If you do, give me +2 [S] this turn.",
-        "ability_type": "activated",
+        "ability_type": "triggered",
+        "trigger_condition": "on_combat_win",
         "effect_ir": {
-          "type": "conditional",
-          "condition": {
-            "cond_type": "previous_effect_succeeded"
-          },
-          "then": {
-            "type": "give_might",
-            "amount": 2,
-            "target": {
-              "obj_type": "unit",
-              "scope": "self",
-              "count": 1
+          "type": "sequence",
+          "steps": [
+            {
+              "type": "play_token",
+              "name": "Gold",
+              "token_type": "gear",
+              "might": 0,
+              "count": 1,
+              "exhausted": true
             },
-            "duration": "turn"
-          }
+            {
+              "type": "conditional",
+              "condition": {
+                "cond_type": "previous_effect_succeeded"
+              },
+              "then": {
+                "type": "give_might",
+                "amount": 2,
+                "target": {
+                  "obj_type": "unit",
+                  "scope": "self",
+                  "count": 1
+                },
+                "duration": "turn"
+              }
+            }
+          ]
         }
       }
     ],
@@ -7421,24 +7340,18 @@
       {
         "ability_id": "unl-209-219_ab_0",
         "text": "At the start of your Beginning Phase, you may kill a unit you control here to draw 1.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_turn_start",
         "effect_ir": {
           "type": "optional",
           "effect": {
-            "type": "sequence",
-            "steps": [
-              {
-                "type": "kill",
-                "target": "obj_type",
-                "scope": "friendly",
-                "location": "here",
-                "count": 1
-              },
-              {
-                "type": "draw_cards",
-                "count": 1
-              }
-            ]
+            "type": "kill",
+            "target": {
+              "obj_type": "unit",
+              "scope": "friendly",
+              "count": 1,
+              "location": "here"
+            }
           }
         }
       }
@@ -7567,27 +7480,15 @@
       {
         "ability_id": "ogn-059-298_ab_0",
         "text": "When you stun an enemy unit, ready me and give me +1 [S] this turn.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_stun_enemy",
         "effect_ir": {
-          "type": "sequence",
-          "steps": [
-            {
-              "type": "ready",
-              "target": {
-                "obj_type": "unit",
-                "scope": "self"
-              }
-            },
-            {
-              "type": "give_might",
-              "amount": 1,
-              "target": {
-                "obj_type": "unit",
-                "scope": "self"
-              },
-              "duration": "turn"
-            }
-          ]
+          "type": "ready",
+          "target": {
+            "obj_type": "unit",
+            "scope": "any",
+            "count": 1
+          }
         }
       }
     ],
@@ -7662,26 +7563,15 @@
       {
         "ability_id": "ogn-110-298_ab_0",
         "text": "— Recycle me to ready your runes.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_death",
         "effect_ir": {
-          "type": "sequence",
-          "steps": [
-            {
-              "type": "recycle",
-              "target": {
-                "obj_type": "card",
-                "scope": "self"
-              }
-            },
-            {
-              "type": "ready",
-              "target": {
-                "obj_type": "rune",
-                "scope": "friendly",
-                "count": -1
-              }
-            }
-          ]
+          "type": "recycle",
+          "target": {
+            "obj_type": "unit",
+            "scope": "any",
+            "count": 1
+          }
         }
       }
     ],
@@ -7996,8 +7886,7 @@
         "timing": "reaction",
         "effect_ir": {
           "type": "add_energy",
-          "amount": 1,
-          "player": "controller"
+          "amount": 1
         }
       }
     ]
@@ -8179,6 +8068,7 @@
         "ability_id": "unl-134-219_ab_0",
         "text": "[Repeat] [2] [Stun] an attacking enemy unit. If it's already stunned, return it to its owner's hand instead.",
         "ability_type": "activated",
+        "repeat": true,
         "timing": "action",
         "effect_ir": {
           "type": "conditional",
@@ -8212,24 +8102,17 @@
       {
         "ability_id": "sfd-073-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive",
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "mind": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
         "effect_ir": {
-          "type": "sequence",
-          "steps": [
-            {
-              "type": "attach",
-              "target": {
-                "obj_type": "unit",
-                "scope": "friendly",
-                "count": 1
-              }
-            },
-            {
-              "type": "channel_rune",
-              "domain": "calm",
-              "count": 1
-            }
-          ]
+          "type": "attach"
         }
       }
     ],
@@ -8254,22 +8137,17 @@
       {
         "ability_id": "sfd-153-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive",
-        "effect_ir": {
-          "type": "optional",
-          "effect": {
-            "type": "sequence",
-            "steps": [
-              {
-                "type": "exhaust",
-                "target": -1
-              },
-              {
-                "type": "channel_rune",
-                "domain": "order"
-              }
-            ]
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "order": 1
           }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
         }
       }
     ],
@@ -8305,21 +8183,25 @@
         "ability_type": "triggered",
         "trigger_condition": "on_attack_or_defend",
         "effect_ir": {
-          "type": "deal_damage",
-          "amount": "source.might",
-          "target": {
-            "obj_type": "unit",
-            "scope": "enemy",
-            "count": 1,
-            "chooser": "controller",
-            "filters": [
-              {
-                "field": "location",
-                "op": "eq",
-                "value": "here"
+          "type": "sequence",
+          "steps": [
+            {
+              "type": "deal_damage",
+              "amount": "source_might",
+              "target": {
+                "obj_type": "unit",
+                "scope": "enemy",
+                "count": 1,
+                "location": "here"
               }
-            ]
-          }
+            },
+            {
+              "type": "restrict",
+              "restriction": "no_combat_damage",
+              "scope": "self",
+              "duration": "permanent"
+            }
+          ]
         }
       }
     ],
@@ -8628,7 +8510,7 @@
           "amount": 6,
           "target": {
             "obj_type": "unit",
-            "scope": "any",
+            "scope": "friendly",
             "count": 1,
             "location": "any"
           }
@@ -8666,7 +8548,7 @@
               "amount": 3,
               "target": {
                 "obj_type": "unit",
-                "scope": "any",
+                "scope": "friendly",
                 "count": 1,
                 "location": "any"
               }
@@ -8676,7 +8558,7 @@
               "amount": 3,
               "target": {
                 "obj_type": "unit",
-                "scope": "any",
+                "scope": "friendly",
                 "count": 1,
                 "location": "any"
               }
@@ -8706,12 +8588,21 @@
         "ability_type": "triggered",
         "trigger_condition": "on_play",
         "effect_ir": {
-          "type": "recycle",
-          "target": {
-            "obj_type": "unit",
-            "scope": "any",
-            "count": 1
-          }
+          "type": "sequence",
+          "steps": [
+            {
+              "type": "look_at_top",
+              "count": 4
+            },
+            {
+              "type": "recycle",
+              "target": {
+                "obj_type": "unit",
+                "scope": "any",
+                "count": 1
+              }
+            }
+          ]
         }
       }
     ],
@@ -8741,21 +8632,21 @@
         "ability_id": "sfd-034-221_ab_0",
         "text": "[Repeat] [2] Give a unit +2 [S] this turn.",
         "ability_type": "activated",
+        "repeat": true,
         "timing": "reaction",
         "effect_ir": {
-          "type": "repeat_effect",
-          "count": 2,
-          "effect": {
-            "type": "give_might",
-            "amount": 2,
-            "duration": "turn",
-            "target": {
-              "obj_type": "unit",
-              "scope": "any",
-              "count": 1
-            }
-          }
-        }
+          "type": "give_might",
+          "amount": 2,
+          "target": {
+            "obj_type": "unit",
+            "scope": "friendly",
+            "count": 1,
+            "location": "any"
+          },
+          "duration": "turn"
+        },
+        "targets_required": 1,
+        "target_type": "friendly_unit"
       }
     ]
   },
@@ -8783,23 +8674,14 @@
       {
         "ability_id": "sfd-021-221_ab_0",
         "text": "— Play two 3 [S] Mech unit tokens to your base.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_death",
         "effect_ir": {
-          "type": "repeat_effect",
-          "count": 2,
-          "effect": {
-            "type": "play_token",
-            "name": "Mech",
-            "might": 3,
-            "destination": {
-              "zone": "base"
-            },
-            "keywords": [
-              {
-                "name": "Mech"
-              }
-            ]
-          }
+          "type": "play_token",
+          "name": "Mech",
+          "might": 3,
+          "temporary": false,
+          "count": 2
         }
       }
     ],
@@ -8881,7 +8763,7 @@
           "amount": 8,
           "target": {
             "obj_type": "unit",
-            "scope": "any",
+            "scope": "friendly",
             "count": 1,
             "location": "any"
           }
@@ -9116,9 +8998,9 @@
         },
         "timing": "reaction",
         "effect_ir": {
-          "type": "add_energy",
-          "amount": 1,
-          "restriction": "gear_or_gear_ability"
+          "type": "add_power",
+          "domain": "any",
+          "amount": 1
         }
       }
     ],
@@ -9251,7 +9133,8 @@
       {
         "ability_id": "ogn-006-298_ab_0",
         "text": "When you discard me, you may pay [C] to play me.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_discard",
         "effect_ir": {
           "type": "optional",
           "effect": {
@@ -9300,10 +9183,16 @@
         "ability_type": "activated",
         "timing": "reaction",
         "effect_ir": {
-          "type": "player_choice",
-          "prompt": "Choose up to 2 friendly units to move to base.",
-          "min_choices": 0,
-          "max_choices": 2
+          "type": "move",
+          "target": {
+            "obj_type": "unit",
+            "scope": "friendly",
+            "count": 2
+          },
+          "destination": {
+            "zone": "base",
+            "location": "owner"
+          }
         }
       }
     ]
@@ -9586,24 +9475,17 @@
       {
         "ability_id": "sfd-190-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive",
-        "effect_ir": {
-          "type": "attach",
-          "gear": {
-            "scope": "self"
-          },
-          "unit": {
-            "obj_type": "unit",
-            "scope": "friendly",
-            "count": 1,
-            "filters": [
-              {
-                "field": "domain",
-                "op": "has",
-                "value": "calm"
-              }
-            ]
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "calm": 1
           }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
         }
       }
     ],
@@ -9725,7 +9607,8 @@
       {
         "ability_id": "ogn-279-298_ab_0",
         "text": "When you defend here, choose a unit. It gains this combat.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_defend_here",
         "effect_ir": {
           "type": "give_keyword",
           "keyword": "shield",
@@ -9881,14 +9764,16 @@
       {
         "ability_id": "unl-074-219_ab_0",
         "text": "When you draw your second card each turn, give a friendly unit +2 [S] this turn.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_second_draw",
         "effect_ir": {
           "type": "give_might",
           "amount": 2,
           "target": {
             "obj_type": "unit",
             "scope": "friendly",
-            "count": 1
+            "count": 1,
+            "location": "any"
           },
           "duration": "turn"
         }
@@ -9917,21 +9802,21 @@
         "ability_id": "sfd-066-221_ab_0",
         "text": "[Repeat] [2] Give a unit -2 [S] this turn.",
         "ability_type": "activated",
+        "repeat": true,
         "timing": "reaction",
         "effect_ir": {
-          "type": "repeat_effect",
-          "count": 2,
-          "effect": {
-            "type": "give_might",
-            "amount": -2,
-            "duration": "turn",
-            "target": {
-              "obj_type": "unit",
-              "scope": "any",
-              "count": 1
-            }
-          }
-        }
+          "type": "give_might",
+          "amount": -2,
+          "target": {
+            "obj_type": "unit",
+            "scope": "friendly",
+            "count": 1,
+            "location": "any"
+          },
+          "duration": "turn"
+        },
+        "targets_required": 1,
+        "target_type": "friendly_unit"
       }
     ]
   },
@@ -10023,15 +9908,15 @@
       {
         "ability_id": "unl-212-219_ab_0",
         "text": "At the start of each player's Beginning Phase, deal 1 to each unit here.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_turn_start",
         "effect_ir": {
           "type": "deal_damage",
           "amount": 1,
           "target": {
             "obj_type": "unit",
             "scope": "any",
-            "location": "here",
-            "count": -1
+            "count": 1
           }
         }
       }
@@ -10054,26 +9939,24 @@
         "cost": {
           "exhaust_source": true
         },
-        "effect_script": "rune_add_energy",
-        "timing": "reaction",
-        "text": "Add 1 Energy",
         "effect_ir": {
           "type": "add_energy",
           "amount": 1
-        }
+        },
+        "timing": "reaction",
+        "text": "Add 1 Energy"
       },
       {
         "ability_id": "ogn-007a-298_recycle",
         "ability_type": "activated",
         "cost": {},
-        "effect_script": "rune_recycle_power",
-        "timing": "reaction",
-        "text": "Recycle: Add 1 Fury Power",
         "effect_ir": {
           "type": "add_power",
           "amount": 1,
           "domain": "fury"
-        }
+        },
+        "timing": "reaction",
+        "text": "Recycle: Add 1 Fury Power"
       }
     ]
   },
@@ -10106,12 +9989,12 @@
         "ability_id": "unl-171-219_ab_0",
         "text": "I don't deal combat damage.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "restrict",
-          "restriction": "deal_combat_damage",
-          "targets": {
-            "scope": "self"
-          }
+          "restriction": "no_combat_damage",
+          "scope": "self",
+          "duration": "permanent"
         }
       }
     ],
@@ -10160,6 +10043,7 @@
         "ability_id": "unl-213-219_ab_0",
         "text": "Units here have \"[T]: Gain 1 XP.\"",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "modifier",
           "target": {
@@ -10204,10 +10088,25 @@
         "ability_id": "ogs-013-024_ab_0",
         "text": "Other friendly units have +1 [S] here.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
-          "type": "modifier",
-          "stat": "might",
-          "exclude_self": true
+          "type": "aura",
+          "effect": "give_might",
+          "amount": 1,
+          "target": {
+            "obj_type": "unit",
+            "scope": "friendly",
+            "count": -1,
+            "location": "here",
+            "filters": [
+              {
+                "field": "not_self",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          "duration": "permanent"
         }
       }
     ],
@@ -10269,6 +10168,7 @@
         "ability_id": "sfd-068-221_ab_0",
         "text": "Each Equipment attached to me gives double its base Might bonus.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "modifier",
           "stat": "might"
@@ -10348,6 +10248,7 @@
         "ability_id": "ogn-100-298_ab_0",
         "text": "Other friendly units have .",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "modifier",
           "stat": "vision",
@@ -10543,28 +10444,14 @@
       {
         "ability_id": "sfd-165-221_ab_0",
         "text": "— You may play a unit with cost no more than [3] and no more than [A] from your trash, ignoring its cost.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_death",
         "effect_ir": {
           "type": "optional",
           "effect": {
-            "type": "for_each",
-            "targets": {
-              "obj_type": "unit",
-              "scope": "friendly",
-              "zone": "trash",
-              "count": 1,
-              "filters": [
-                "cost",
-                "assault"
-              ]
-            },
-            "effect": {
-              "type": "sequence",
-              "steps": [
-                "battlefield",
-                "ready"
-              ]
-            }
+            "type": "play_from_trash",
+            "obj_type": "unit",
+            "ignore_cost": true
           }
         }
       }
@@ -10689,22 +10576,17 @@
       {
         "ability_id": "sfd-205-221_ab_0",
         "text": "When one of your units becomes , you may exhaust me to channel 1 rune exhausted.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_unit_status_change",
         "effect_ir": {
           "type": "optional",
           "effect": {
-            "type": "sequence",
-            "steps": [
-              {
-                "type": "exhaust",
-                "target": "self"
-              },
-              {
-                "type": "channel_rune",
-                "count": 1,
-                "ready_on_enter": false
-              }
-            ]
+            "type": "exhaust",
+            "target": {
+              "obj_type": "unit",
+              "scope": "any",
+              "count": 1
+            }
           }
         }
       }
@@ -10977,11 +10859,17 @@
       {
         "ability_id": "sfd-051-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive",
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "calm": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
         "effect_ir": {
-          "type": "modifier",
-          "stat": "shield",
-          "exclude_self": false
+          "type": "attach"
         }
       }
     ],
@@ -11051,11 +10939,30 @@
         "ability_type": "activated",
         "timing": "default",
         "effect_ir": {
-          "type": "play_token",
-          "name": "Sand Soldier",
-          "might": 2,
-          "temporary": false,
-          "ready_on_enter": false
+          "type": "sequence",
+          "steps": [
+            {
+              "type": "play_token",
+              "name": "Sand Soldier",
+              "might": 2,
+              "temporary": false,
+              "ready_on_enter": false
+            },
+            {
+              "type": "optional",
+              "cost": {
+                "power_of_domain": true
+              },
+              "effect": {
+                "type": "ready",
+                "target": {
+                  "obj_type": "unit",
+                  "scope": "self",
+                  "count": 1
+                }
+              }
+            }
+          ]
         }
       }
     ]
@@ -11212,7 +11119,8 @@
       {
         "ability_id": "unl-088-219_ab_0",
         "text": "At the start of your Beginning Phase, if you have exactly 4 cards in hand and exactly 4 units at battlefields, you win the game. Discard 1, [T]: Play a 1 [S] Bird unit token with .",
-        "ability_type": "activated",
+        "ability_type": "triggered",
+        "trigger_condition": "on_turn_start",
         "effect_ir": {
           "type": "discard",
           "count": 1,
@@ -11237,23 +11145,16 @@
         "trigger_condition": "on_conquer",
         "effect_ir": {
           "type": "optional",
+          "cost": {
+            "energy": 1
+          },
           "effect": {
-            "type": "sequence",
-            "steps": [
-              {
-                "type": "spend_energy",
-                "amount": 1
-              },
-              {
-                "type": "ready",
-                "target": "obj_type",
-                "scope": "friendly",
-                "count": 1,
-                "filters": "field",
-                "op": "has",
-                "value": "legend"
-              }
-            ]
+            "type": "ready",
+            "target": {
+              "obj_type": "legend",
+              "scope": "friendly",
+              "count": 1
+            }
           }
         }
       }
@@ -11360,21 +11261,17 @@
         "ability_id": "sfd-136-221_ab_0",
         "text": "[Repeat] [2] Counter a spell unless its controller pays [2].",
         "ability_type": "activated",
+        "repeat": true,
         "timing": "reaction",
         "effect_ir": {
-          "type": "repeat_effect",
-          "count": 2,
-          "effect": {
-            "type": "counter",
-            "amount": 2,
-            "target": {
-              "obj_type": "spell",
-              "scope": "enemy",
-              "zone": "chain",
-              "count": 1
-            }
+          "type": "counter",
+          "target": {
+            "obj_type": "spell",
+            "zone": "chain"
           }
-        }
+        },
+        "targets_required": 1,
+        "target_type": "spell_on_chain"
       }
     ]
   },
@@ -11430,12 +11327,14 @@
         "ability_id": "sfd-137-221_ab_0",
         "text": "When I move from a battlefield, give me +2 [S] this turn.",
         "ability_type": "triggered",
-        "trigger_condition": "on_move",
+        "trigger_condition": "on_move_from_bf",
         "effect_ir": {
           "type": "give_might",
           "amount": 2,
           "target": {
-            "scope": "self"
+            "obj_type": "unit",
+            "scope": "self",
+            "count": 1
           },
           "duration": "turn"
         }
@@ -11510,29 +11409,9 @@
         "ability_type": "activated",
         "timing": "reaction",
         "effect_ir": {
-          "type": "move",
-          "target": {
-            "obj_type": "unit",
-            "scope": "friendly",
-            "zone": "trash",
-            "count": 1,
-            "chooser": "controller",
-            "filters": [
-              {
-                "field": "cost_energy",
-                "op": "lte",
-                "value": "cost_unit.cost_energy"
-              },
-              {
-                "field": "cost_power",
-                "op": "lte",
-                "value": "cost_unit.cost_power"
-              }
-            ]
-          },
-          "destination": {
-            "zone": "battlefield"
-          }
+          "type": "play_from_trash",
+          "obj_type": "unit",
+          "ignore_cost": true
         }
       }
     ]
@@ -11556,6 +11435,7 @@
         "ability_id": "ogn-111-298_ab_0",
         "text": "I have all [T] abilities of all friendly legends, units, and gear.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "share_abilities",
           "target": {
@@ -11797,18 +11677,17 @@
       {
         "ability_id": "sfd-102-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive",
-        "effect_ir": {
-          "type": "attach",
-          "gear": {
-            "obj_type": "gear",
-            "scope": "self"
-          },
-          "unit": {
-            "obj_type": "unit",
-            "scope": "friendly",
-            "count": 1
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "body": 1
           }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
         }
       }
     ],
@@ -11870,18 +11749,18 @@
       {
         "ability_id": "unl-188-219_ab_0",
         "text": "[Equip] [3][A]. This ability's Energy cost is reduced by the Might of the unit you choose.",
-        "ability_type": "passive",
-        "effect_ir": {
-          "type": "attach",
-          "gear": {
-            "obj_type": "gear",
-            "scope": "self"
-          },
-          "unit": {
-            "obj_type": "unit",
-            "scope": "friendly",
-            "count": 1
+        "ability_type": "activated",
+        "cost": {
+          "energy": 3,
+          "power": {
+            "any": 1
           }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
         }
       }
     ],
@@ -11923,7 +11802,7 @@
           "amount": 3,
           "target": {
             "obj_type": "unit",
-            "scope": "any",
+            "scope": "friendly",
             "count": 1,
             "location": "any"
           }
@@ -12056,11 +11935,15 @@
       {
         "ability_id": "sfd-155-221_ab_0",
         "text": "— Play a Gold gear token exhausted.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_death",
         "effect_ir": {
           "type": "play_token",
           "name": "Gold",
-          "ready_on_enter": false
+          "token_type": "gear",
+          "might": 0,
+          "count": 1,
+          "exhausted": true
         }
       }
     ],
@@ -12140,12 +12023,26 @@
         "ability_type": "activated",
         "timing": "default",
         "effect_ir": {
-          "type": "ready",
-          "target": {
-            "obj_type": "unit",
-            "scope": "self",
-            "count": 1
-          }
+          "type": "sequence",
+          "steps": [
+            {
+              "type": "gain_control",
+              "target": {
+                "obj_type": "unit",
+                "scope": "enemy",
+                "count": 1,
+                "location": "any"
+              }
+            },
+            {
+              "type": "ready",
+              "target": {
+                "obj_type": "unit",
+                "scope": "self",
+                "count": 1
+              }
+            }
+          ]
         }
       }
     ],
@@ -12168,27 +12065,17 @@
       {
         "ability_id": "unl-096-219_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive",
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "body": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
         "effect_ir": {
-          "type": "sequence",
-          "steps": [
-            {
-              "type": "attach",
-              "gear": {
-                "obj_type": "gear",
-                "scope": "self"
-              },
-              "unit": {
-                "obj_type": "unit",
-                "scope": "friendly",
-                "count": 1
-              }
-            },
-            {
-              "type": "channel_rune",
-              "domain": "body"
-            }
-          ]
+          "type": "attach"
         }
       }
     ],
@@ -12300,7 +12187,7 @@
               "amount": 2,
               "target": {
                 "obj_type": "unit",
-                "scope": "any",
+                "scope": "friendly",
                 "count": 1,
                 "location": "any"
               }
@@ -12310,7 +12197,7 @@
               "amount": 2,
               "target": {
                 "obj_type": "unit",
-                "scope": "any",
+                "scope": "friendly",
                 "count": 1,
                 "location": "any"
               }
@@ -12320,7 +12207,7 @@
               "amount": 2,
               "target": {
                 "obj_type": "unit",
-                "scope": "any",
+                "scope": "friendly",
                 "count": 1,
                 "location": "any"
               }
@@ -12330,7 +12217,7 @@
               "amount": 2,
               "target": {
                 "obj_type": "unit",
-                "scope": "any",
+                "scope": "friendly",
                 "count": 1,
                 "location": "any"
               }
@@ -12340,7 +12227,7 @@
               "amount": 2,
               "target": {
                 "obj_type": "unit",
-                "scope": "any",
+                "scope": "friendly",
                 "count": 1,
                 "location": "any"
               }
@@ -12350,7 +12237,7 @@
               "amount": 2,
               "target": {
                 "obj_type": "unit",
-                "scope": "any",
+                "scope": "friendly",
                 "count": 1,
                 "location": "any"
               }
@@ -12384,24 +12271,19 @@
         "trigger_condition": "on_attack",
         "effect_ir": {
           "type": "optional",
+          "cost": {
+            "energy": 1
+          },
           "effect": {
-            "type": "sequence",
-            "steps": [
-              {
-                "type": "add_energy",
-                "amount": -1,
-                "player": "controller"
-              },
-              {
-                "type": "give_might",
-                "amount": -1,
-                "duration": "turn",
-                "target": [
-                  "object",
-                  "null"
-                ]
-              }
-            ]
+            "type": "give_might",
+            "amount": -1,
+            "target": {
+              "obj_type": "unit",
+              "scope": "friendly",
+              "count": 1,
+              "location": "here"
+            },
+            "duration": "turn"
           }
         }
       }
@@ -12434,7 +12316,8 @@
       {
         "ability_id": "ogn-037-298_ab_0",
         "text": "When you kill a unit with a spell, you may pay [1][C] to play me from your trash.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_kill",
         "effect_ir": {
           "type": "optional",
           "effect": {
@@ -12487,18 +12370,15 @@
       {
         "ability_id": "ogn-221-298_ab_0",
         "text": "When any unit takes damage this turn, kill it.",
-        "ability_type": "activated",
-        "timing": "action",
+        "ability_type": "triggered",
+        "trigger_condition": "on_any_damage",
         "effect_ir": {
-          "type": "replacement",
-          "duration": "turn",
-          "watch_event": "deal_damage",
-          "alternative_ir": {
-            "type": "kill"
-          },
-          "prompt": "When any unit takes damage this turn, kill it.",
-          "min_choices": 0,
-          "max_choices": 0
+          "type": "kill",
+          "target": {
+            "obj_type": "unit",
+            "scope": "self",
+            "count": 1
+          }
         }
       }
     ]
@@ -12566,7 +12446,7 @@
           "amount": 2,
           "target": {
             "obj_type": "unit",
-            "scope": "any",
+            "scope": "friendly",
             "count": 1,
             "location": "any"
           }
@@ -12680,24 +12560,13 @@
           "steps": [
             {
               "type": "discard",
-              "target": {
-                "obj_type": "card",
-                "scope": "any",
-                "zone": "hand",
-                "count": -1
-              }
+              "count": -1,
+              "player": "each"
             },
             {
-              "type": "for_each",
-              "targets": {
-                "obj_type": "player",
-                "scope": "any",
-                "count": -1
-              },
-              "effect": {
-                "type": "draw_cards",
-                "count": 4
-              }
+              "type": "draw_cards",
+              "count": 4,
+              "player": "each"
             }
           ]
         }
@@ -12763,14 +12632,17 @@
       {
         "ability_id": "sfd-225-star-221_ab_0",
         "text": "When you choose or ready me, give me +1 [S] this turn.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_choose_friendly",
         "effect_ir": {
           "type": "give_might",
           "amount": 1,
-          "duration": "turn",
-          "targets": {
-            "scope": "self"
-          }
+          "target": {
+            "obj_type": "unit",
+            "scope": "self",
+            "count": 1
+          },
+          "duration": "turn"
         }
       }
     ],
@@ -13008,7 +12880,8 @@
       {
         "ability_id": "sfd-142-221_ab_0",
         "text": "When you choose me with a spell, draw 1.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_choose_friendly",
         "effect_ir": {
           "type": "draw_cards",
           "count": 1
@@ -13090,21 +12963,11 @@
         "ability_id": "sfd-103-221_ab_0",
         "text": "I cost [2] less for each of your units.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
-          "type": "for_each",
-          "targets": {
-            "obj_type": "unit",
-            "scope": "friendly",
-            "zone": "battlefield"
-          },
-          "effect": {
-            "type": "buff",
-            "stat": "cost",
-            "amount": -2,
-            "target": {
-              "scope": "self"
-            }
-          }
+          "type": "cost_reduction",
+          "amount": 2,
+          "scaling": "of your units"
         }
       }
     ],
@@ -13195,18 +13058,13 @@
         "trigger_condition": "on_equip",
         "effect_ir": {
           "type": "optional",
+          "cost": {
+            "energy": 1
+          },
           "effect": {
-            "type": "sequence",
-            "steps": [
-              {
-                "type": "spend_energy",
-                "amount": 1
-              },
-              {
-                "type": "draw_cards",
-                "count": 1
-              }
-            ]
+            "type": "draw_cards",
+            "count": 1,
+            "player": "controller"
           }
         }
       }
@@ -13434,27 +13292,15 @@
       {
         "ability_id": "ogn-202-298_ab_0",
         "text": "When you discard one or more cards, ready me and give me +1 [S] this turn.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_discard",
         "effect_ir": {
-          "type": "sequence",
-          "steps": [
-            {
-              "type": "ready",
-              "target": {
-                "obj_type": "unit",
-                "scope": "self"
-              }
-            },
-            {
-              "type": "give_might",
-              "amount": 1,
-              "target": {
-                "obj_type": "unit",
-                "scope": "self"
-              },
-              "duration": "turn"
-            }
-          ]
+          "type": "ready",
+          "target": {
+            "obj_type": "unit",
+            "scope": "any",
+            "count": 1
+          }
         }
       }
     ],
@@ -13616,13 +13462,15 @@
       {
         "ability_id": "sfd-237-221_ab_0",
         "text": "When you recycle one or more cards, buff a friendly unit.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_recycle",
         "effect_ir": {
           "type": "buff",
           "target": {
             "obj_type": "unit",
             "scope": "friendly",
-            "count": 1
+            "count": 1,
+            "location": "any"
           }
         }
       }
@@ -13691,37 +13539,14 @@
       {
         "ability_id": "unl-023-219_ab_0",
         "text": "When you hide a card, ready me. When you play a card from face down, deal 2 to an enemy unit.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_hide",
         "effect_ir": {
-          "type": "array",
-          "name": "abilities",
-          "effect": {
-            "type": "triggered_effect",
-            "trigger": {
-              "type": "event",
-              "event_type": "hide_card",
-              "scope": "friendly"
-            },
-            "effect": {
-              "type": "ready",
-              "target": "self"
-            }
-          },
-          "alternative_ir": {
-            "type": "triggered_effect",
-            "trigger": {
-              "type": "event",
-              "event_type": "play_card",
-              "scope": "friendly",
-              "filters": [
-                "from_hidden"
-              ]
-            },
-            "effect": {
-              "type": "deal_damage",
-              "amount": 2,
-              "target": "enemy_unit"
-            }
+          "type": "ready",
+          "target": {
+            "obj_type": "unit",
+            "scope": "self",
+            "count": 1
           }
         }
       }
@@ -13864,21 +13689,10 @@
         "trigger_condition": "on_play",
         "effect_ir": {
           "type": "play_token",
-          "count": 2,
           "name": "Reflection",
-          "might": 1,
-          "temporary": true,
-          "keywords": [
-            {
-              "keyword": "hidden"
-            },
-            {
-              "keyword": "temporary"
-            }
-          ],
-          "unit": {
-            "location": "here"
-          }
+          "might": 0,
+          "count": 2,
+          "destination": "here"
         }
       }
     ],
@@ -14175,15 +13989,16 @@
       {
         "ability_id": "ogn-190-298_ab_0",
         "text": "— Deal 4 to all units at my battlefield.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_death",
         "effect_ir": {
           "type": "deal_damage",
           "amount": 4,
           "target": {
             "obj_type": "unit",
             "scope": "any",
-            "location": "here",
-            "count": -1
+            "count": -1,
+            "location": "any"
           }
         }
       }
@@ -14340,33 +14155,17 @@
       {
         "ability_id": "sfd-150-221_ab_0",
         "text": "[Equip] — [C], Recycle 2 cards from your trash",
-        "ability_type": "passive",
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "chaos": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
         "effect_ir": {
-          "type": "sequence",
-          "steps": [
-            {
-              "type": "attach",
-              "gear": {
-                "obj_type": "gear",
-                "scope": "self"
-              },
-              "unit": {
-                "obj_type": "unit",
-                "scope": "friendly",
-                "count": 1
-              }
-            },
-            {
-              "type": "recycle",
-              "count": 2,
-              "target": {
-                "obj_type": "card",
-                "scope": "friendly",
-                "zone": "trash",
-                "count": 2
-              }
-            }
-          ]
+          "type": "attach"
         }
       }
     ],
@@ -14407,27 +14206,17 @@
         "ability_type": "activated",
         "timing": "action",
         "effect_ir": {
-          "type": "for_each",
-          "targets": {
+          "type": "give_might",
+          "amount": "double",
+          "target": {
             "obj_type": "unit",
             "scope": "friendly",
             "count": 1
           },
-          "effect": {
-            "type": "sequence",
-            "steps": [
-              {
-                "type": "give_might",
-                "amount": "current_might",
-                "duration": "turn"
-              },
-              {
-                "type": "give_keyword",
-                "keyword": "shield"
-              }
-            ]
-          }
-        }
+          "duration": "turn"
+        },
+        "targets_required": 1,
+        "target_type": "friendly_unit"
       }
     ]
   },
@@ -14684,6 +14473,7 @@
         "ability_id": "ogn-151-298_ab_0",
         "text": "Other buffed friendly units at my battlefield have +2 [S].",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "modifier",
           "stat": "might",
@@ -14858,11 +14648,13 @@
         "ability_id": "unl-082a-219_ab_0",
         "text": "When I move from a location, play a 3 [S] Sprite unit token with there.",
         "ability_type": "triggered",
-        "trigger_condition": "on_move",
+        "trigger_condition": "on_move_from_bf",
         "effect_ir": {
           "type": "play_token",
           "name": "Sprite",
-          "might": 3
+          "might": 3,
+          "temporary": false,
+          "ready_on_enter": false
         }
       }
     ],
@@ -14974,20 +14766,17 @@
       {
         "ability_id": "sfd-036-221_ab_0",
         "text": "— If I died alone, draw 1.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_death",
         "effect_ir": {
           "type": "conditional",
           "condition": {
-            "cond_type": "simultaneous_death_count",
-            "params": {
-              "scope": "friendly",
-              "op": "eq",
-              "value": 1
-            }
+            "cond_type": "always"
           },
           "then": {
             "type": "draw_cards",
-            "count": 1
+            "count": 1,
+            "player": "controller"
           }
         }
       }
@@ -15025,19 +14814,17 @@
       {
         "ability_id": "sfd-022-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive",
-        "effect_ir": {
-          "type": "attach",
-          "gear": {
-            "obj_type": "gear",
-            "scope": "self"
-          },
-          "unit": {
-            "obj_type": "unit",
-            "scope": "friendly",
-            "count": 1,
-            "chooser": "controller"
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "fury": 1
           }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
         }
       }
     ],
@@ -15062,19 +14849,12 @@
       {
         "ability_id": "ogn-301-star-298_ab_0",
         "text": "At start of your Beginning Phase, draw 1 if you have one or fewer cards in your hand.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_turn_start",
         "effect_ir": {
-          "type": "conditional",
-          "condition": {
-            "cond_type": "hand_count_lte",
-            "params": {
-              "count": 1
-            }
-          },
-          "then": {
-            "type": "draw_cards",
-            "count": 1
-          }
+          "type": "draw_cards",
+          "count": 1,
+          "player": "controller"
         }
       }
     ],
@@ -15234,17 +15014,20 @@
       {
         "ability_id": "sfd-126-221_ab_0",
         "text": "When you defend at a battlefield, you may move me there.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_defend",
         "effect_ir": {
           "type": "optional",
           "effect": {
             "type": "move",
             "target": {
               "obj_type": "unit",
-              "scope": "self"
+              "scope": "self",
+              "count": 1
             },
             "destination": {
-              "zone": "battlefield"
+              "zone": "battlefield",
+              "location": "target"
             }
           }
         }
@@ -15318,6 +15101,7 @@
         "ability_id": "sfd-113a-221_ab_0",
         "text": "The first time I conquer each turn, ready me.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "ready",
           "target": {
@@ -15392,8 +15176,7 @@
         "timing": "reaction",
         "effect_ir": {
           "type": "add_energy",
-          "amount": 2,
-          "restriction": "spells"
+          "amount": 2
         }
       }
     ],
@@ -15461,19 +15244,14 @@
       {
         "ability_id": "ogn-239-298_ab_0",
         "text": "— Play three 1 [S] Recruit unit tokens into your base.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_death",
         "effect_ir": {
-          "type": "repeat_effect",
-          "count": 3,
-          "effect": {
-            "type": "play_token",
-            "name": "Recruit",
-            "might": 1,
-            "destination": {
-              "zone": "base",
-              "location": "owner"
-            }
-          }
+          "type": "play_token",
+          "name": "Recruit",
+          "might": 1,
+          "temporary": false,
+          "count": 3
         }
       }
     ],
@@ -15543,39 +15321,12 @@
         "ability_id": "unl-144-219_ab_0",
         "text": "I can't be readied. [C]: Move me to an occupied enemy battlefield if my Might is greater than the total Might of enemy units there.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
-          "type": "sequence",
-          "steps": [
-            {
-              "type": "restrict",
-              "restriction": "cannot_be_readied",
-              "target": {
-                "scope": "self"
-              }
-            },
-            {
-              "type": "for_each",
-              "targets": {
-                "obj_type": "battlefield",
-                "scope": "enemy",
-                "count": 1,
-                "chooser": "controller",
-                "filters": [
-                  "TODO: Implement filter for 'occupied', e.g., unit_count > 0",
-                  "TODO: Implement filter comparing source might to total might of units at target location"
-                ]
-              },
-              "effect": {
-                "type": "move",
-                "target": [
-                  "TODO: Reference self"
-                ],
-                "destination": [
-                  "TODO: Reference the chosen battlefield"
-                ]
-              }
-            }
-          ]
+          "type": "restrict",
+          "restriction": "cant_ready",
+          "scope": "self",
+          "duration": "permanent"
         }
       }
     ],
@@ -15599,6 +15350,7 @@
         "ability_id": "unl-163-219_ab_0",
         "text": "Opponents must pay [A] for each unit beyond the first to move multiple units to my battlefield at the same time.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "restrict",
           "restriction": "pay_action_for_each_unit_beyond_first_moved_to_here",
@@ -15677,18 +15429,21 @@
         "ability_id": "ogn-011-298_ab_0",
         "text": "Other friendly units enter ready.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
-          "type": "give_keyword",
-          "keyword": "quick_draw",
-          "targets": {
+          "type": "aura",
+          "effect": "enter_ready",
+          "target": {
             "obj_type": "unit",
             "scope": "friendly",
-            "exclude_self": true
-          },
-          "effect": {
-            "type": "give_keyword",
-            "keyword": "quick_draw",
-            "duration": "continuous"
+            "count": -1,
+            "filters": [
+              {
+                "field": "not_self",
+                "op": "eq",
+                "value": true
+              }
+            ]
           }
         }
       }
@@ -15778,6 +15533,7 @@
         "ability_id": "sfd-114-221_ab_0",
         "text": "[Repeat] [3] Choose a friendly unit anywhere and an enemy unit at a battlefield. They deal damage equal to their Mights to each other.",
         "ability_type": "activated",
+        "repeat": true,
         "timing": "action",
         "effect_ir": {
           "type": "repeat_effect",
@@ -15816,27 +15572,17 @@
       {
         "ability_id": "ogn-060-298_ab_0",
         "text": "When a friendly unit attacks or defends alone, give it +1 [S] this turn.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_attack_or_defend_alone",
         "effect_ir": {
           "type": "give_might",
           "amount": 1,
-          "duration": "turn",
-          "targets": {
+          "target": {
             "obj_type": "unit",
-            "scope": "friendly",
-            "filters": [
-              {
-                "field": "tag",
-                "op": "has",
-                "value": "is_attacking_alone"
-              },
-              {
-                "field": "tag",
-                "op": "has",
-                "value": "is_defending_alone"
-              }
-            ]
-          }
+            "scope": "self",
+            "count": 1
+          },
+          "duration": "turn"
         }
       }
     ]
@@ -15964,62 +15710,10 @@
         "ability_type": "passive",
         "level_ability": true,
         "effect_ir": {
-          "type": "array",
-          "options": [
-            {
-              "type": "sequence",
-              "steps": [
-                {
-                  "type": "modifier",
-                  "stat": "generic_cost",
-                  "amount": -2
-                },
-                {
-                  "type": "modifier",
-                  "stat": "calm_cost",
-                  "amount": -1
-                }
-              ]
-            },
-            {
-              "type": "sequence",
-              "steps": [
-                {
-                  "type": "modifier",
-                  "stat": "generic_cost",
-                  "amount": -4
-                },
-                {
-                  "type": "modifier",
-                  "stat": "calm_cost",
-                  "amount": -2
-                }
-              ]
-            },
-            {
-              "type": "sequence",
-              "steps": [
-                {
-                  "type": "modifier",
-                  "stat": "generic_cost",
-                  "amount": -6
-                },
-                {
-                  "type": "modifier",
-                  "stat": "calm_cost",
-                  "amount": -3
-                }
-              ]
-            },
-            {
-              "type": "restrict",
-              "restriction": "cannot_be_targeted_by_spells_or_abilities",
-              "scope": "enemy",
-              "target": {
-                "scope": "self"
-              }
-            }
-          ]
+          "type": "cost_reduction",
+          "amount": 2,
+          "domain": true,
+          "scaling": null
         }
       }
     ],
@@ -16215,26 +15909,24 @@
         "cost": {
           "exhaust_source": true
         },
-        "effect_script": "rune_add_energy",
-        "timing": "reaction",
-        "text": "Add 1 Energy",
         "effect_ir": {
           "type": "add_energy",
           "amount": 1
-        }
+        },
+        "timing": "reaction",
+        "text": "Add 1 Energy"
       },
       {
         "ability_id": "ogn-089a-298_recycle",
         "ability_type": "activated",
         "cost": {},
-        "effect_script": "rune_recycle_power",
-        "timing": "reaction",
-        "text": "Recycle: Add 1 Mind Power",
         "effect_ir": {
           "type": "add_power",
           "amount": 1,
           "domain": "mind"
-        }
+        },
+        "timing": "reaction",
+        "text": "Recycle: Add 1 Mind Power"
       }
     ]
   },
@@ -16290,16 +15982,9 @@
         "ability_type": "triggered",
         "trigger_condition": "on_conquer",
         "effect_ir": {
-          "type": "move",
-          "target": {
-            "obj_type": "card",
-            "scope": "friendly",
-            "zone": "deck",
-            "count": 2
-          },
-          "destination": {
-            "zone": "trash"
-          }
+          "type": "mill",
+          "count": 2,
+          "player": "controller"
         }
       }
     ]
@@ -16320,13 +16005,12 @@
         "ability_id": "sfd-014-221_ab_0",
         "text": "Units can't move to base.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "restrict",
-          "restriction": "cannot_move_to_base",
-          "targets": {
-            "obj_type": "unit",
-            "scope": "any"
-          }
+          "restriction": "move to base",
+          "scope": "units",
+          "duration": "permanent"
         }
       }
     ],
@@ -16442,20 +16126,10 @@
       {
         "ability_id": "ogn-193-298_ab_0",
         "text": "You may play me to an open battlefield. Friendly units may be played to open battlefields.",
-        "ability_type": "passive",
+        "ability_type": "activated",
         "effect_ir": {
-          "type": "give_keyword",
-          "keyword": "pioneer",
-          "targets": {
-            "obj_type": "unit",
-            "scope": "friendly",
-            "zone": "hand"
-          },
-          "effect": {
-            "type": "give_keyword",
-            "keyword": "pioneer",
-            "duration": "continuous"
-          }
+          "type": "play_restriction",
+          "allows": "open_any_battlefield"
         }
       }
     ],
@@ -16494,6 +16168,7 @@
         "ability_id": "ogn-162a-298_ab_0",
         "text": "The first time I move each turn, you may ready something else that's exhausted.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "optional",
           "effect": {
@@ -16567,7 +16242,8 @@
       {
         "ability_id": "ogn-152-298_ab_0",
         "text": "When you buff a friendly unit, you may pay [C] and exhaust this to ready it.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_buff",
         "effect_ir": {
           "type": "optional",
           "effect": {
@@ -16753,7 +16429,7 @@
               "amount": 2,
               "target": {
                 "obj_type": "unit",
-                "scope": "any",
+                "scope": "friendly",
                 "count": 1,
                 "location": "any"
               }
@@ -16993,27 +16669,17 @@
       {
         "ability_id": "ogn-101-298_ab_0",
         "text": "At the start of your Beginning Phase, if you control a facedown card at a battlefield, draw 1.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_turn_start",
         "effect_ir": {
           "type": "conditional",
           "condition": {
-            "cond_type": "unit_count_gte",
-            "params": {
-              "scope": "friendly",
-              "zone": "battlefield",
-              "count": 1,
-              "filters": [
-                {
-                  "field": "keyword",
-                  "op": "has",
-                  "value": "hidden"
-                }
-              ]
-            }
+            "cond_type": "always"
           },
           "then": {
             "type": "draw_cards",
-            "count": 1
+            "count": 1,
+            "player": "controller"
           }
         }
       }
@@ -17096,7 +16762,6 @@
           "type": "gain_control",
           "target": {
             "obj_type": "spell",
-            "scope": "enemy",
             "zone": "chain",
             "count": 1
           }
@@ -17227,9 +16892,12 @@
         "ability_id": "sfd-055-221_ab_0",
         "text": "I cost [2][C] less for each point you scored from holding this turn.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
-          "type": "modifier",
-          "stat": "cost"
+          "type": "cost_reduction",
+          "amount": 2,
+          "domain": true,
+          "scaling": "point you scored from holding this turn"
         }
       }
     ],
@@ -17266,10 +16934,12 @@
       {
         "ability_id": "unl-114-219_ab_0",
         "text": "When I win a combat, draw 1.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_combat_win",
         "effect_ir": {
           "type": "draw_cards",
-          "count": 1
+          "count": 1,
+          "player": "controller"
         }
       }
     ],
@@ -17795,25 +17465,13 @@
         "effect_ir": {
           "type": "counter",
           "target": {
-            "obj_type": "card",
+            "obj_type": "spell",
             "scope": "enemy",
-            "zone": "chain",
-            "count": 1,
-            "filters": [
-              {
-                "field": "is_targeting",
-                "op": "eq",
-                "value": {
-                  "obj_type": [
-                    "unit",
-                    "gear"
-                  ],
-                  "scope": "friendly"
-                }
-              }
-            ]
+            "zone": "chain"
           }
-        }
+        },
+        "targets_required": 1,
+        "target_type": "spell_on_chain"
       }
     ]
   },
@@ -17916,10 +17574,11 @@
       {
         "ability_id": "ogn-012-298_ab_0",
         "text": "— I cost [2] less.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_death",
         "effect_ir": {
-          "type": "modifier",
-          "stat": "cost"
+          "type": "cost_reduction",
+          "amount": 2
         }
       }
     ],
@@ -17978,7 +17637,8 @@
       {
         "ability_id": "ogn-284-298_ab_0",
         "text": "At the start of each player's first Beginning Phase, that player channels 1 rune.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_turn_start",
         "effect_ir": {
           "type": "channel_rune",
           "count": 1
@@ -18072,26 +17732,24 @@
         "cost": {
           "exhaust_source": true
         },
-        "effect_script": "rune_add_energy",
-        "timing": "reaction",
-        "text": "Add 1 Energy",
         "effect_ir": {
           "type": "add_energy",
           "amount": 1
-        }
+        },
+        "timing": "reaction",
+        "text": "Add 1 Energy"
       },
       {
         "ability_id": "ogn-214a-298_recycle",
         "ability_type": "activated",
         "cost": {},
-        "effect_script": "rune_recycle_power",
-        "timing": "reaction",
-        "text": "Recycle: Add 1 Order Power",
         "effect_ir": {
           "type": "add_power",
           "amount": 1,
           "domain": "order"
-        }
+        },
+        "timing": "reaction",
+        "text": "Recycle: Add 1 Order Power"
       }
     ]
   },
@@ -18170,7 +17828,8 @@
       {
         "ability_id": "sfd-085-221_ab_0",
         "text": "I have +1 [S] for each friendly gear.",
-        "ability_type": "activated",
+        "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "give_might",
           "amount": 1,
@@ -18440,7 +18099,8 @@
       {
         "ability_id": "unl-076-219_ab_0",
         "text": "I have +1 [S] for each of your units with at my battlefield.",
-        "ability_type": "activated",
+        "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "give_might",
           "amount": 1,
@@ -18484,6 +18144,7 @@
         "ability_id": "sfd-104-221_ab_0",
         "text": "Friendly units have .",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "give_keyword",
           "keyword": "deflect",
@@ -18594,33 +18255,20 @@
         "ability_id": "sfd-023-221_ab_0",
         "text": "[Repeat] [2][C] Deal 2 to a unit at a battlefield, then deal 2 to up to one other unit.",
         "ability_type": "activated",
+        "repeat": true,
         "timing": "default",
         "effect_ir": {
-          "type": "repeat_effect",
-          "effect": {
-            "type": "sequence",
-            "steps": [
-              {
-                "type": "deal_damage",
-                "amount": 2,
-                "target": [
-                  "obj_type",
-                  "scope",
-                  "zone",
-                  "count"
-                ]
-              },
-              {
-                "type": "optional",
-                "effect": [
-                  "type",
-                  "amount",
-                  "target"
-                ]
-              }
-            ]
+          "type": "deal_damage",
+          "amount": 2,
+          "target": {
+            "obj_type": "unit",
+            "scope": "friendly",
+            "count": 1,
+            "location": "any"
           }
-        }
+        },
+        "targets_required": 1,
+        "target_type": "friendly_unit"
       }
     ]
   },
@@ -18680,10 +18328,16 @@
       {
         "ability_id": "ogn-143-298_ab_0",
         "text": "When you ready a friendly unit, give it +1 [S] this turn.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_ready_unit",
         "effect_ir": {
           "type": "give_might",
           "amount": 1,
+          "target": {
+            "obj_type": "unit",
+            "scope": "self",
+            "count": 1
+          },
           "duration": "turn"
         }
       }
@@ -18704,11 +18358,14 @@
       {
         "ability_id": "ogn-091-298_ab_0",
         "text": "When you play a gear, ready me.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_gear_played",
         "effect_ir": {
           "type": "ready",
           "target": {
-            "scope": "self"
+            "obj_type": "unit",
+            "scope": "self",
+            "count": 1
           }
         }
       }
@@ -18835,11 +18492,26 @@
         "text": "You may spend 3 XP as an additional cost to play me. If you do, I cost [3] less.",
         "ability_type": "activated",
         "effect_ir": {
-          "type": "optional",
-          "effect": {
-            "type": "spend_xp",
-            "amount": 3
-          }
+          "type": "sequence",
+          "steps": [
+            {
+              "type": "optional",
+              "effect": {
+                "type": "spend_xp",
+                "amount": 3
+              }
+            },
+            {
+              "type": "conditional",
+              "condition": {
+                "cond_type": "previous_effect_succeeded"
+              },
+              "then": {
+                "type": "cost_reduction",
+                "amount": 3
+              }
+            }
+          ]
         }
       }
     ],
@@ -19029,16 +18701,11 @@
         "ability_type": "activated",
         "timing": "action",
         "effect_ir": {
-          "type": "move",
+          "type": "gain_control",
           "target": {
             "obj_type": "unit",
-            "scope": "enemy",
-            "zone": "battlefield",
+            "scope": "any",
             "count": 1
-          },
-          "destination": {
-            "zone": "hand",
-            "location": "owner"
           }
         }
       }
@@ -19081,21 +18748,15 @@
         "trigger_condition": "on_hold",
         "effect_ir": {
           "type": "optional",
+          "cost": {
+            "power": {
+              "any": 4
+            }
+          },
           "effect": {
-            "type": "sequence",
-            "steps": [
-              {
-                "type": "add_power",
-                "player": "controller",
-                "domain": "any",
-                "amount": -4
-              },
-              {
-                "type": "score_points",
-                "player": "controller",
-                "amount": 1
-              }
-            ]
+            "type": "score_points",
+            "amount": 1,
+            "player": "controller"
           }
         }
       }
@@ -19268,15 +18929,17 @@
       {
         "ability_id": "sfd-075-221_ab_0",
         "text": "When you use an activated ability of a gear, give me +1 [S] this turn.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_gear_ability",
         "effect_ir": {
           "type": "give_might",
           "amount": 1,
-          "duration": "turn",
-          "targets": {
+          "target": {
             "obj_type": "unit",
-            "scope": "self"
-          }
+            "scope": "self",
+            "count": 1
+          },
+          "duration": "turn"
         }
       }
     ],
@@ -19313,21 +18976,9 @@
         },
         "timing": "reaction",
         "effect_ir": {
-          "type": "conditional",
-          "condition": {
-            "cond_type": "turn_history_count_gte",
-            "params": {
-              "event_type": "target",
-              "target_scope": "enemy",
-              "target_obj_type": "unit_or_gear",
-              "source_type": "spell_or_unit_ability",
-              "count": 2
-            }
-          },
-          "then": {
-            "type": "draw_cards",
-            "count": 1
-          }
+          "type": "draw_cards",
+          "count": 1,
+          "player": "controller"
         }
       }
     ],
@@ -19618,6 +19269,7 @@
         "ability_id": "unl-145a-219_ab_0",
         "text": "Once each turn, when an enemy unit dies while I'm at a battlefield, play a Gold gear token exhausted.",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "play_token",
           "name": "Gold",
@@ -19693,24 +19345,17 @@
       {
         "ability_id": "sfd-191-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive",
-        "effect_ir": {
-          "type": "attach",
-          "gear": {
-            "scope": "self"
-          },
-          "unit": {
-            "obj_type": "unit",
-            "scope": "friendly",
-            "count": 1,
-            "filters": [
-              {
-                "field": "domain",
-                "op": "eq",
-                "value": "calm"
-              }
-            ]
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "calm": 1
           }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
         }
       }
     ],
@@ -19737,13 +19382,15 @@
       {
         "ability_id": "ogn-306-298_ab_0",
         "text": "When you stun one or more enemy units, buff a friendly unit.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_stun_enemy",
         "effect_ir": {
           "type": "buff",
           "target": {
             "obj_type": "unit",
             "scope": "friendly",
-            "count": 1
+            "count": 1,
+            "location": "any"
           }
         }
       }
@@ -19884,51 +19531,11 @@
       {
         "ability_id": "sfd-215-221_ab_0",
         "text": "When you defend here, reveal the top card of your Main Deck. If it's a spell, put it in your hand. Otherwise, recycle it.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_defend_here",
         "effect_ir": {
-          "type": "conditional",
-          "condition": {
-            "cond_type": "target_exists",
-            "params": {
-              "target": {
-                "obj_type": "card",
-                "scope": "friendly",
-                "zone": "deck",
-                "count": 1,
-                "filters": [
-                  "position_is_top",
-                  "card_type_is_spell"
-                ]
-              }
-            }
-          },
-          "then": {
-            "type": "move",
-            "target": {
-              "obj_type": "card",
-              "scope": "friendly",
-              "zone": "deck",
-              "count": 1,
-              "filters": [
-                "position_is_top"
-              ]
-            },
-            "destination": {
-              "zone": "hand"
-            }
-          },
-          "else": {
-            "type": "recycle",
-            "target": {
-              "obj_type": "card",
-              "scope": "friendly",
-              "zone": "deck",
-              "count": 1,
-              "filters": [
-                "position_is_top"
-              ]
-            }
-          }
+          "type": "reveal_top",
+          "count": 1
         }
       }
     ]
@@ -20001,7 +19608,8 @@
       {
         "ability_id": "ogn-285-298_ab_0",
         "text": "When you defend here, you may move a friendly unit here to base.",
-        "ability_type": "passive",
+        "ability_type": "triggered",
+        "trigger_condition": "on_defend_here",
         "effect_ir": {
           "type": "optional",
           "effect": {
@@ -20009,11 +19617,8 @@
             "target": {
               "obj_type": "unit",
               "scope": "friendly",
-              "location": "here",
-              "count": 1
-            },
-            "destination": {
-              "zone": "base"
+              "count": 1,
+              "location": "any"
             }
           }
         }
@@ -20180,23 +19785,17 @@
       {
         "ability_id": "sfd-016-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive",
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "fury": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
         "effect_ir": {
-          "type": "sequence",
-          "steps": [
-            {
-              "type": "attach",
-              "unit": {
-                "obj_type": "unit",
-                "scope": "friendly",
-                "count": 1
-              }
-            },
-            {
-              "type": "channel_rune",
-              "domain": "calm"
-            }
-          ]
+          "type": "attach"
         }
       }
     ],
@@ -20321,6 +19920,10 @@
           "type": "sequence",
           "steps": [
             {
+              "type": "look_at_top",
+              "count": 5
+            },
+            {
               "type": "optional",
               "effect": {
                 "type": "banish",
@@ -20371,6 +19974,7 @@
         "ability_id": "sfd-029-221_ab_0",
         "text": "Friendly units played from anywhere other than a player's hand have .",
         "ability_type": "passive",
+        "trigger_condition": null,
         "effect_ir": {
           "type": "modifier",
           "stat": "assault",
@@ -20598,7 +20202,23 @@
         "ability_id": "sfd-171-221_ab_0",
         "text": "Your tokens enter ready.",
         "ability_type": "passive",
-        "trigger_condition": null
+        "trigger_condition": null,
+        "effect_ir": {
+          "type": "aura",
+          "effect": "enter_ready",
+          "target": {
+            "obj_type": "unit",
+            "scope": "friendly",
+            "count": -1,
+            "filters": [
+              {
+                "field": "token",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          }
+        }
       }
     ],
     "tags": [
@@ -20667,7 +20287,12 @@
       {
         "ability_id": "sfd-025-221_ab_0",
         "text": "I can be played to a battlefield you're attacking.",
-        "ability_type": "passive"
+        "ability_type": "passive",
+        "trigger_condition": null,
+        "effect_ir": {
+          "type": "play_restriction",
+          "allows": "a battlefield you're attacking"
+        }
       }
     ],
     "tags": [
@@ -20700,7 +20325,12 @@
       {
         "ability_id": "unl-120a-219_ab_0",
         "text": "I can be played to a battlefield where there are enemy units.",
-        "ability_type": "passive"
+        "ability_type": "passive",
+        "trigger_condition": null,
+        "effect_ir": {
+          "type": "play_restriction",
+          "allows": "a battlefield where there are enemy units"
+        }
       }
     ],
     "tags": [
@@ -20772,7 +20402,17 @@
         "ability_id": "unl-106-219_ab_0",
         "text": "Choose a friendly unit at a battlefield. Counter an enemy spell or ability that chooses it and no other friendly unit.",
         "ability_type": "activated",
-        "timing": "reaction"
+        "timing": "reaction",
+        "effect_ir": {
+          "type": "counter",
+          "target": {
+            "obj_type": "spell",
+            "scope": "enemy",
+            "zone": "chain"
+          }
+        },
+        "targets_required": 1,
+        "target_type": "spell_on_chain"
       }
     ]
   },
@@ -20877,7 +20517,13 @@
       {
         "ability_id": "ogn-195-298_ab_0",
         "text": "I cost [1] less for each card in your trash.",
-        "ability_type": "passive"
+        "ability_type": "passive",
+        "trigger_condition": null,
+        "effect_ir": {
+          "type": "cost_reduction",
+          "amount": 1,
+          "scaling": "card in your trash"
+        }
       }
     ],
     "tags": [
@@ -20991,12 +20637,21 @@
         "ability_type": "triggered",
         "trigger_condition": "on_move_to_bf",
         "effect_ir": {
-          "type": "recycle",
-          "target": {
-            "obj_type": "unit",
-            "scope": "any",
-            "count": 1
-          }
+          "type": "sequence",
+          "steps": [
+            {
+              "type": "look_at_top",
+              "count": 3
+            },
+            {
+              "type": "recycle",
+              "target": {
+                "obj_type": "unit",
+                "scope": "any",
+                "count": 1
+              }
+            }
+          ]
         }
       }
     ],
@@ -21137,6 +20792,7 @@
         "ability_id": "sfd-077-221_ab_0",
         "text": "[Repeat] [4][C] Choose one — - Deal 4 to a unit in a base. - Kill a gear.",
         "ability_type": "activated",
+        "repeat": true,
         "timing": "default"
       }
     ]
@@ -21153,7 +20809,14 @@
       {
         "ability_id": "sfd-216-221_ab_0",
         "text": "Units can't be played here.",
-        "ability_type": "passive"
+        "ability_type": "passive",
+        "trigger_condition": null,
+        "effect_ir": {
+          "type": "restrict",
+          "restriction": "be played here",
+          "scope": "units",
+          "duration": "permanent"
+        }
       }
     ]
   },
@@ -21236,7 +20899,18 @@
       {
         "ability_id": "sfd-105-221_ab_0",
         "text": "I can't be chosen by enemy spells and abilities.",
-        "ability_type": "passive"
+        "ability_type": "passive",
+        "trigger_condition": null,
+        "effect_ir": {
+          "type": "give_keyword",
+          "keyword": "hexproof",
+          "target": {
+            "obj_type": "unit",
+            "scope": "self",
+            "count": 1
+          },
+          "duration": "permanent"
+        }
       }
     ],
     "tags": [
@@ -21336,7 +21010,25 @@
         "ability_id": "sfd-089-221_ab_0",
         "text": "Your Mechs have +1 [S]. When I hold, play a 3 [S] Mech unit token to your base.",
         "ability_type": "passive",
-        "trigger_condition": null
+        "trigger_condition": null,
+        "effect_ir": {
+          "type": "aura",
+          "effect": "give_might",
+          "amount": 1,
+          "target": {
+            "obj_type": "unit",
+            "scope": "friendly",
+            "count": -1,
+            "filters": [
+              {
+                "field": "tag",
+                "op": "eq",
+                "value": "mechs"
+              }
+            ]
+          },
+          "duration": "permanent"
+        }
       }
     ],
     "tags": [
@@ -21427,7 +21119,18 @@
       {
         "ability_id": "sfd-172-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive"
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "order": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
+        }
       }
     ],
     "tags": [
@@ -21525,7 +21228,11 @@
       {
         "ability_id": "ogn-174-298_ab_0",
         "text": "You may play me to an open battlefield.",
-        "ability_type": "passive"
+        "ability_type": "activated",
+        "effect_ir": {
+          "type": "play_restriction",
+          "allows": "open_any_battlefield"
+        }
       }
     ],
     "tags": [
@@ -21686,8 +21393,16 @@
       {
         "ability_id": "unl-197-219_ab_0",
         "text": "[>] [T]: [Add] [1]. Spend this Energy only during showdowns.",
-        "ability_type": "passive",
-        "level_ability": true
+        "ability_type": "activated",
+        "level_ability": true,
+        "cost": {
+          "exhaust_source": true
+        },
+        "timing": "default",
+        "effect_ir": {
+          "type": "add_energy",
+          "amount": 1
+        }
       }
     ],
     "tags": [
@@ -21709,7 +21424,13 @@
       {
         "ability_id": "ogn-182-298_ab_0",
         "text": "When this is played, discarded, or killed, draw 1.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_play_or_discard",
+        "effect_ir": {
+          "type": "draw_cards",
+          "count": 1,
+          "player": "controller"
+        }
       }
     ]
   },
@@ -21737,7 +21458,13 @@
       {
         "ability_id": "ogn-020-298_ab_0",
         "text": "— When you play me, discard 2, then draw 2.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_play",
+        "effect_ir": {
+          "type": "discard",
+          "count": 2,
+          "player": "controller"
+        }
       }
     ],
     "tags": [
@@ -21904,7 +21631,12 @@
         "cost": {
           "exhaust_source": true
         },
-        "timing": "reaction"
+        "timing": "reaction",
+        "effect_ir": {
+          "type": "add_power",
+          "domain": "any",
+          "amount": 1
+        }
       }
     ]
   },
@@ -21936,7 +21668,12 @@
         "cost": {
           "exhaust_source": true
         },
-        "timing": "reaction"
+        "timing": "reaction",
+        "effect_ir": {
+          "type": "add_power",
+          "domain": "any",
+          "amount": 1
+        }
       }
     ]
   },
@@ -21968,7 +21705,12 @@
         "cost": {
           "exhaust_source": true
         },
-        "timing": "reaction"
+        "timing": "reaction",
+        "effect_ir": {
+          "type": "add_power",
+          "domain": "any",
+          "amount": 1
+        }
       }
     ]
   },
@@ -22000,7 +21742,12 @@
         "cost": {
           "exhaust_source": true
         },
-        "timing": "reaction"
+        "timing": "reaction",
+        "effect_ir": {
+          "type": "add_power",
+          "domain": "any",
+          "amount": 1
+        }
       }
     ]
   },
@@ -22032,7 +21779,12 @@
         "cost": {
           "exhaust_source": true
         },
-        "timing": "reaction"
+        "timing": "reaction",
+        "effect_ir": {
+          "type": "add_power",
+          "domain": "any",
+          "amount": 1
+        }
       }
     ]
   },
@@ -22064,7 +21816,12 @@
         "cost": {
           "exhaust_source": true
         },
-        "timing": "reaction"
+        "timing": "reaction",
+        "effect_ir": {
+          "type": "add_power",
+          "domain": "any",
+          "amount": 1
+        }
       }
     ]
   },
@@ -22127,7 +21884,18 @@
       {
         "ability_id": "sfd-009-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive"
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "fury": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
+        }
       }
     ],
     "tags": [
@@ -22153,7 +21921,16 @@
       {
         "ability_id": "sfd-232-star-221_ab_0",
         "text": "When I'm played and when I conquer, buff me. Spend my buff: Give me +4 [S] this turn.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_play_or_conquer",
+        "effect_ir": {
+          "type": "buff",
+          "target": {
+            "obj_type": "unit",
+            "scope": "self",
+            "count": 1
+          }
+        }
       }
     ],
     "tags": [
@@ -22184,7 +21961,19 @@
       {
         "ability_id": "ogn-240-298_ab_0",
         "text": "I get +1 [S] for each buffed friendly unit at my battlefield.",
-        "ability_type": "passive"
+        "ability_type": "passive",
+        "trigger_condition": null,
+        "effect_ir": {
+          "type": "give_might",
+          "amount": 1,
+          "scaling": "buffed friendly unit at my battlefield",
+          "target": {
+            "obj_type": "unit",
+            "scope": "self",
+            "count": 1
+          },
+          "duration": "permanent"
+        }
       }
     ],
     "tags": [
@@ -22337,7 +22126,7 @@
           "amount": 6,
           "target": {
             "obj_type": "unit",
-            "scope": "enemy",
+            "scope": "any",
             "count": 1
           }
         },
@@ -22361,7 +22150,8 @@
       {
         "ability_id": "unl-174-219_ab_0",
         "text": "The first time a friendly unit dies during your Beginning Phase each turn, each opponent must kill one of their units.",
-        "ability_type": "passive"
+        "ability_type": "passive",
+        "trigger_condition": null
       }
     ]
   },
@@ -22568,7 +22358,18 @@
       {
         "ability_id": "sfd-192-221_ab_0",
         "text": "[Equip] [C] When you play this, ready your units.",
-        "ability_type": "passive"
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "calm": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
+        }
       }
     ],
     "tags": [
@@ -22591,7 +22392,15 @@
         "ability_id": "ogn-287-298_ab_0",
         "text": "When you conquer here, you must recycle one of your runes.",
         "ability_type": "triggered",
-        "trigger_condition": "on_conquer"
+        "trigger_condition": "on_conquer",
+        "effect_ir": {
+          "type": "recycle",
+          "target": {
+            "obj_type": "rune",
+            "scope": "friendly",
+            "count": 1
+          }
+        }
       }
     ]
   },
@@ -22613,7 +22422,16 @@
       {
         "ability_id": "sfd-047-221_ab_0",
         "text": "When you buff me, ready me.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_buff",
+        "effect_ir": {
+          "type": "ready",
+          "target": {
+            "obj_type": "unit",
+            "scope": "self",
+            "count": 1
+          }
+        }
       }
     ],
     "tags": [
@@ -22673,7 +22491,26 @@
         "ability_id": "unl-137-219_ab_0",
         "text": "When I attack, you may pay [1] to move an enemy unit here to its base.",
         "ability_type": "triggered",
-        "trigger_condition": "on_attack"
+        "trigger_condition": "on_attack",
+        "effect_ir": {
+          "type": "optional",
+          "cost": {
+            "energy": 1
+          },
+          "effect": {
+            "type": "move",
+            "target": {
+              "obj_type": "unit",
+              "scope": "enemy",
+              "count": 1,
+              "location": "here"
+            },
+            "destination": {
+              "zone": "base",
+              "location": "owner"
+            }
+          }
+        }
       }
     ],
     "tags": [
@@ -22842,7 +22679,7 @@
           "amount": 5,
           "target": {
             "obj_type": "unit",
-            "scope": "any",
+            "scope": "friendly",
             "count": 1,
             "location": "any"
           }
@@ -22867,7 +22704,19 @@
       {
         "ability_id": "sfd-030-221_ab_0",
         "text": "[Equip] [1][C]",
-        "ability_type": "passive"
+        "ability_type": "activated",
+        "cost": {
+          "energy": 1,
+          "power": {
+            "fury": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
+        }
       }
     ],
     "tags": [
@@ -22948,7 +22797,7 @@
               "amount": 3,
               "target": {
                 "obj_type": "unit",
-                "scope": "any",
+                "scope": "friendly",
                 "count": 1,
                 "location": "any"
               }
@@ -23070,7 +22919,11 @@
       {
         "ability_id": "ogn-176-298_ab_0",
         "text": "You may play me to an open battlefield.",
-        "ability_type": "passive"
+        "ability_type": "activated",
+        "effect_ir": {
+          "type": "play_restriction",
+          "allows": "open_any_battlefield"
+        }
       }
     ],
     "tags": [
@@ -23099,7 +22952,13 @@
       {
         "ability_id": "ogn-216-298_ab_0",
         "text": "— Channel 1 rune exhausted.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_death",
+        "effect_ir": {
+          "type": "channel_rune",
+          "count": 1,
+          "exhausted": true
+        }
       }
     ],
     "tags": [
@@ -23194,7 +23053,19 @@
       {
         "ability_id": "ogn-072-298_ab_0",
         "text": "When you kill a stunned enemy unit, you may exhaust this to draw 1.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_kill",
+        "effect_ir": {
+          "type": "optional",
+          "effect": {
+            "type": "exhaust",
+            "target": {
+              "obj_type": "unit",
+              "scope": "any",
+              "count": 1
+            }
+          }
+        }
       }
     ]
   },
@@ -23257,7 +23128,8 @@
       {
         "ability_id": "sfd-239-221_ab_0",
         "text": "I must be assigned combat damage last. If another unit you control here would die, if it has less Might than me, instead heal it, exhaust it, and recall it.",
-        "ability_type": "passive"
+        "ability_type": "passive",
+        "trigger_condition": null
       }
     ],
     "tags": [
@@ -23315,7 +23187,25 @@
         "ability_id": "unl-077-219_ab_0",
         "text": "Your token units have +1 [S].",
         "ability_type": "passive",
-        "trigger_condition": null
+        "trigger_condition": null,
+        "effect_ir": {
+          "type": "aura",
+          "effect": "give_might",
+          "amount": 1,
+          "target": {
+            "obj_type": "unit",
+            "scope": "friendly",
+            "count": -1,
+            "filters": [
+              {
+                "field": "tag",
+                "op": "eq",
+                "value": "token units"
+              }
+            ]
+          },
+          "duration": "permanent"
+        }
       }
     ],
     "tags": [
@@ -23337,7 +23227,18 @@
       {
         "ability_id": "unl-039-219_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive"
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "calm": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
+        }
       }
     ],
     "tags": [
@@ -23365,7 +23266,15 @@
         "ability_id": "ogn-196-298_ab_0",
         "text": "When you play me, you may play a unit from your trash, ignoring its Energy cost.",
         "ability_type": "triggered",
-        "trigger_condition": "on_play"
+        "trigger_condition": "on_play",
+        "effect_ir": {
+          "type": "optional",
+          "effect": {
+            "type": "play_from_trash",
+            "obj_type": "unit",
+            "ignore_cost": true
+          }
+        }
       }
     ],
     "tags": [
@@ -23388,7 +23297,18 @@
       {
         "ability_id": "unl-068-219_ab_0",
         "text": "When another friendly unit dies, give me +2 [S] this turn.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_friendly_death",
+        "effect_ir": {
+          "type": "give_might",
+          "amount": 2,
+          "target": {
+            "obj_type": "unit",
+            "scope": "self",
+            "count": 1
+          },
+          "duration": "turn"
+        }
       }
     ],
     "tags": [
@@ -23415,7 +23335,15 @@
         "ability_id": "ogn-226-298_ab_0",
         "text": "When you play me, you may play a unit costing no more than [3] and no more than [A] from your trash, ignoring its cost.",
         "ability_type": "triggered",
-        "trigger_condition": "on_play"
+        "trigger_condition": "on_play",
+        "effect_ir": {
+          "type": "optional",
+          "effect": {
+            "type": "play_from_trash",
+            "obj_type": "unit",
+            "ignore_cost": true
+          }
+        }
       }
     ],
     "tags": [
@@ -23456,7 +23384,18 @@
       {
         "ability_id": "sfd-186-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive"
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "fury": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
+        }
       }
     ],
     "tags": [
@@ -23480,7 +23419,8 @@
       {
         "ability_id": "sfd-144-221_ab_0",
         "text": "When you choose a friendly unit, you may pay [1] and exhaust this to draw 1.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_choose_friendly"
       }
     ]
   },
@@ -23775,7 +23715,13 @@
         "ability_id": "unl-017-219_ab_0",
         "text": "[Repeat] — Discard 1 Give a unit this turn.",
         "ability_type": "activated",
-        "timing": "default"
+        "repeat": true,
+        "timing": "default",
+        "effect_ir": {
+          "type": "discard",
+          "count": 1,
+          "player": "controller"
+        }
       }
     ]
   },
@@ -23801,7 +23747,11 @@
         "ability_id": "ogn-183-298_ab_0",
         "text": "Look at the top 3 cards of your Main Deck. Put 1 into your hand and recycle the rest.",
         "ability_type": "activated",
-        "timing": "action"
+        "timing": "action",
+        "effect_ir": {
+          "type": "look_at_top",
+          "count": 3
+        }
       }
     ]
   },
@@ -23915,7 +23865,8 @@
       {
         "ability_id": "unl-215-219_ab_0",
         "text": "The first time a player plays a non-token unit here each turn, they may move another unit they control here to its base.",
-        "ability_type": "passive"
+        "ability_type": "passive",
+        "trigger_condition": null
       }
     ]
   },
@@ -23944,7 +23895,30 @@
         "ability_id": "unl-128-219_ab_0",
         "text": "Return a friendly unit and an enemy unit to their owners' hands.",
         "ability_type": "activated",
-        "timing": "reaction"
+        "timing": "reaction",
+        "effect_ir": {
+          "type": "sequence",
+          "steps": [
+            {
+              "type": "return_to_hand",
+              "target": {
+                "obj_type": "unit",
+                "scope": "friendly",
+                "count": 1
+              }
+            },
+            {
+              "type": "return_to_hand",
+              "target": {
+                "obj_type": "unit",
+                "scope": "enemy",
+                "count": 1
+              }
+            }
+          ]
+        },
+        "targets_required": 1,
+        "target_type": "friendly_unit"
       }
     ]
   },
@@ -24131,7 +24105,18 @@
       {
         "ability_id": "sfd-056-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive"
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "calm": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
+        }
       }
     ],
     "tags": [
@@ -24159,7 +24144,18 @@
         "ability_id": "ogn-250-298_ab_0",
         "text": "Choose a friendly unit in your base. Deal damage equal to its Might to all enemy units at a battlefield, then move your unit there.",
         "ability_type": "activated",
-        "timing": "default"
+        "timing": "default",
+        "effect_ir": {
+          "type": "deal_damage",
+          "amount": "source_might",
+          "target": {
+            "obj_type": "unit",
+            "scope": "enemy",
+            "count": -1,
+            "location": "here"
+          }
+        },
+        "targets_required": 0
       }
     ],
     "tags": [
@@ -24307,7 +24303,7 @@
               "amount": 2,
               "target": {
                 "obj_type": "unit",
-                "scope": "any",
+                "scope": "friendly",
                 "count": 1,
                 "location": "any"
               }
@@ -24359,7 +24355,13 @@
       {
         "ability_id": "unl-085-219_ab_0",
         "text": "When an opponent scores, draw 1.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_opponent_action",
+        "effect_ir": {
+          "type": "draw_cards",
+          "count": 1,
+          "player": "controller"
+        }
       }
     ]
   },
@@ -24469,7 +24471,7 @@
           "amount": 5,
           "target": {
             "obj_type": "unit",
-            "scope": "any",
+            "scope": "friendly",
             "count": 1,
             "location": "any"
           }
@@ -24500,7 +24502,19 @@
       {
         "ability_id": "sfd-059-221_ab_0",
         "text": "[Equip] [1][C] As this is attached to a unit, copy that unit's text to this Equipment's effect text for as long as this is attached to it.",
-        "ability_type": "passive"
+        "ability_type": "activated",
+        "cost": {
+          "energy": 1,
+          "power": {
+            "calm": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
+        }
       }
     ],
     "tags": [
@@ -24565,7 +24579,16 @@
         "ability_id": "sfd-145-221_ab_0",
         "text": "Swap the Might of two units at the same battlefield this turn.",
         "ability_type": "activated",
-        "timing": "action"
+        "timing": "action",
+        "effect_ir": {
+          "type": "swap_might",
+          "target": {
+            "obj_type": "unit",
+            "scope": "any",
+            "count": 2
+          },
+          "duration": "turn"
+        }
       }
     ]
   },
@@ -24752,7 +24775,8 @@
       {
         "ability_id": "ogn-074-298_ab_0",
         "text": "Other friendly units here have .",
-        "ability_type": "passive"
+        "ability_type": "passive",
+        "trigger_condition": null
       }
     ],
     "tags": [
@@ -24785,7 +24809,13 @@
       {
         "ability_id": "ogn-075-298_ab_0",
         "text": "— Channel 2 runes exhausted and draw 1.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_death",
+        "effect_ir": {
+          "type": "channel_rune",
+          "count": 2,
+          "exhausted": true
+        }
       }
     ],
     "tags": [
@@ -24929,7 +24959,17 @@
         "ability_id": "sfd-129-221_ab_0",
         "text": "[Repeat] [2] Move an enemy unit to a location where there's a unit with the same controller.",
         "ability_type": "activated",
-        "timing": "default"
+        "repeat": true,
+        "timing": "default",
+        "effect_ir": {
+          "type": "move",
+          "target": {
+            "obj_type": "unit",
+            "scope": "enemy",
+            "count": 1,
+            "location": "any"
+          }
+        }
       }
     ]
   },
@@ -24972,7 +25012,8 @@
       {
         "ability_id": "ogn-290-298_ab_0",
         "text": "At the start of each player's first Beginning Phase, that player gains 1 point.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_turn_start"
       }
     ]
   },
@@ -25079,7 +25120,12 @@
         "ability_id": "ogn-198-298_ab_0",
         "text": "Play a unit from your trash, ignoring its Energy cost.",
         "ability_type": "activated",
-        "timing": "default"
+        "timing": "default",
+        "effect_ir": {
+          "type": "play_from_trash",
+          "obj_type": "unit",
+          "ignore_cost": true
+        }
       }
     ]
   },
@@ -25115,7 +25161,13 @@
         "ability_id": "sfd-219-221_ab_0",
         "text": "When you hold here, each player channels 1 rune exhausted.",
         "ability_type": "triggered",
-        "trigger_condition": "on_hold"
+        "trigger_condition": "on_hold",
+        "effect_ir": {
+          "type": "channel_rune",
+          "count": 1,
+          "player": "each",
+          "exhausted": true
+        }
       }
     ]
   },
@@ -25203,7 +25255,19 @@
       {
         "ability_id": "sfd-090-221_ab_0",
         "text": "[Equip] [1][C] [3][C], Banish this: Play all units banished with this, ignoring their costs.",
-        "ability_type": "passive"
+        "ability_type": "activated",
+        "cost": {
+          "energy": 4,
+          "power": {
+            "mind": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
+        }
       }
     ],
     "tags": [
@@ -25359,7 +25423,25 @@
         "ability_id": "sfd-040-221_ab_0",
         "text": "[Repeat] [2] Stun an attacking unit.",
         "ability_type": "activated",
-        "timing": "action"
+        "repeat": true,
+        "timing": "action",
+        "effect_ir": {
+          "type": "stun",
+          "target": {
+            "obj_type": "unit",
+            "scope": "any",
+            "count": 1,
+            "filters": [
+              {
+                "field": "combat_role",
+                "op": "eq",
+                "value": "attacker"
+              }
+            ]
+          }
+        },
+        "targets_required": 1,
+        "target_type": "unit"
       }
     ]
   },
@@ -25639,7 +25721,21 @@
         "ability_id": "sfd-220-221_ab_0",
         "text": "When you conquer here, you may pay [1] to play a Gold gear token exhausted.",
         "ability_type": "triggered",
-        "trigger_condition": "on_conquer"
+        "trigger_condition": "on_conquer",
+        "effect_ir": {
+          "type": "optional",
+          "cost": {
+            "energy": 1
+          },
+          "effect": {
+            "type": "play_token",
+            "name": "Gold",
+            "token_type": "gear",
+            "might": 0,
+            "count": 1,
+            "exhausted": true
+          }
+        }
       }
     ]
   },
@@ -25689,7 +25785,13 @@
       {
         "ability_id": "ogn-186-298_ab_0",
         "text": "When this leaves the board, draw 1 and channel 1 rune exhausted. [C], [T]: Kill this.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_leave_board",
+        "effect_ir": {
+          "type": "draw_cards",
+          "count": 1,
+          "player": "controller"
+        }
       }
     ]
   },
@@ -25778,7 +25880,16 @@
       {
         "ability_id": "ogn-217-298_ab_0",
         "text": "— When you play me, buff me.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_play",
+        "effect_ir": {
+          "type": "buff",
+          "target": {
+            "obj_type": "unit",
+            "scope": "self",
+            "count": 1
+          }
+        }
       }
     ],
     "tags": [
@@ -25798,7 +25909,20 @@
       {
         "ability_id": "ogn-294-298_ab_0",
         "text": "Units here have +1 [S].",
-        "ability_type": "passive"
+        "ability_type": "passive",
+        "trigger_condition": null,
+        "effect_ir": {
+          "type": "aura",
+          "effect": "give_might",
+          "amount": 1,
+          "target": {
+            "obj_type": "unit",
+            "scope": "any",
+            "count": -1,
+            "location": "here"
+          },
+          "duration": "permanent"
+        }
       }
     ]
   },
@@ -25817,7 +25941,18 @@
       {
         "ability_id": "sfd-115-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive"
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "body": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
+        }
       }
     ],
     "tags": [
@@ -25954,7 +26089,11 @@
         "ability_id": "ogn-200-298_ab_0",
         "text": "When I attack, reveal the top rune of your rune deck, then recycle it. Do one of the following based on its domain: * [R] — Deal 2 to an enemy unit here and 1 to all other enemy units here. * [B] — Draw 1. * [Y] — Stun an enemy unit.",
         "ability_type": "triggered",
-        "trigger_condition": "on_attack"
+        "trigger_condition": "on_attack",
+        "effect_ir": {
+          "type": "reveal_top",
+          "count": 1
+        }
       }
     ],
     "tags": [
@@ -26083,7 +26222,13 @@
       {
         "ability_id": "ogn-178-298_ab_0",
         "text": "— Discard 2, then draw 2.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_death",
+        "effect_ir": {
+          "type": "discard",
+          "count": 2,
+          "player": "controller"
+        }
       }
     ]
   },
@@ -26180,7 +26325,12 @@
         "ability_id": "unl-168-219_ab_0",
         "text": "This costs [2] less if you choose a Bird, Cat, Dog, or Poro. Play a unit with cost no more than [2] and no more than [A] from your trash, ignoring its cost.",
         "ability_type": "activated",
-        "timing": "default"
+        "timing": "default",
+        "effect_ir": {
+          "type": "play_from_trash",
+          "obj_type": "unit",
+          "ignore_cost": true
+        }
       }
     ]
   },
@@ -26270,7 +26420,19 @@
       {
         "ability_id": "sfd-167-221_ab_0",
         "text": "— If I was , draw 2.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_death",
+        "effect_ir": {
+          "type": "conditional",
+          "condition": {
+            "cond_type": "always"
+          },
+          "then": {
+            "type": "draw_cards",
+            "count": 2,
+            "player": "controller"
+          }
+        }
       }
     ],
     "tags": [
@@ -26303,7 +26465,12 @@
         "ability_id": "ogn-145-298_ab_0",
         "text": "Prevent all spell and ability damage this turn.",
         "ability_type": "activated",
-        "timing": "reaction"
+        "timing": "reaction",
+        "effect_ir": {
+          "type": "prevent_damage",
+          "scope": "all",
+          "duration": "turn"
+        }
       }
     ]
   },
@@ -26323,7 +26490,17 @@
         "ability_id": "unl-009-219_ab_0",
         "text": "[Repeat] [2] Ready a unit.",
         "ability_type": "activated",
-        "timing": "default"
+        "repeat": true,
+        "timing": "default",
+        "effect_ir": {
+          "type": "ready",
+          "target": {
+            "obj_type": "unit",
+            "scope": "friendly",
+            "count": 1,
+            "location": "any"
+          }
+        }
       }
     ]
   },
@@ -26339,7 +26516,8 @@
       {
         "ability_id": "unl-218-219_ab_0",
         "text": "When a player plays a unit here, they may pay [1] to [Buff] it.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_any_unit_played_here"
       }
     ]
   },
@@ -26434,7 +26612,15 @@
       {
         "ability_id": "ogn-218-298_ab_0",
         "text": "— When you play me, play two 1 [S] Recruit unit tokens here.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_play",
+        "effect_ir": {
+          "type": "play_token",
+          "name": "Recruit",
+          "might": 1,
+          "temporary": false,
+          "count": 2
+        }
       }
     ],
     "tags": [
@@ -26457,7 +26643,24 @@
       {
         "ability_id": "ogn-228-298_ab_0",
         "text": "When a buffed friendly unit dies, buff another friendly unit.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_buffed_friendly_death",
+        "effect_ir": {
+          "type": "buff",
+          "target": {
+            "obj_type": "unit",
+            "scope": "friendly",
+            "count": 1,
+            "location": "any",
+            "filters": [
+              {
+                "field": "not_self",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          }
+        }
       }
     ]
   },
@@ -26683,7 +26886,8 @@
       {
         "ability_id": "unl-150a-219_ab_0",
         "text": "When an opponent plays a unit while I'm at a battlefield, [Stun] it. They can't move it this turn.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_opponent_action"
       }
     ],
     "tags": [
@@ -26748,7 +26952,23 @@
       {
         "ability_id": "unl-055-219_ab_0",
         "text": "When you [Stun] an enemy unit at a battlefield, you may move me to that battlefield.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_stun_enemy",
+        "effect_ir": {
+          "type": "optional",
+          "effect": {
+            "type": "move",
+            "target": {
+              "obj_type": "unit",
+              "scope": "self",
+              "count": 1
+            },
+            "destination": {
+              "zone": "battlefield",
+              "location": "target"
+            }
+          }
+        }
       }
     ],
     "tags": [
@@ -26823,7 +27043,17 @@
           "energy": 2,
           "power_of_domain": true
         },
-        "timing": "default"
+        "timing": "default",
+        "effect_ir": {
+          "type": "give_might",
+          "amount": "double",
+          "target": {
+            "obj_type": "unit",
+            "scope": "self",
+            "count": 1
+          },
+          "duration": "turn"
+        }
       }
     ],
     "tags": [
@@ -26888,7 +27118,12 @@
       {
         "ability_id": "unl-129-219_ab_0",
         "text": "When another friendly unit dies, gain 1 XP.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_friendly_death",
+        "effect_ir": {
+          "type": "gain_xp",
+          "amount": 1
+        }
       }
     ],
     "tags": [
@@ -26913,7 +27148,15 @@
       {
         "ability_id": "ogn-117a-298_ab_0",
         "text": "When you play a card on an opponent's turn, play a 1 [S] Recruit unit token in your base.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_play_on_opponent_turn",
+        "effect_ir": {
+          "type": "play_token",
+          "name": "Recruit",
+          "might": 1,
+          "temporary": false,
+          "ready_on_enter": false
+        }
       }
     ],
     "tags": [
@@ -26939,7 +27182,15 @@
       {
         "ability_id": "ogn-246-298_ab_0",
         "text": "When another non-Recruit unit you control dies, play a 1 [S] Recruit unit token into your base.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_friendly_death",
+        "effect_ir": {
+          "type": "play_token",
+          "name": "Recruit",
+          "might": 1,
+          "temporary": false,
+          "ready_on_enter": false
+        }
       }
     ],
     "tags": [
@@ -26971,7 +27222,8 @@
       {
         "ability_id": "unl-060a-219_ab_0",
         "text": "Enemy units here with less Might than me don't deal combat damage. When I hold, draw 1.",
-        "ability_type": "passive"
+        "ability_type": "passive",
+        "trigger_condition": null
       }
     ],
     "tags": [
@@ -26991,7 +27243,14 @@
       {
         "ability_id": "ogn-295-298_ab_0",
         "text": "Units can't move from here to base.",
-        "ability_type": "passive"
+        "ability_type": "passive",
+        "trigger_condition": null,
+        "effect_ir": {
+          "type": "restrict",
+          "restriction": "move from here to base",
+          "scope": "units",
+          "duration": "permanent"
+        }
       }
     ]
   },
@@ -27146,7 +27405,8 @@
       {
         "ability_id": "sfd-010-221_ab_0",
         "text": "I cost [2] less to play from anywhere other than your hand.",
-        "ability_type": "passive"
+        "ability_type": "passive",
+        "trigger_condition": null
       }
     ],
     "tags": [
@@ -27165,7 +27425,13 @@
       {
         "ability_id": "ogn-296-298_ab_0",
         "text": "Spells and abilities deal 1 Bonus Damage to units here.",
-        "ability_type": "passive"
+        "ability_type": "activated",
+        "effect_ir": {
+          "type": "aura",
+          "effect": "bonus_damage",
+          "amount": 1,
+          "scope": "all"
+        }
       }
     ]
   },
@@ -27274,7 +27540,7 @@
               "amount": 4,
               "target": {
                 "obj_type": "unit",
-                "scope": "any",
+                "scope": "friendly",
                 "count": 1,
                 "location": "any"
               }
@@ -27357,7 +27623,16 @@
         "ability_id": "ogn-041-298_ab_0",
         "text": "When I attack, deal 5 damage split among any number of enemy units here.",
         "ability_type": "triggered",
-        "trigger_condition": "on_attack"
+        "trigger_condition": "on_attack",
+        "effect_ir": {
+          "type": "split_damage",
+          "amount": 5,
+          "target": {
+            "obj_type": "unit",
+            "scope": "any",
+            "count": 1
+          }
+        }
       }
     ],
     "tags": [
@@ -27393,7 +27668,8 @@
       {
         "ability_id": "ogn-158a-298_ab_0",
         "text": "When an opponent moves to a battlefield other than mine, draw 1.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_opponent_action"
       }
     ],
     "tags": [
@@ -27457,7 +27733,7 @@
               "amount": 3,
               "target": {
                 "obj_type": "unit",
-                "scope": "any",
+                "scope": "friendly",
                 "count": 1,
                 "location": "any"
               }
@@ -27556,7 +27832,18 @@
       {
         "ability_id": "sfd-108-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive"
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "body": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
+        }
       }
     ],
     "tags": [
@@ -27621,7 +27908,13 @@
       {
         "ability_id": "ogn-096-298_ab_0",
         "text": "— Draw 1.",
-        "ability_type": "passive"
+        "ability_type": "triggered",
+        "trigger_condition": "on_death",
+        "effect_ir": {
+          "type": "draw_cards",
+          "count": 1,
+          "player": "controller"
+        }
       }
     ],
     "tags": [
@@ -27647,7 +27940,20 @@
         "ability_id": "ogn-187-298_ab_0",
         "text": "Starting with the next player, each player may return a unit to its owner's hand.",
         "ability_type": "activated",
-        "timing": "default"
+        "timing": "default",
+        "effect_ir": {
+          "type": "optional",
+          "effect": {
+            "type": "return_to_hand",
+            "target": {
+              "obj_type": "unit",
+              "scope": "friendly",
+              "count": 1,
+              "location": "any"
+            }
+          },
+          "scope": "each_player_from_next"
+        }
       }
     ]
   },
@@ -27857,7 +28163,8 @@
       {
         "ability_id": "ogn-297-298_ab_0",
         "text": "Units here have .",
-        "ability_type": "passive"
+        "ability_type": "passive",
+        "trigger_condition": null
       }
     ]
   },
@@ -27899,7 +28206,18 @@
       {
         "ability_id": "sfd-086-221_ab_0",
         "text": "[Equip] [C]",
-        "ability_type": "passive"
+        "ability_type": "activated",
+        "cost": {
+          "power": {
+            "mind": 1
+          }
+        },
+        "timing": "default",
+        "targets_required": 1,
+        "target_type": "friendly_unit",
+        "effect_ir": {
+          "type": "attach"
+        }
       }
     ],
     "tags": [
@@ -27926,7 +28244,8 @@
       {
         "ability_id": "ogn-118-298_ab_0",
         "text": "The first time a friendly unit dies each turn, draw 1.",
-        "ability_type": "passive"
+        "ability_type": "passive",
+        "trigger_condition": null
       }
     ],
     "tags": [
@@ -27959,8 +28278,14 @@
       {
         "ability_id": "unl-040-219_ab_0",
         "text": "[>] When you play me, draw 1.",
-        "ability_type": "passive",
-        "level_ability": true
+        "ability_type": "triggered",
+        "level_ability": true,
+        "trigger_condition": "on_play",
+        "effect_ir": {
+          "type": "draw_cards",
+          "count": 1,
+          "player": "controller"
+        }
       }
     ],
     "tags": [
@@ -28018,7 +28343,25 @@
         "ability_id": "unl-231-star-219_ab_0",
         "text": "[>] Your units have +1 [S]. [>] Your units enter ready.",
         "ability_type": "passive",
-        "level_ability": true
+        "level_ability": true,
+        "effect_ir": {
+          "type": "aura",
+          "effect": "give_might",
+          "amount": 1,
+          "target": {
+            "obj_type": "unit",
+            "scope": "friendly",
+            "count": -1,
+            "filters": [
+              {
+                "field": "tag",
+                "op": "eq",
+                "value": "units"
+              }
+            ]
+          },
+          "duration": "permanent"
+        }
       }
     ],
     "tags": [
@@ -28051,7 +28394,7 @@
           "amount": 3,
           "target": {
             "obj_type": "unit",
-            "scope": "any",
+            "scope": "friendly",
             "count": 1,
             "location": "any"
           }
@@ -28122,7 +28465,17 @@
         "ability_id": "ogn-076a-298_ab_0",
         "text": "When I attack, deal damage equal to my Might to an enemy unit here.",
         "ability_type": "triggered",
-        "trigger_condition": "on_attack"
+        "trigger_condition": "on_attack",
+        "effect_ir": {
+          "type": "deal_damage",
+          "amount": "source_might",
+          "target": {
+            "obj_type": "unit",
+            "scope": "enemy",
+            "count": 1,
+            "location": "here"
+          }
+        }
       }
     ],
     "tags": [
@@ -28627,7 +28980,8 @@
       {
         "ability_id": "unl-086-219_ab_0",
         "text": "Once each turn, if you would play a token unit while I'm at a battlefield, you may play that token and an additional copy of it instead.",
-        "ability_type": "passive"
+        "ability_type": "passive",
+        "trigger_condition": null
       }
     ],
     "tags": [

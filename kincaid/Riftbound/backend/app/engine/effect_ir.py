@@ -82,6 +82,19 @@ SPEND_XP = "spend_xp"
 LOOK_AT_TOP = "look_at_top"
 GIVE_KEYWORD = "give_keyword"
 RESTRICT = "restrict"
+SPEND_ENERGY = "spend_energy"
+SPEND_POWER = "spend_power"
+FIGHT = "fight"
+CHALLENGE = "challenge"
+GAIN_CONTROL = "gain_control"
+SET_STAT = "set_stat"
+PLAY = "play"
+PLAY_CARD = "play_card"
+REVEAL_UNTIL = "reveal_until"
+REVERT_BATTLEFIELD = "revert_battlefield"
+TRIGGER_KEYWORD = "trigger_keyword"
+GRANT_ACTIVATED_ABILITY = "grant_activated_ability"
+SHARE_ABILITIES = "share_abilities"
 
 # Composition node type constants (branch nodes)
 SEQUENCE = "sequence"
@@ -90,12 +103,14 @@ FOR_EACH = "for_each"
 CHOOSE_ONE = "choose_one"
 OPTIONAL = "optional"
 REPEAT_EFFECT = "repeat_effect"
+ARRAY = "array"  # alias for choose_one — multiple option branches
 
 # Rule-breaker node type constants (stateful / interactive nodes)
 MODIFIER = "modifier"
 REPLACEMENT = "replacement"
 PLAYER_CHOICE = "player_choice"
 DELAYED_TRIGGER = "delayed_trigger"  # rules 382-385
+TRIGGERED_EFFECT = "triggered_effect"  # register a triggered ability
 
 # All valid node types
 PRIMITIVE_TYPES = frozenset({
@@ -103,17 +118,26 @@ PRIMITIVE_TYPES = frozenset({
     READY, EXHAUST, DISCARD, BANISH, COUNTER, RETURN_TO_HAND, RETURN_TO_DECK,
     RECYCLE, PLAY_TOKEN, ADD_ENERGY, ADD_POWER, CHANNEL_RUNE, ATTACH, DETACH,
     SCORE_POINTS, GAIN_XP, SPEND_XP, LOOK_AT_TOP, GIVE_KEYWORD, RESTRICT,
+    SPEND_ENERGY, SPEND_POWER, FIGHT, CHALLENGE, GAIN_CONTROL, SET_STAT,
+    PLAY, PLAY_CARD, REVEAL_UNTIL, REVERT_BATTLEFIELD, TRIGGER_KEYWORD,
+    GRANT_ACTIVATED_ABILITY, SHARE_ABILITIES,
 })
 
 COMPOSITION_TYPES = frozenset({
     SEQUENCE, CONDITIONAL, FOR_EACH, CHOOSE_ONE, OPTIONAL, REPEAT_EFFECT,
+    ARRAY,
 })
 
 RULE_BREAKER_TYPES = frozenset({
-    MODIFIER, REPLACEMENT, PLAYER_CHOICE, DELAYED_TRIGGER,
+    MODIFIER, REPLACEMENT, PLAYER_CHOICE, DELAYED_TRIGGER, TRIGGERED_EFFECT,
 })
 
-ALL_NODE_TYPES = PRIMITIVE_TYPES | COMPOSITION_TYPES | RULE_BREAKER_TYPES
+# Descriptor types: used as sub-nodes (e.g. trigger descriptors inside
+# triggered_effect) but not directly executable as standalone effects.
+EVENT = "event"
+DESCRIPTOR_TYPES = frozenset({EVENT})
+
+ALL_NODE_TYPES = PRIMITIVE_TYPES | COMPOSITION_TYPES | RULE_BREAKER_TYPES | DESCRIPTOR_TYPES
 
 
 # ---------------------------------------------------------------------------

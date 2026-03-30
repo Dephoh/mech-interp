@@ -62,6 +62,8 @@ function App() {
   const setRoom = useGameStore((s) => s.setRoom);
   const setPlayer = useGameStore((s) => s.setPlayer);
   const setWaiting = useGameStore((s) => s.setWaiting);
+  const setReconnectToken = useGameStore((s) => s.setReconnectToken);
+  const setOpponentDisconnected = useGameStore((s) => s.setOpponentDisconnected);
   const updateState = useGameStore((s) => s.updateState);
   const addLogs = useGameStore((s) => s.addLogs);
   const setGameOver = useGameStore((s) => s.setGameOver);
@@ -79,6 +81,23 @@ function App() {
       case "ROOM_JOINED":
         // player_id comes from GAME_STARTED; here just clear waiting on slot 0
         setPlayer(msg.room_id, msg.player_slot);
+        // Store reconnect token for use during reconnection
+        if (msg.reconnect_token) {
+          setReconnectToken(msg.reconnect_token);
+        }
+        break;
+      case "RECONNECT_SUCCESS":
+        // Restore player identity after reconnection
+        setPlayer(msg.your_player_id, msg.player_slot);
+        setOpponentDisconnected(false);
+        break;
+      case "PLAYER_DISCONNECTED":
+        setOpponentDisconnected(true);
+        addLogs(["Opponent disconnected. Waiting for reconnection..."]);
+        break;
+      case "PLAYER_RECONNECTED":
+        setOpponentDisconnected(false);
+        addLogs(["Opponent reconnected."]);
         break;
       case "GAME_STARTED":
         setPlayer(msg.your_player_id, useGameStore.getState().playerSlot ?? 0);
@@ -115,9 +134,9 @@ function App() {
       case "TESTLAB_SCENARIO_CHANGED":
         break;
     }
-  }, [setPlayer, updateState, addLogs, setGameOver, setError, setWaiting]);
+  }, [setPlayer, setReconnectToken, setOpponentDisconnected, updateState, addLogs, setGameOver, setError, setWaiting]);
 
-  const { status, connect, send } = useWebSocket(handleMessage);
+  const { status, connect, send, reconnectAttempt, wasConnected, justReconnected } = useWebSocket(handleMessage);
 
   const handleJoin = useCallback(
     (rid: string, playerName: string) => {
@@ -232,7 +251,13 @@ function App() {
 
   return (
     <>
-      <GameBoard send={send} />
+      <GameBoard
+        send={send}
+        connectionStatus={status}
+        reconnectAttempt={reconnectAttempt}
+        wasConnected={wasConnected}
+        justReconnected={justReconnected}
+      />
       <CardHoverPortal />
     </>
   );

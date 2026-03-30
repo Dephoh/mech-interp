@@ -239,9 +239,11 @@ def _exec_move_unit(gs: GameState, player_id: str, payload: dict) -> list[str]:
 
         # Apply Contested status if battlefield is uncontrolled or controlled by opponent
         if bf.control_status == ControlStatus.UNCONTROLLED:
+            bf.control_status = ControlStatus.CONTESTED
             bf.contested_by = player_id
             logs.append(f"{unit.name} contests the battlefield")
         elif bf.control_status == ControlStatus.CONTROLLED and bf.controller_id != player_id:
+            bf.control_status = ControlStatus.CONTESTED
             bf.contested_by = player_id
             logs.append(f"{unit.name} contests {bf.controller_id}'s battlefield")
 
@@ -271,19 +273,27 @@ def _exec_move_unit(gs: GameState, player_id: str, payload: dict) -> list[str]:
 
 
 def _exec_exhaust_rune(gs: GameState, player_id: str, payload: dict) -> list[str]:
-    """Exhaust a rune to gain Energy."""
+    """Exhaust a rune to gain Energy.
+
+    Rule 160.2.a / 416: '[E]: [Reaction] — Add [1]'.
+    Resolves via effect_ir when the ability carries one, otherwise inlines
+    the basic exhaust-and-add-energy logic.
+    """
+    from .effect_resolver import resolve_effect_ir
+
     instance_id = payload["instance_id"]
     rune = gs.instances[instance_id]
     logs: list[str] = []
 
-    # Find the exhaust ability and push to chain (or resolve immediately for basic runes)
+    # Prefer the effect_ir path on the exhaust ability
     for ability in rune.definition.abilities:
-        if ability.effect_script == "rune_add_energy":
-            from .effects import resolve_effect
-            result = resolve_effect("rune_add_energy", rune, gs, [])
+        if ability.ability_id.endswith("_exhaust") and ability.effect_ir:
+            rune.exhausted = True
+            result = resolve_effect_ir(ability.effect_ir, rune, gs, [])
             logs.extend(result)
             break
     else:
+        # Fallback: inline basic exhaust + add energy
         rune.exhausted = True
         gs.players[player_id].rune_pool.add_energy(1)
         logs.append(f"{rune.name} exhausted: +1 Energy")
@@ -292,24 +302,30 @@ def _exec_exhaust_rune(gs: GameState, player_id: str, payload: dict) -> list[str
 
 
 def _exec_recycle_rune(gs: GameState, player_id: str, payload: dict) -> list[str]:
-    """Recycle a rune to gain Power of its domain."""
+    """Recycle a rune to gain Power of its domain.
+
+    Rule 160.2.b / 416: 'Recycle this: [Reaction] — Add [C]'.
+    Resolves via effect_ir when the ability carries one, otherwise inlines
+    the basic recycle-and-add-power logic.
+    """
+    from .effect_resolver import resolve_effect_ir
+
     instance_id = payload["instance_id"]
     rune = gs.instances[instance_id]
     logs: list[str] = []
 
     for ability in rune.definition.abilities:
-        if ability.effect_script == "rune_recycle_power":
-            from .effects import resolve_effect
-            result = resolve_effect("rune_recycle_power", rune, gs, [])
+        if ability.ability_id.endswith("_recycle") and ability.effect_ir:
+            result = resolve_effect_ir(ability.effect_ir, rune, gs, [])
             logs.extend(result)
+            _recycle_rune_to_deck(rune, gs)
             break
     else:
-        # Fallback: basic recycle
-        from .effects import _recycle_rune
+        # Fallback: inline basic recycle
         if rune.definition.domains:
             domain = rune.definition.domains[0]
             gs.players[player_id].rune_pool.add_power(domain, 1)
-            _recycle_rune(rune, gs)
+            _recycle_rune_to_deck(rune, gs)
             logs.append(f"{rune.name} recycled: +1 {domain.value} Power")
 
     # Fire recycle rune trigger ("When you recycle a rune, ...")
@@ -317,6 +333,19 @@ def _exec_recycle_rune(gs: GameState, player_id: str, payload: dict) -> list[str
     logs.extend(evt_logs)
 
     return logs
+
+
+def _recycle_rune_to_deck(rune: CardInstance, gs: GameState) -> None:
+    """Move a rune from its current zone to the bottom of its owner's rune deck."""
+    ps = gs.players[rune.owner_id]
+    # Remove from rune board
+    if rune.instance_id in (gs.base_runes.get(rune.controller_id) or []):
+        gs.base_runes[rune.controller_id].remove(rune.instance_id)
+    # Put on bottom of rune deck
+    rune.zone = ZoneType.RUNE_DECK
+    rune.location_id = None
+    rune.exhausted = False
+    ps.rune_deck.append(rune.instance_id)
 
 
 def _exec_activate_ability(gs: GameState, player_id: str, payload: dict) -> list[str]:
@@ -354,15 +383,52 @@ def _exec_assign_damage(gs: GameState, player_id: str, payload: dict) -> list[st
 
 
 def _exec_concede(gs: GameState, player_id: str, payload: dict) -> list[str]:
-    """Player concedes the game."""
-    winner_id = gs.opponent_id(player_id)
-    gs.game_over = True
-    gs.winner_id = winner_id
-    gs.phase = gs.phase  # keep current phase in log
+    """Player concedes the game.
+
+    In 2v2 the entire team loses (rule 466.6.a.1).
+    In FFA with >2 remaining, the player is removed but play continues
+    (rule 651.2) — for now we end the game if only one player/team remains.
+    """
+    from .enums import GameMode
+
     loser_name = gs.players[player_id].display_name
-    winner_name = gs.players[winner_id].display_name
-    gs.log.add(f"{loser_name} concedes. {winner_name} wins!")
-    return [f"{loser_name} concedes. {winner_name} wins!"]
+    logs: list[str] = []
+
+    remaining = [pid for pid in gs.player_order if pid != player_id]
+
+    # In 2v2, teammate also loses
+    if gs.game_mode == GameMode.TWO_VS_TWO:
+        teammate = gs.teammate_id(player_id)
+        if teammate:
+            remaining = [pid for pid in remaining if pid != teammate]
+
+    if len(remaining) == 1:
+        winner_id = remaining[0]
+        gs.game_over = True
+        gs.winner_id = winner_id
+        winner_name = gs.players[winner_id].display_name
+        gs.log.add(f"{loser_name} concedes. {winner_name} wins!")
+        logs.append(f"{loser_name} concedes. {winner_name} wins!")
+    elif gs.teams:
+        # 2v2: exactly one team left — pick first remaining as representative
+        winner_id = remaining[0]
+        gs.game_over = True
+        gs.winner_id = winner_id
+        winner_name = gs.players[winner_id].display_name
+        gs.log.add(f"{loser_name}'s team concedes. {winner_name}'s team wins!")
+        logs.append(f"{loser_name}'s team concedes. {winner_name}'s team wins!")
+    else:
+        # FFA with >2 remaining — remove player, game continues
+        gs.player_order.remove(player_id)
+        gs.log.add(f"{loser_name} concedes and is removed from the game.")
+        logs.append(f"{loser_name} concedes and is removed from the game.")
+        # If it was their turn, advance to next player
+        if gs.turn_player_id == player_id:
+            gs.turn_player_id = gs.player_order[0]
+        if gs.active_player_id == player_id:
+            gs.active_player_id = gs.turn_player_id
+
+    return logs
 
 
 def _exec_submit_choice(gs: GameState, player_id: str, payload: dict) -> list[str]:
@@ -383,6 +449,7 @@ def _exec_submit_choice(gs: GameState, player_id: str, payload: dict) -> list[st
     logs: list[str] = []
 
     chosen_option_index = payload.get("chosen_option_index")
+    chosen_option_indices = payload.get("chosen_option_indices")
     chosen_target_ids = payload.get("chosen_target_ids", [])
 
     # Clear the pending choice before resolving (so nested choices can work)
@@ -395,7 +462,7 @@ def _exec_submit_choice(gs: GameState, player_id: str, payload: dict) -> list[st
 
     pre_targets = pending.get("pre_targets", [])
 
-    # Modal choice: player picked an option index
+    # Modal choice: player picked a single option index
     if chosen_option_index is not None:
         options = pending.get("options", [])
         if 0 <= chosen_option_index < len(options):
@@ -406,6 +473,27 @@ def _exec_submit_choice(gs: GameState, player_id: str, payload: dict) -> list[st
             logs.insert(0, f"Choice submitted: option {chosen_option_index}")
         else:
             logs.append(f"Invalid option index: {chosen_option_index}")
+
+    # Multi-select modal choice: player picked multiple option indices
+    elif chosen_option_indices is not None:
+        options = pending.get("options", [])
+        min_c = pending.get("min_choices", 1)
+        max_c = pending.get("max_choices", len(options))
+        if not (min_c <= len(chosen_option_indices) <= max_c):
+            logs.append(
+                f"Invalid selection count: got {len(chosen_option_indices)}, "
+                f"expected {min_c}-{max_c}"
+            )
+        else:
+            for idx in chosen_option_indices:
+                if 0 <= idx < len(options):
+                    chosen = options[idx]
+                    effect = chosen.get("effect", chosen)
+                    result = resolve_effect_ir(effect, source, gs, pre_targets)
+                    logs.extend(result)
+                else:
+                    logs.append(f"Invalid option index: {idx}")
+            logs.insert(0, f"Choice submitted: options {chosen_option_indices}")
 
     # Target-selection choice: player picked specific targets
     elif chosen_target_ids:

@@ -132,6 +132,15 @@ class ActionType(str, Enum):
     SUBMIT_CHOICE = "submit_choice"
 
 
+class GameMode(str, Enum):
+    """Sanctioned modes of play (rules 462-466)."""
+
+    STANDARD_1V1 = "standard_1v1"   # 2 players, 2 battlefields, victory=8
+    FFA3 = "ffa3"                   # 3 players, 3 battlefields, victory=8
+    FFA4 = "ffa4"                   # 4 players, 3 battlefields, victory=8
+    TWO_VS_TWO = "2v2"             # 4 players, 2 teams, 3 battlefields, victory=11
+
+
 class SuperType(str, Enum):
     CHAMPION = "champion"
     SIGNATURE = "signature"

@@ -268,12 +268,18 @@ def _stage_showdowns(gs: GameState, logs: list[str]) -> bool:
                 logs.append(f"Showdown at {bf_id} cancelled (opposing units present)")
 
     # Rule 322.8 — stage new showdowns
+    # Skip battlefields that already have an active showdown or combat
+    active_combat_bf = gs.active_combat.battlefield_id if gs.active_combat else None
+    active_showdown_bf = gs.active_showdown.battlefield_id if gs.active_showdown else None
+
     for bf_id, bf in gs.battlefields.items():
         if (
             bf.contested_by is not None
-            and bf.control_status == ControlStatus.UNCONTROLLED
+            and bf.control_status in (ControlStatus.UNCONTROLLED, ControlStatus.CONTESTED)
             and not bf.showdown_staged
             and not bf.combat_staged
+            and bf_id != active_combat_bf
+            and bf_id != active_showdown_bf
         ):
             # Check: only the contesting player's units here (no combat needed)
             units_by_player = bf.units_by_player(gs.instances)
@@ -303,8 +309,16 @@ def _stage_combats(gs: GameState, logs: list[str]) -> bool:
                 logs.append(f"Combat at {bf_id} cancelled (opposing units no longer present)")
 
     # Rule 322.10 — stage new combats
+    # Skip battlefields that already have an active combat or showdown
+    # (combat_staged was cleared when it opened, but re-staging while the
+    # combat/showdown is still in progress is incorrect).
+    active_combat_bf = gs.active_combat.battlefield_id if gs.active_combat else None
+    active_showdown_bf = gs.active_showdown.battlefield_id if gs.active_showdown else None
+
     for bf_id, bf in gs.battlefields.items():
         if bf.combat_staged:
+            continue
+        if bf_id == active_combat_bf or bf_id == active_showdown_bf:
             continue
         units_by_player = bf.units_by_player(gs.instances)
         if len(units_by_player) >= 2 and bf.contested_by is not None:

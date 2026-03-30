@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { CardView as CardViewType } from "../../ws/messageTypes";
 import { useUIStore } from "../../store/uiStore";
+import { getCardImageUrl } from "../../utils/cardImages";
 
 interface Props {
   card: CardViewType;
@@ -22,7 +23,7 @@ const DOMAIN_COLORS: Record<string, string> = {
 
 function cardImageUrl(cardId: string | undefined): string | null {
   if (!cardId) return null;
-  return `/card-images/${cardId}.png`;
+  return getCardImageUrl(cardId);
 }
 
 export function CardViewComponent({ card, onClick, compact, highlighted, dimmed, zone = "other" }: Props) {

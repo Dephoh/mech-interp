@@ -191,12 +191,20 @@ def _generate_keyword_scenarios(
             )
 
         elif kw_val == "hidden":
-            # Hidden units in hand, empty battlefields to deploy facedown.
-            hand_ids = [c.card_id for c in units[:5]]
+            # Hidden (Rule 737): Pay [A] to hide facedown at a controlled BF.
+            # One facedown per BF, gains [Reaction] next turn, played ignoring
+            # base cost. Include ALL hidden card types (units, spells, gear).
+            hand_ids = [c.card_id for c in cards[:5]]
+            p1_bf[0] = fodder[:2]  # P1 controls BF0 (need controlled BF to hide at)
             behavior = (
-                "Play these units to an empty battlefield. They should enter "
-                "facedown (hidden). Verify reveal timing when they would be "
-                "involved in combat or targeted."
+                "Hide cards facedown: during your turn in an Open State, pay "
+                "[A] to place a card facedown at a controlled battlefield. "
+                "Rules (737): (1) only ONE facedown card per BF, (2) the card "
+                "gains [Reaction] at the start of the NEXT turn, (3) when "
+                "played from facedown, its base cost is ignored. Try hiding "
+                "at BF0, then try hiding a second card there (should fail — "
+                "one per BF). End turn, pass back, then play the hidden card "
+                "as a Reaction during the next showdown window."
             )
 
         elif kw_val == "predict":
@@ -242,15 +250,18 @@ def _generate_keyword_scenarios(
             )
 
         elif kw_val == "legion":
-            # Multiple legion cards in hand. Play a non-legion card first to
-            # satisfy the "played another Main Deck card this turn" condition.
+            # Legion (Rule 738): bonus active only if you've played another
+            # Main Deck card this turn BEFORE this one.
             filler = fodder[0] if fodder else None
             legion_ids = [c.card_id for c in cards[:4]]
             hand_ids = ([filler] if filler else []) + legion_ids
             behavior = (
-                "Play the non-legion unit first (this satisfies the Legion "
-                "condition: 'you've played another Main Deck card this turn'). "
-                "Then play legion cards — their Legion bonus should now be active."
+                "NEGATIVE TEST FIRST: Play a Legion card as your FIRST card "
+                "of the turn — the Legion bonus should NOT activate (Rule "
+                "738.1.c.1: requires playing another Main Deck card BEFORE "
+                "this one). Then play the non-legion filler unit, and play "
+                "another Legion card — now the bonus SHOULD activate because "
+                "you've already played a Main Deck card this turn."
             )
 
         # ----- On-board mechanics (need friendly units to interact with) -----
@@ -269,14 +280,18 @@ def _generate_keyword_scenarios(
             )
 
         elif kw_val == "level":
-            # Level cards in hand. Some may be units that level up, others
-            # spells/gear that grant XP or trigger on level thresholds.
+            # Level: XP is per-PLAYER, not per-unit. Level cards trigger
+            # effects at XP thresholds. Include XP-generating cards to
+            # actually advance the level track.
             hand_ids = [c.card_id for c in cards[:5]]
-            p1_bf[0] = fodder[:2]  # friendly units to receive XP/buffs
+            p1_bf[0] = fodder[:2]  # friendly units on board
+            p2_bf[1] = fodder[2:5]  # enemies for scoring/XP generation
             behavior = (
-                "Play level cards. Units with Level gain XP from various "
-                "sources. Verify XP accumulates and level-up effects trigger "
-                "when thresholds are reached."
+                "Play level cards. XP is tracked per-PLAYER (not per-unit). "
+                "Level effects trigger when the player's XP reaches certain "
+                "thresholds. Try generating XP by controlling battlefields "
+                "or defeating enemy units, then verify level-up effects "
+                "activate when thresholds are crossed."
             )
 
         elif kw_val == "deathknell":
@@ -290,21 +305,48 @@ def _generate_keyword_scenarios(
             )
 
         elif kw_val == "equip":
-            # Gear in hand, friendly units on BF to equip to.
-            hand_ids = [c.card_id for c in (gear + spells)[:4]]
+            # Equip (Rule 744): "[Cost]: Attach this gear to a unit you
+            # control." Equip is an activated ability on gear cards.
+            # Gear with Equip in hand, friendly units on BF to attach to.
+            equip_gear = [c for c in cards if c.card_type == CardType.GEAR][:4]
+            if not equip_gear:
+                equip_gear = [
+                    c for c in card_db.values()
+                    if c.card_type == CardType.GEAR and c.has_keyword(Keyword.EQUIP)
+                ][:4]
+            hand_ids = [c.card_id for c in equip_gear]
             p1_bf[0] = fodder[:3]
             behavior = (
-                "Play gear cards targeting your units on BF0. Verify they "
-                "attach correctly and grant their stat bonus or ability."
+                "Play Equipment gear to get them into play, then use their "
+                "Equip activated ability (Rule 744) to attach to a unit you "
+                "control on BF0. Verify: (1) gear attaches to target unit, "
+                "(2) stat bonuses or abilities are granted, (3) Equip cost "
+                "is paid correctly."
             )
 
         elif kw_val == "weaponmaster":
-            # Weaponmaster units on BF + gear in hand to equip.
-            p1_bf[0] = [c.card_id for c in units[:3]]
-            hand_ids = [c.card_id for c in gear[:3]]
+            # Weaponmaster (Rule 747): PLAY EFFECT — "When you play me,
+            # choose a controlled Equipment, pay reduced Equip cost ([A]
+            # discount), attach it to this unit."
+            # Units in HAND (play triggers the effect), Equipment gear also
+            # in hand to play first so it's in play when weaponmaster arrives.
+            wm_units = [c for c in units if not c.has_keyword(Keyword.EQUIP)][:3]
+            if not wm_units:
+                wm_units = units[:3]
+            equip_gear = [
+                c for c in card_db.values()
+                if c.card_type == CardType.GEAR
+                and "Equipment" in c.tags
+            ][:3]
+            hand_ids = [c.card_id for c in equip_gear] + [c.card_id for c in wm_units]
+            p1_bf[0] = fodder[:2]  # friendly units (equip targets if needed)
             behavior = (
-                "Equip gear from hand onto the weaponmaster units on BF0. "
-                "Verify the Weaponmaster bonus activates when gear is attached."
+                "First, play the Equipment gear cards to get them into play. "
+                "Then play the Weaponmaster units — on play, Weaponmaster "
+                "(Rule 747) triggers: choose a controlled Equipment card, pay "
+                "its Equip cost reduced by [A], and auto-attach it to this "
+                "unit. Verify: (1) the play effect fires, (2) Equipment "
+                "attaches to the Weaponmaster unit, (3) the cost is reduced."
             )
 
         # ----- Movement/arrival mechanics -----
@@ -320,13 +362,15 @@ def _generate_keyword_scenarios(
             )
 
         elif kw_val == "hunt":
-            # Hunt units on BF0, enemies on BF1. Hunt: must attack + can attack adjacent.
-            p1_bf[0] = [c.card_id for c in units[:3]]
-            p2_bf[1] = fodder[:3]
+            # Hunt: "When I conquer or hold, gain N XP."
+            # XP/scoring mechanic — hunt units on a controlled BF earn XP
+            # during scoring phases for controlling the battlefield.
+            p1_bf[0] = [c.card_id for c in units[:4]]
             behavior = (
-                "Hunt units MUST attack if able and CAN attack units on adjacent "
-                "battlefields. Move your hunt units to trigger combat and verify "
-                "they are forced to attack and can reach adjacent BF targets."
+                "Hunt units gain XP when they conquer or hold a battlefield. "
+                "Your hunt units control BF0. End your turn to trigger "
+                "scoring — verify hunt units gain XP equal to their hunt "
+                "value for each battlefield they hold or conquer."
             )
 
         # ----- Combat keywords (P1 on BF0, P2 on BF1, move to trigger) -----
@@ -341,42 +385,67 @@ def _generate_keyword_scenarios(
             )
 
         elif kw_val == "backline":
-            # Mix backline + normal units so player can compare attacker roles.
+            # Backline: damage ordering — backline units must be assigned
+            # combat damage LAST, not excluded from attacking.
             p1_bf[0] = [c.card_id for c in units[:3]] + fodder[:1]
             p2_bf[1] = fodder[:3]
             behavior = (
-                "Move all units from BF0 to enemy BF1. In combat, verify "
-                "backline units are NOT assigned as attackers. The non-backline "
-                "unit should attack normally. Backline units CAN still defend."
+                "Move all units from BF0 to enemy BF1. In combat, backline "
+                "units must be assigned combat damage LAST — they are still "
+                "attackers and can deal damage, but opponents must assign "
+                "damage to non-backline units first. Compare damage assignment "
+                "order between the backline and non-backline units."
             )
 
         elif kw_val == "deflect":
-            p1_bf[0] = [c.card_id for c in units[:4]]
-            p2_bf[1] = fodder[:3]
+            # Deflect (Rule 735): Opponent spells/abilities that choose
+            # this unit cost extra Power equal to the deflect value.
+            # NOT combat damage reduction. Put deflect units on P2's side
+            # with non-deflect fodder for cost comparison.
+            deflect_ids = [c.card_id for c in units[:3]]
+            p2_bf[1] = deflect_ids + fodder[:2]  # deflect + non-deflect targets
+            hand_ids = kill_spells[:4]  # targeting spells to test extra cost
             behavior = (
-                "Move deflect units from BF0 to enemy BF1. In combat, verify "
-                "incoming damage to deflect units is reduced by the deflect "
-                "value. Compare damage taken vs a unit without deflect."
+                "Target the enemy deflect units on BF1 with your damage "
+                "spells. Deflect (Rule 735) imposes an EXTRA Power cost "
+                "(equal to deflect value, any Domain) on opponent spells "
+                "that choose the deflect unit. Compare cost when targeting "
+                "deflect units vs non-deflect fodder. This is NOT combat "
+                "damage reduction — it only taxes spell targeting."
             )
 
         elif kw_val == "quick_draw":
-            # Only 1 QD unit (Jax) — put on BF0 with QD gear in hand to equip.
-            p1_bf[0] = [c.card_id for c in units[:3]] + fodder[:1]
-            hand_ids = [c.card_id for c in gear[:3]]
-            p2_bf[1] = fodder[:3]
+            # Quick-Draw (Rule 745): Grants [Reaction] timing + auto-attach.
+            # NOT first-strike in combat. QD gear can be played during
+            # showdowns as reactions, auto-attaching to a friendly unit.
+            hand_ids = [c.card_id for c in gear[:4]]
+            if not hand_ids:
+                hand_ids = [c.card_id for c in cards[:4]]
+            p1_bf[0] = fodder[:2]   # \
+            p2_bf[0] = fodder[2:4]  # / contested BF0 — bot starts showdown
             behavior = (
-                "Equip quick-draw gear onto units, then move from BF0 to enemy "
-                "BF1. In combat, verify quick-draw units deal damage BEFORE "
-                "normal units. If they kill an enemy, it shouldn't hit back."
+                "End your turn so the bot starts a showdown at contested BF0. "
+                "During the showdown window, play Quick-Draw gear as reactions "
+                "— Quick-Draw (Rule 745) grants [Reaction] timing. When "
+                "played, they auto-attach to a unit you control. Verify: "
+                "(1) QD gear CAN be played during showdown, (2) it auto-"
+                "attaches without a separate Equip action."
             )
 
         elif kw_val == "shield":
+            # Shield (Rule 740): "+X Might while defending."
+            # P1's shield units must be DEFENDERS. Place P1 shield units on
+            # BF0 (P1 controls) and P2 units also on BF0 (contested, P2 is
+            # the attacker who "moved in"). P1's units are defenders.
             p1_bf[0] = [c.card_id for c in units[:4]]
-            p2_bf[1] = fodder[:3]
+            p2_bf[0] = fodder[:3]  # contested BF0 — P2 is attacker, P1 defends
             behavior = (
-                "Move shield units from BF0 to enemy BF1 to trigger combat. "
-                "Verify shield units gain +N Might while defending (N defaults "
-                "to 1). Compare their combat might vs their base stat."
+                "Your shield units on BF0 are DEFENDERS (the enemy moved in, "
+                "making them the attacker). When the showdown/combat resolves, "
+                "verify shield units have +X Might (X = shield value, default "
+                "1). Shield (Rule 740) ONLY works while defending — if you "
+                "had moved to the enemy's BF, you'd be the attacker and the "
+                "bonus would NOT apply."
             )
 
         elif kw_val == "tank":

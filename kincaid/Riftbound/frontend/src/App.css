@@ -1175,6 +1175,40 @@ input {
   font-weight: 500;
 }
 
+/* Connection status banners */
+.connection-banner {
+  text-align: center;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  animation: banner-slide-in 0.3s ease-out;
+}
+.connection-banner--lost {
+  background: linear-gradient(90deg, rgba(239, 83, 80, 0.15), rgba(239, 83, 80, 0.3), rgba(239, 83, 80, 0.15));
+  color: var(--red);
+  border-bottom: 1px solid rgba(239, 83, 80, 0.3);
+}
+.connection-banner--failed {
+  background: linear-gradient(90deg, rgba(239, 83, 80, 0.25), rgba(239, 83, 80, 0.4), rgba(239, 83, 80, 0.25));
+  color: #fff;
+  border-bottom: 1px solid rgba(239, 83, 80, 0.5);
+}
+.connection-banner--ok {
+  background: linear-gradient(90deg, rgba(76, 175, 80, 0.15), rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.15));
+  color: var(--green-bright);
+  border-bottom: 1px solid rgba(76, 175, 80, 0.3);
+  animation: banner-slide-in 0.3s ease-out, banner-fade-out 0.5s ease-in 2.5s forwards;
+}
+@keyframes banner-slide-in {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes banner-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 /* Targeting mode */
 .targeting-banner {
   text-align: center;
@@ -1327,31 +1361,41 @@ input {
 /* Damage / might badges on cards */
 .damage-badge {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  bottom: -5px;
+  right: -5px;
   background: var(--red);
   color: #fff;
   font-size: 10px;
   font-weight: 800;
-  min-width: 16px;
-  height: 16px;
-  line-height: 16px;
+  min-width: 18px;
+  height: 18px;
+  line-height: 18px;
   text-align: center;
-  border-radius: 8px;
+  border-radius: 50%;
   padding: 0 3px;
-  z-index: 3;
+  z-index: 4;
+  pointer-events: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4), 0 0 6px rgba(229, 57, 53, 0.5);
+  animation: damage-pop 0.3s ease-out;
+}
+@keyframes damage-pop {
+  0%   { transform: scale(0); opacity: 0; }
+  70%  { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(1); }
 }
 .might-badge {
   position: absolute;
   bottom: 2px;
   left: 2px;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0,0,0,0.75);
   color: var(--gold);
   font-size: 9px;
   font-weight: 700;
   padding: 1px 4px;
   border-radius: 3px;
   z-index: 3;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 /* Buff badge — green circle with upward arrow at top-left */
@@ -1824,4 +1868,257 @@ input {
 .accelerate-modal__btn--no:hover {
   background: var(--bg-hover);
   border-color: var(--border-bright);
+}
+
+/* ============================================
+   Responsive Breakpoints — FE-08
+   ============================================ */
+
+/* ── Tablet (max-width: 1024px) ──────────── */
+@media (max-width: 1024px) {
+  :root {
+    --card-w: 90px;
+    --card-h: 126px;
+    --card-compact-w: 60px;
+    --card-compact-h: 84px;
+    --card-tiny-w: 40px;
+    --card-tiny-h: 56px;
+  }
+
+  .game-layout {
+    grid-template-columns: 44px 1fr 240px;
+  }
+
+  .sidebar {
+    width: 240px;
+  }
+
+  .sidebar__preview .preview-card-img {
+    width: 140px;
+    height: 196px;
+  }
+
+  .player-strip {
+    padding: 4px 8px;
+    gap: 6px;
+    min-height: 56px;
+  }
+  .player-strip--you {
+    min-height: 68px;
+  }
+
+  .zone--battlefield .zone__cards {
+    min-height: 100px;
+    padding: 6px;
+  }
+
+  .score-tracker {
+    padding: 4px 0;
+  }
+}
+
+/* ── Mobile (max-width: 768px) ───────────── */
+@media (max-width: 768px) {
+  :root {
+    --card-w: 80px;
+    --card-h: 112px;
+    --card-compact-w: 54px;
+    --card-compact-h: 76px;
+    --card-tiny-w: 36px;
+    --card-tiny-h: 50px;
+  }
+
+  body {
+    overflow: auto;
+  }
+
+  /* Stack: score-tracker collapses into a row,
+     main board takes full width, sidebar below */
+  .game-layout {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  /* Score tracker becomes a horizontal strip */
+  .score-tracker {
+    flex-direction: row;
+    justify-content: center;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 4px 8px;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .score-section {
+    flex-direction: row;
+    gap: 4px;
+  }
+  .score-section--you {
+    margin-top: 0;
+    margin-left: auto;
+  }
+  .score-divider {
+    width: 1px;
+    height: 24px;
+  }
+
+  /* Main board fills width */
+  .main-board {
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Player strips scroll horizontally */
+  .player-strip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 4px 6px;
+    gap: 6px;
+    min-height: 52px;
+  }
+  .player-strip--you {
+    min-height: 64px;
+  }
+
+  /* Battlefield stacks vertically on very narrow screens */
+  .battlefield-area {
+    flex-direction: column;
+    padding: 4px 6px;
+    gap: 4px;
+  }
+
+  .zone--battlefield {
+    min-width: unset;
+  }
+
+  .zone--battlefield .zone__cards {
+    min-height: 80px;
+    padding: 4px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* All zone card containers: horizontal scroll on mobile */
+  .zone__cards {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Base zone scrollable */
+  .zone--base {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zone--base .zone__cards {
+    flex-wrap: nowrap;
+  }
+
+  /* Rune chip list scrollable */
+  .rune-chip-list {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Sidebar stacks below the board */
+  .sidebar {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  .sidebar__log {
+    max-height: 150px;
+  }
+
+  .sidebar__preview {
+    padding: 6px 8px;
+  }
+
+  .sidebar__preview .preview-card-img {
+    width: 120px;
+    height: 168px;
+  }
+
+  /* Action bar wraps more aggressively */
+  .action-bar {
+    padding: 4px 6px;
+    gap: 4px;
+  }
+  .action-bar button {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  /* Lobby adjustments */
+  .lobby {
+    padding: 16px;
+  }
+  .lobby-card {
+    width: 90%;
+    max-width: 400px;
+  }
+
+  /* Modals shouldn't overflow on mobile */
+  .scenario-browser {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  /* Testlab toolbar stacks */
+  .testlab-toolbar {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .game-layout--testlab .main-board {
+    padding-top: 100px;
+  }
+}
+
+/* ── Small Mobile (max-width: 480px) ─────── */
+@media (max-width: 480px) {
+  :root {
+    --card-w: 68px;
+    --card-h: 95px;
+    --card-compact-w: 48px;
+    --card-compact-h: 67px;
+    --card-tiny-w: 32px;
+    --card-tiny-h: 45px;
+  }
+
+  .sidebar__phase-bar {
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px 8px;
+  }
+
+  .sidebar__header {
+    padding: 6px 8px;
+  }
+
+  .sidebar__turn-number {
+    font-size: 14px;
+  }
+
+  .player-strip {
+    min-height: 44px;
+  }
+  .player-strip--you {
+    min-height: 52px;
+  }
+
+  .zone--opponent .card--facedown {
+    width: 40px;
+    height: 56px;
+    margin-left: -14px;
+  }
 }

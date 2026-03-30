@@ -21,11 +21,16 @@ from __future__ import annotations
 import logging
 
 from .card_types import CardInstance
-from .effects import resolve_effect
 from .effect_resolver import resolve_effect_ir
-from .enums import CardType, ZoneType
+from .enums import AbilityType, CardType, ZoneType
 from .game_state import ChainItem, GameState
-from .keywords import apply_accelerate
+from .keywords import (
+    apply_accelerate,
+    apply_quick_draw_auto_attach,
+    apply_vision,
+    get_repeat_cost,
+    process_weaponmaster_on_enter,
+)
 from .trigger_system import GameEvent, fire_event
 
 logger = logging.getLogger("riftbound.chain")
@@ -215,7 +220,7 @@ def pass_priority(gs: GameState, player_id: str) -> bool:
         return True
 
     # Switch active player to next in turn order
-    gs.active_player_id = gs.opponent_id(player_id)
+    gs.active_player_id = gs.next_player(player_id)
     logger.info("[CHAIN] Priority → %s", gs.active_player_id[:6])
     return False
 
@@ -345,18 +350,21 @@ def _flush_deferred_triggers(gs: GameState) -> list[str]:
 
 
 def _resolve_spell(gs: GameState, card: CardInstance, targets: list[str]) -> list[str]:
-    """Execute a spell's effects, then send it to trash."""
+    """Execute a spell's effects, then send it to trash.
+
+    Rule 746: If the spell has [Repeat], after the initial execution the
+    controller may pay the Repeat cost to execute the spell's instructions
+    again.  For now we auto-repeat at most once if the player can afford it
+    (a frontend prompt for the choice will be added later).
+    """
     logs: list[str] = []
 
-    for ability in card.definition.abilities:
-        if ability.effect_ir:
-            # New composable effect system
-            result = resolve_effect_ir(ability.effect_ir, card, gs, targets)
-            logs.extend(result)
-        elif ability.effect_script:
-            # Legacy named-function fallback
-            result = resolve_effect(ability.effect_script, card, gs, targets)
-            logs.extend(result)
+    logs.extend(_execute_spell_abilities(card, gs, targets))
+
+    # --- Repeat (Rule 746) --------------------------------------------------
+    # After the first execution, check if the spell has the Repeat keyword.
+    # If the controller can pay the Repeat energy cost, execute again (once).
+    logs.extend(_try_repeat_spell(card, gs, targets))
 
     # Spell goes to owner's trash
     ps = gs.players[card.owner_id]
@@ -364,6 +372,63 @@ def _resolve_spell(gs: GameState, card: CardInstance, targets: list[str]) -> lis
     card.location_id = None
     ps.trash.append(card.instance_id)
     logs.append(f"{card.name} resolves and goes to trash")
+    return logs
+
+
+def _execute_spell_abilities(
+    card: CardInstance,
+    gs: GameState,
+    targets: list[str],
+) -> list[str]:
+    """Run all abilities on the spell card, returning log messages."""
+    logs: list[str] = []
+    for ability in card.definition.abilities:
+        if ability.effect_ir:
+            result = resolve_effect_ir(ability.effect_ir, card, gs, targets)
+            logs.extend(result)
+    return logs
+
+
+def _try_repeat_spell(
+    card: CardInstance,
+    gs: GameState,
+    targets: list[str],
+) -> list[str]:
+    """Check for Repeat keyword and auto-pay once if affordable.
+
+    Rule 746: The player may pay the additional Repeat cost to execute
+    the spell's instructions again.  Currently auto-repeats at most once;
+    a user-facing prompt will be added in a future iteration.
+
+    Returns log messages from the repeated execution (empty if no repeat).
+    """
+    from .enums import Keyword
+
+    if not card.has_keyword(Keyword.REPEAT):
+        return []
+
+    repeat_energy = get_repeat_cost(card)
+    controller_id = card.controller_id or card.owner_id
+    ps = gs.players[controller_id]
+
+    if ps.rune_pool.energy < repeat_energy:
+        logger.info(
+            "[REPEAT] %s: cannot afford repeat cost (%d energy, have %d)",
+            card.name, repeat_energy, ps.rune_pool.energy,
+        )
+        return []
+
+    # Pay the Repeat cost
+    ps.rune_pool.energy -= repeat_energy
+    logger.info(
+        "[REPEAT] %s: paid %d energy to repeat (remaining: %d)",
+        card.name, repeat_energy, ps.rune_pool.energy,
+    )
+
+    logs: list[str] = [
+        f"Repeat: {card.name} pays {repeat_energy} energy to execute again"
+    ]
+    logs.extend(_execute_spell_abilities(card, gs, targets))
     return logs
 
 
@@ -385,7 +450,6 @@ def _finalize_permanent(
         card.entered_this_turn = True
         # Accelerate: if paid, unit enters ready (rule 731)
         apply_accelerate(card, card.accelerated)
-        card.accelerated = False
         ready_str = "ready" if not card.exhausted else "exhausted"
 
         # Rule 352.2/356.2.c: Place at chosen destination (base or controlled battlefield)
@@ -413,6 +477,29 @@ def _finalize_permanent(
         gs.base_gear.setdefault(controller_id, []).append(card.instance_id)
         logs.append(f"{card.name} enters the base (ready)")
 
+    # ---- Keyword hooks that fire when a permanent enters the board ----
+
+    if card.card_type == CardType.UNIT:
+        # Rule 743 (Vision): look at top card of deck, may recycle
+        logs.extend(apply_vision(card, gs))
+
+        # Rule 747 (Weaponmaster): choose equipment, pay discounted equip cost
+        logs.extend(process_weaponmaster_on_enter(card, gs))
+
+    elif card.card_type == CardType.GEAR:
+        # Rule 745 (Quick-Draw): auto-attach gear to a unit on play
+        logs.extend(apply_quick_draw_auto_attach(card, gs))
+
+        # Gear with Vision also triggers (rule 743.1.a: present on Permanents)
+        logs.extend(apply_vision(card, gs))
+
+    # Resolve passive abilities (modifiers, replacements) now that the
+    # card is on the board.  These register ActiveModifier /
+    # ActiveReplacement entries on the GameState so continuous effects
+    # and replacement interceptions are active from this point forward.
+    passive_logs = _resolve_passive_abilities(gs, card)
+    logs.extend(passive_logs)
+
     # Rule 376.4.a.2: Play effects and triggered abilities go on chain.
     # fire_event scans ALL board objects — handles both the card's own on_play
     # trigger and observer cards' "When you play a unit/gear" triggers.
@@ -433,6 +520,67 @@ def _finalize_permanent(
     return logs
 
 
+def _resolve_passive_abilities(
+    gs: GameState,
+    card: CardInstance,
+) -> list[str]:
+    """Resolve passive abilities that carry modifier or replacement IR.
+
+    When a permanent enters the board, its passive abilities with effect_ir
+    nodes of type ``modifier`` or ``replacement`` must be executed so the
+    corresponding ActiveModifier / ActiveReplacement is registered on the
+    GameState.  Without this step the replacement / modifier would never
+    be active and check_replacements / recalculate_modifiers would have
+    nothing to find.
+
+    Only processes abilities whose ability_type is 'passive' (or 'replacement')
+    and whose top-level effect_ir type is 'modifier', 'replacement', or
+    'conditional' (which may wrap a replacement/modifier).
+    """
+    _REGISTRABLE_IR_TYPES = frozenset({"modifier", "replacement", "conditional"})
+    logs: list[str] = []
+    for ability in card.definition.abilities:
+        atype = ability.ability_type
+        if atype not in (AbilityType.PASSIVE, "passive", AbilityType.REPLACEMENT, "replacement"):
+            continue
+        ir = ability.effect_ir
+        if not ir or not isinstance(ir, dict):
+            continue
+        ir_type = ir.get("type", "")
+        if ir_type not in _REGISTRABLE_IR_TYPES:
+            continue
+        result = resolve_effect_ir(ir, card, gs)
+        logs.extend(result)
+    return logs
+
+
+def register_board_passives(gs: GameState) -> list[str]:
+    """Scan all board objects and resolve their passive abilities.
+
+    Call this once after game setup (battlefield cards are already on
+    the board) or after any bulk board-state change to ensure all
+    passive modifiers and replacements are registered.
+
+    Skips cards that already have a registration in active_modifiers
+    or active_replacements (prevents double-registration).
+    """
+    from .trigger_system import _get_board_objects
+
+    already_registered: set[str] = set()
+    for mod in gs.active_modifiers:
+        already_registered.add(mod.source_instance_id)
+    for rep in gs.active_replacements:
+        already_registered.add(rep.source_instance_id)
+
+    logs: list[str] = []
+    for card in _get_board_objects(gs):
+        if card.instance_id in already_registered:
+            continue
+        result = _resolve_passive_abilities(gs, card)
+        logs.extend(result)
+    return logs
+
+
 def _resolve_ability(
     gs: GameState,
     source: CardInstance,
@@ -444,6 +592,4 @@ def _resolve_ability(
         if ability.ability_id == ability_id:
             if ability.effect_ir:
                 return resolve_effect_ir(ability.effect_ir, source, gs, targets)
-            elif ability.effect_script:
-                return resolve_effect(ability.effect_script, source, gs, targets)
     return [f"Ability {ability_id} not found on {source.name}"]

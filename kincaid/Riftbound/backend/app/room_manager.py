@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import traceback
 
 import asyncio
 import uuid
@@ -16,6 +18,19 @@ from .engine.action_validator import validate_action
 from .engine.card_db import CardDB
 from .engine.enums import ActionType
 from .engine.game_state import GameState, create_game
+from .engine.persistence import (
+    delete_game_state,
+    list_saved_rooms,
+    load_game_state,
+    save_game_state,
+)
+from .exceptions import (
+    ActionExecutionError,
+    GameCorruptedError,
+    GameNotStartedError,
+    RoomFullError,
+    UnknownActionError,
+)
 from .protocol.serializers import serialize_for_player
 
 logger = logging.getLogger("riftbound.room")
@@ -73,9 +88,140 @@ class GameSession:
         return None
 
 
+# ---------------------------------------------------------------------------
+# Game state snapshot helper (for error-state debugging)
+# ---------------------------------------------------------------------------
+
+def snapshot_game_state(gs: GameState | None) -> dict[str, Any]:
+    """Build a concise, JSON-serialisable snapshot of the game state.
+
+    Used for logging when an unexpected error occurs so that the full
+    game context is captured in the server log for later analysis.
+    """
+    if gs is None:
+        return {"game_state": None}
+
+    try:
+        players_snap = {}
+        for pid, ps in gs.players.items():
+            players_snap[pid] = {
+                "display_name": ps.display_name,
+                "score": ps.score,
+                "hand_count": len(ps.hand),
+                "deck_count": len(ps.main_deck),
+                "rune_deck_count": len(ps.rune_deck),
+                "energy": ps.rune_pool.energy,
+                "power": {d.value: v for d, v in ps.rune_pool.power.items()},
+                "played_main_deck_this_turn": ps.played_main_deck_this_turn,
+            }
+
+        battlefields_snap = {}
+        for bf_id, bf in gs.battlefields.items():
+            battlefields_snap[bf_id] = {
+                "control": bf.control_status.value,
+                "controller": bf.controller_id,
+                "unit_count": len(bf.units),
+                "units": bf.units[:],
+                "facedown": bf.facedown_card,
+                "showdown_staged": bf.showdown_staged,
+                "combat_staged": bf.combat_staged,
+            }
+
+        chain_snap = []
+        for item in gs.chain.stack:
+            chain_snap.append({
+                "item_id": item.item_id,
+                "source": item.source_instance_id,
+                "ability": item.ability_id,
+                "card": item.card_instance_id,
+                "controller": item.controller_id,
+                "targets": item.targets[:],
+            })
+
+        combat_snap = None
+        if gs.active_combat:
+            c = gs.active_combat
+            combat_snap = {
+                "battlefield_id": c.battlefield_id,
+                "attacker": c.attacker_id,
+                "defender": c.defender_id,
+                "phase": c.phase,
+            }
+
+        showdown_snap = None
+        if gs.active_showdown:
+            s = gs.active_showdown
+            showdown_snap = {
+                "battlefield_id": s.battlefield_id,
+                "initiator": s.initiator_id,
+                "focus_player": s.focus_player_id,
+                "passed": list(s.passed_players),
+            }
+
+        return {
+            "game_id": gs.game_id,
+            "phase": gs.phase.value,
+            "turn_number": gs.turn_number,
+            "turn_player_id": gs.turn_player_id,
+            "active_player_id": gs.active_player_id,
+            "game_over": gs.game_over,
+            "winner_id": gs.winner_id,
+            "players": players_snap,
+            "battlefields": battlefields_snap,
+            "chain": chain_snap,
+            "chain_passed": list(gs.chain.passed_players),
+            "active_combat": combat_snap,
+            "active_showdown": showdown_snap,
+            "pending_choice": gs.pending_choice is not None,
+            "modifier_count": len(gs.active_modifiers),
+            "instance_count": len(gs.instances),
+            "log_tail": [e["message"] for e in gs.log.entries[-20:]],
+        }
+    except Exception:
+        # If snapshotting itself fails, return a minimal error
+        return {"snapshot_error": traceback.format_exc()}
+
+
 class RoomManager:
-    def __init__(self) -> None:
+    def __init__(self, save_dir: str | None = None) -> None:
         self.rooms: dict[str, GameSession] = {}
+        self._save_dir = save_dir  # None means use DEFAULT_SAVE_DIR
+        self._load_saved_games()
+
+    def _load_saved_games(self) -> None:
+        """Reload active (non-finished) games from saved state files on startup."""
+        saved_room_ids = list_saved_rooms(self._save_dir)
+        loaded = 0
+        for room_id in saved_room_ids:
+            gs = load_game_state(room_id, save_dir=self._save_dir)
+            if gs is None:
+                continue
+            # Skip finished games
+            if gs.game_over:
+                logger.info("[PERSIST] Skipping finished game room=%s", room_id)
+                delete_game_state(room_id, self._save_dir)
+                continue
+            session = GameSession(room_id=room_id)
+            session.game_state = gs
+            self.rooms[room_id] = session
+            loaded += 1
+            logger.info(
+                "[PERSIST] Restored room=%s phase=%s turn=%d",
+                room_id, gs.phase.value, gs.turn_number,
+            )
+        if loaded:
+            logger.info("[PERSIST] Restored %d active game(s) from disk", loaded)
+
+    def _persist_game(self, session: GameSession) -> None:
+        """Save the current game state to disk (non-blocking best-effort)."""
+        if session.game_state is None:
+            return
+        try:
+            save_game_state(session.room_id, session.game_state, self._save_dir)
+        except Exception:
+            logger.exception(
+                "[PERSIST] Failed to save game state for room=%s", session.room_id,
+            )
 
     def create_room(self) -> str:
         room_id = str(uuid.uuid4())[:8]
@@ -110,7 +256,11 @@ class RoomManager:
                 break
 
         if slot_idx is None:
-            raise ValueError("Room is full")
+            raise RoomFullError(
+                "Room is full",
+                action_type="JOIN_ROOM",
+                details={"room_id": room_id},
+            )
 
         player_id = str(uuid.uuid4())[:12]
         reconnect_token = str(uuid.uuid4())
@@ -238,30 +388,32 @@ class RoomManager:
 
         card_defs = CardDB.all_cards()
         session.game_state = create_game(session.room_id, configs, card_defs)
+        self._persist_game(session)
 
     async def handle_action(
         self, session: GameSession, player_id: str, data: dict[str, Any]
     ) -> None:
-        """Validate and execute an action, then broadcast state."""
+        """Validate and execute an action, then broadcast state.
+
+        Raises structured RiftboundError subclasses so the WebSocket
+        handler can build a proper error response and log state snapshots.
+        """
         gs = session.game_state
         msg_type = data.get("type", "")
 
         if not gs:
-            logger.warning("[ACTION] Game not started for room=%s", session.room_id)
-            await self._send_error(
-                session, player_id, "Game not started",
-                action_type=msg_type, error_code="GAME_NOT_STARTED",
+            raise GameNotStartedError(
+                "Game not started",
+                action_type=msg_type,
+                details={"room_id": session.room_id},
             )
-            return
 
         action_type = _msg_type_to_action(msg_type)
         if not action_type:
-            logger.warning("[ACTION] Unknown msg type=%s from player=%s", msg_type, player_id)
-            await self._send_error(
-                session, player_id, f"Unknown message type: {msg_type}",
-                action_type=msg_type, error_code="UNKNOWN_ACTION",
+            raise UnknownActionError(
+                f"Unknown message type: {msg_type}",
+                action_type=msg_type,
             )
-            return
 
         # Build payload from message data
         payload = {k: v for k, v in data.items() if k != "type"}
@@ -283,23 +435,34 @@ class RoomManager:
                         action_type.value, player_id, gs.phase.value)
             try:
                 logs = execute_action(gs, player_id, action_type, payload)
-            except Exception:
-                logger.exception(
-                    "[ACTION] EXCEPTION during execute %s room=%s player=%s phase=%s",
+            except Exception as exc:
+                # Capture the traceback before wrapping
+                tb = traceback.format_exc()
+                # Log the full game state snapshot for debugging
+                snapshot = snapshot_game_state(gs)
+                logger.error(
+                    "[ACTION] EXCEPTION during execute %s room=%s player=%s phase=%s\n"
+                    "Traceback:\n%s\n"
+                    "Game state snapshot:\n%s",
                     action_type.value, session.room_id, player_id, gs.phase.value,
+                    tb,
+                    json.dumps(snapshot, indent=2, default=str),
                 )
-                await self._send_error(
-                    session, player_id,
+                raise ActionExecutionError(
                     f"Internal error while executing {msg_type}",
                     action_type=msg_type,
-                    error_code="EXECUTION_ERROR",
                     details={
                         "phase": gs.phase.value,
                         "turn_number": gs.turn_number,
+                        "active_player": gs.active_player_id,
+                        "exception_type": type(exc).__name__,
+                        "exception_message": str(exc),
                     },
-                )
-                return
+                ) from exc
             logger.info("[ACTION] Phase after=%s logs=%s", gs.phase.value, logs)
+
+            # Persist after each successful action
+            self._persist_game(session)
 
             # Broadcast updated state to both players
             await self._broadcast_state(session)
@@ -332,6 +495,8 @@ class RoomManager:
                     "winner_id": gs.winner_id or "",
                     "reason": "Game ended",
                 })
+                # Clean up save file for finished games
+                delete_game_state(session.room_id, self._save_dir)
 
             # Auto-pass for testlab P2
             testlab = getattr(session, "_testlab", None)

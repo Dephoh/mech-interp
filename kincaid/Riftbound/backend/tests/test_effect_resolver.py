@@ -639,3 +639,167 @@ class TestRestrict:
         ir = {"type": "restrict", "restriction": "cant_play", "scope": "opponents", "duration": "turn"}
         logs = resolve_effect_ir(ir, source, gs, [])
         assert any("cant_play" in l for l in logs)
+
+
+# ---------------------------------------------------------------------------
+# Dynamic expression evaluator tests
+# ---------------------------------------------------------------------------
+
+
+class TestDynamicAmounts:
+    """Verify that string-valued 'amount' fields in effect IR nodes are
+    correctly evaluated to concrete ints before primitives execute."""
+
+    # -- source.might / source_might / self.might ---------------------------
+
+    def test_deal_damage_source_might(self):
+        """'source.might' should deal damage equal to source's effective might."""
+        gs = make_game()
+        source = add_unit(gs, "p1", might=5, name="Attacker")
+        target = add_unit(gs, "p2", might=10, name="Defender")
+        ir = {"type": "deal_damage", "amount": "source.might"}
+        logs = resolve_effect_ir(ir, source, gs, [target.instance_id])
+        assert target.damage == 5
+        assert any("5 damage" in l for l in logs)
+
+    def test_deal_damage_source_might_underscore(self):
+        """'source_might' is an alias for source.might."""
+        gs = make_game()
+        source = add_unit(gs, "p1", might=4, name="Src")
+        target = add_unit(gs, "p2", might=10, name="Tgt")
+        ir = {"type": "deal_damage", "amount": "source_might"}
+        logs = resolve_effect_ir(ir, source, gs, [target.instance_id])
+        assert target.damage == 4
+
+    def test_give_might_self_might(self):
+        """'self.might' on give_might doubles the source's own might."""
+        gs = make_game()
+        source = add_unit(gs, "p1", might=3, name="Fiora")
+        ir = {"type": "give_might", "amount": "self.might", "duration": "turn"}
+        logs = resolve_effect_ir(ir, source, gs, [source.instance_id])
+        # Source had 3 might, got +3 from the modifier
+        assert source.effective_might == 6
+        assert any("+3 Might" in l for l in logs)
+
+    # -- current_might (target's own might) ---------------------------------
+
+    def test_give_might_current_might(self):
+        """'current_might' should use the target's own effective might."""
+        gs = make_game()
+        source = add_unit(gs, "p1", might=1, name="Caster")
+        target = add_unit(gs, "p1", might=4, name="Warrior")
+        ir = {"type": "give_might", "amount": "current_might", "duration": "turn"}
+        logs = resolve_effect_ir(ir, source, gs, [target.instance_id])
+        # Warrior had 4 might, +4 from modifier = 8
+        assert target.effective_might == 8
+
+    # -- reciprocal_might (the other target's might) ------------------------
+
+    def test_deal_damage_reciprocal_might_two_targets(self):
+        """'reciprocal_might' with 2 targets: each takes the other's might."""
+        gs = make_game()
+        source = add_unit(gs, "p1", might=1, name="Caster")
+        unit_a = add_unit(gs, "p1", might=3, name="UnitA")
+        unit_b = add_unit(gs, "p2", might=7, name="UnitB")
+        ir = {"type": "deal_damage", "amount": "reciprocal_might"}
+        logs = resolve_effect_ir(ir, source, gs, [unit_a.instance_id, unit_b.instance_id])
+        # UnitA should take UnitB's might (7), UnitB should take UnitA's might (3)
+        assert unit_a.damage == 7
+        assert unit_b.damage == 3
+
+    # -- source.cost --------------------------------------------------------
+
+    def test_deal_damage_source_cost(self):
+        """'source.cost' should use the source's energy cost."""
+        gs = make_game()
+        defn = CardDefinition(
+            card_id="cost_card", name="Cost Card",
+            card_type=CardType.UNIT, base_might=2,
+            cost_energy=5,
+        )
+        source = CardInstance.create(defn, "p1", ZoneType.BASE)
+        gs.instances[source.instance_id] = source
+        gs.base_units["p1"].append(source.instance_id)
+        target = add_unit(gs, "p2", might=10, name="BigUnit")
+        ir = {"type": "deal_damage", "amount": "source.cost"}
+        logs = resolve_effect_ir(ir, source, gs, [target.instance_id])
+        assert target.damage == 5
+
+    # -- target.might -------------------------------------------------------
+
+    def test_deal_damage_target_might(self):
+        """'target.might' should deal damage equal to target's own might."""
+        gs = make_game()
+        source = add_unit(gs, "p1", might=1, name="Src")
+        target = add_unit(gs, "p2", might=6, name="Tgt")
+        ir = {"type": "deal_damage", "amount": "target.might"}
+        logs = resolve_effect_ir(ir, source, gs, [target.instance_id])
+        assert target.damage == 6
+
+    # -- int passthrough (no regression) ------------------------------------
+
+    def test_int_amount_still_works(self):
+        """Numeric amounts should pass through unmodified."""
+        gs = make_game()
+        source = add_unit(gs, "p1", might=5, name="Src")
+        target = add_unit(gs, "p2", might=10, name="Tgt")
+        ir = {"type": "deal_damage", "amount": 3}
+        logs = resolve_effect_ir(ir, source, gs, [target.instance_id])
+        assert target.damage == 3
+
+    # -- heal with dynamic amount -------------------------------------------
+
+    def test_heal_source_might(self):
+        """Healing by 'source.might' should heal that many damage."""
+        gs = make_game()
+        source = add_unit(gs, "p1", might=4, name="Healer")
+        target = add_unit(gs, "p1", might=10, name="Wounded")
+        target.damage = 7
+        ir = {"type": "heal", "amount": "source.might"}
+        logs = resolve_effect_ir(ir, source, gs, [target.instance_id])
+        assert target.damage == 3  # 7 - 4
+
+    # -- heal "all" still works (special string, not a dynamic expr) ---------
+
+    def test_heal_all_not_treated_as_expression(self):
+        """'all' is a special heal keyword, not a dynamic expression."""
+        gs = make_game()
+        source = add_unit(gs, "p1", might=1, name="Healer")
+        target = add_unit(gs, "p1", might=10, name="Wounded")
+        target.damage = 5
+        ir = {"type": "heal", "amount": "all"}
+        logs = resolve_effect_ir(ir, source, gs, [target.instance_id])
+        assert target.damage == 0
+
+    # -- unknown expression defaults to 0 -----------------------------------
+
+    def test_unknown_expression_defaults_zero(self):
+        """An unknown dynamic expression should default to 0, not crash."""
+        gs = make_game()
+        source = add_unit(gs, "p1", might=3, name="Src")
+        target = add_unit(gs, "p2", might=5, name="Tgt")
+        ir = {"type": "deal_damage", "amount": "nonsense.expr"}
+        logs = resolve_effect_ir(ir, source, gs, [target.instance_id])
+        assert target.damage == 0
+
+    # -- pre-resolution in resolver catches amounts for all primitives -------
+
+    def test_add_energy_with_string_amount_resolved(self):
+        """Even primitives that don't call _resolve_amount internally should
+        get pre-resolved amounts from the resolver layer."""
+        gs = make_game()
+        source = add_unit(gs, "p1", might=3, name="Generator")
+        before = gs.players["p1"].rune_pool.energy
+        ir = {"type": "add_energy", "amount": "source.might"}
+        logs = resolve_effect_ir(ir, source, gs, [])
+        after = gs.players["p1"].rune_pool.energy
+        assert after - before == 3
+
+    def test_score_points_with_string_amount_resolved(self):
+        """score_points reads amount directly; pre-resolution should give int."""
+        gs = make_game()
+        source = add_unit(gs, "p1", might=2, name="Scorer")
+        before = gs.players["p1"].score
+        ir = {"type": "score_points", "amount": "source.might"}
+        logs = resolve_effect_ir(ir, source, gs, [])
+        assert gs.players["p1"].score - before == 2

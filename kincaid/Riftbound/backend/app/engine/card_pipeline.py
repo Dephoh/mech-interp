@@ -110,20 +110,62 @@ TRIGGER_PATTERNS = [
     (r"When I defend,?\s*", "on_defend"),
     (r"When I die,?\s*", "on_death"),
     (r"When I move to a battlefield,?\s*", "on_move_to_bf"),
+    (r"When I move from a (?:battlefield|location),?\s*", "on_move_from_bf"),
     (r"When I move,?\s*", "on_move"),
+    (r"When I win a combat,?\s*", "on_combat_win"),
+    (r"When I'm played and when I conquer,?\s*", "on_play_or_conquer"),
     (r"When a friendly unit dies,?\s*", "on_friendly_death"),
+    (r"When another friendly unit dies,?\s*", "on_friendly_death"),
+    (r"When another non-\w+ unit you control dies,?\s*", "on_friendly_death"),
     (r"When an enemy unit dies,?\s*", "on_enemy_death"),
     (r"When one or more enemy units die,?\s*", "on_enemy_death"),
     (r"When you play a spell,?\s*", "on_spell_played"),
     (r"When you play a unit,?\s*", "on_unit_played"),
+    (r"When you play another unit,?\s*", "on_unit_played"),
+    (r"When you play a gear,?\s*", "on_gear_played"),
+    (r"When you play a card from (?:face down|\w+),?\s*", "on_play_from_facedown"),
+    (r"When you play a card on an opponent's turn,?\s*", "on_play_on_opponent_turn"),
     (r"When a player plays a spell,?\s*", "on_any_spell_played"),
+    (r"When a player plays a unit here,?\s*", "on_any_unit_played_here"),
     (r"When you attach an Equipment to me,?\s*", "on_equip"),
     (r"When you or an ally (?:conquer|hold),?\s*", "on_conquer_or_hold"),
     (r"When you win a combat,?\s*", "on_combat_win"),
     (r"When you recycle a rune,?\s*", "on_recycle_rune"),
-    (r"At the (?:start|beginning) of your turn,?\s*", "on_turn_start"),
+    (r"When you recycle one or more cards,?\s*", "on_recycle"),
+    (r"When you defend here,?\s*", "on_defend_here"),
+    (r"When you defend at a battlefield,?\s*", "on_defend"),
+    (r"When you stun (?:an|one or more) enemy units?,?\s*", "on_stun_enemy"),
+    (r"When you \[Stun\] an enemy unit at a battlefield,?\s*", "on_stun_enemy"),
+    (r"When you buff (?:a friendly unit|me),?\s*", "on_buff"),
+    (r"When you ready a friendly unit,?\s*", "on_ready_unit"),
+    (r"When you choose (?:a friendly unit|me|or ready me),?\s*", "on_choose_friendly"),
+    (r"When you draw your second card each turn,?\s*", "on_second_draw"),
+    (r"When you play your second card in a turn,?\s*", "on_second_play"),
+    (r"When you discard (?:me|one or more cards),?\s*", "on_discard"),
+    (r"When you kill a (?:stunned )?(?:enemy )?unit(?:\s+with a spell)?,?\s*", "on_kill"),
+    (r"When you use an activated ability of a gear,?\s*", "on_gear_ability"),
+    (r"When you hide a card,?\s*", "on_hide"),
+    (r"When a unit (?:here )?(?:moves|is returned) from here,?\s*", "on_unit_leave_here"),
+    (r"When a unit moves from here,?\s*", "on_unit_leave_here"),
+    (r"When a buffed friendly unit dies,?\s*", "on_buffed_friendly_death"),
+    (r"When a friendly unit attacks or defends alone,?\s*", "on_attack_or_defend_alone"),
+    (r"When a showdown begins here,?\s*", "on_showdown_here"),
+    (r"When an opponent (?:scores|plays a unit|moves to a battlefield),?\s*", "on_opponent_action"),
+    (r"When one of your units becomes \w*,?\s*", "on_unit_status_change"),
+    (r"When any unit takes damage this turn,?\s*", "on_any_damage"),
+    (r"When this is played,?\s+(?:discarded,?\s+)?(?:or killed,?\s*)?", "on_play_or_discard"),
+    (r"When this leaves the board,?\s*", "on_leave_board"),
+    (r"When you play me (?:or (?:when I hold|another \w+|at the start)),?\s*", "on_play"),
+    (r"When you play me to a battlefield,?\s*", "on_play"),
+    (r"When you play me from face down(?: on your turn)?,?\s*", "on_play_from_facedown"),
+    (r"When you play this from face down,?\s*", "on_play_from_facedown"),
+    (r"When you conquer here with one or more units,?\s*", "on_conquer"),
+    (r"When I conquer (?:a battlefield|after an attack),?\s*", "on_conquer"),
+    (r"At the (?:start|beginning) of your (?:turn|Beginning Phase),?\s*", "on_turn_start"),
     (r"At the end of your turn,?\s*", "on_turn_end"),
-    (r"At the start of each turn,?\s*", "on_turn_start"),
+    (r"At the start of each (?:turn|player's (?:first )?Beginning Phase),?\s*", "on_turn_start"),
+    (r"At (?:the )?start of your Beginning Phase,?\s*", "on_turn_start"),
+    (r"At the start of each player's Beginning Phase,?\s*", "on_each_turn_start"),
 ]
 
 TRIGGER_COMPILED = [(re.compile(pat, re.IGNORECASE), trigger) for pat, trigger in TRIGGER_PATTERNS]
@@ -168,13 +210,35 @@ def _parse_single_effect(text: str) -> dict | None:
     """Parse a single effect sentence into an IR node."""
     text = text.strip().rstrip(".")
 
-    # "you may X" -> optional wrapper
+    # "you may pay [N] to EFFECT" (must be checked before generic "you may")
+    may_pay_early = re.match(r"[Yy]ou\s+may\s+pay\s+((?:\[\w+\][\s]*)+)\s+to\s+(.*)", text)
+    if may_pay_early:
+        cost_tokens = re.findall(r"\[(\w+)\]", may_pay_early.group(1))
+        inner = _parse_single_effect(may_pay_early.group(2))
+        if inner:
+            cost_dict: dict[str, Any] = {}
+            for tok in cost_tokens:
+                if tok == "C":
+                    cost_dict["power_of_domain"] = True
+                elif tok.isdigit():
+                    cost_dict["energy"] = cost_dict.get("energy", 0) + int(tok)
+                elif tok in ("A", "R", "G", "B", "O", "P", "Y"):
+                    domain = DOMAIN_SYMBOL_TO_ID.get(f"[{tok}]", "any")
+                    cost_dict.setdefault("power", {})[domain] = cost_dict.get("power", {}).get(domain, 0) + 1
+            return {"type": "optional", "cost": cost_dict, "effect": inner}
+
+    # "you may move me there/to that battlefield" -> optional move self
+    may_move_me = re.match(r"[Yy]ou\s+may\s+move\s+me\s+(?:there|to\s+(?:that|this)\s+battlefield)", text)
+    if may_move_me:
+        return {"type": "optional", "effect": {"type": "move", "target": {"obj_type": "unit", "scope": "self", "count": 1}, "destination": {"zone": "battlefield", "location": "target"}}}
+
+    # "you may X" -> optional wrapper (generic - catches remaining)
     may_match = re.match(r"[Yy]ou may\s+(.*)", text)
     if may_match:
         inner = _parse_single_effect(may_match.group(1))
         if inner:
             return {"type": "optional", "effect": inner}
-        return None
+        # Don't return None here - allow falling through to other patterns
 
     # "If CONDITION, EFFECT" -> conditional
     if_match = re.match(r"[Ii]f\s+(.+?),\s+(.*)", text)
@@ -404,6 +468,12 @@ def _parse_single_effect(text: str) -> dict | None:
             duration = "turn" if "this turn" in text.lower() else "permanent"
             return {"type": "give_keyword", "keyword": kw_id, "target": target, "duration": duration}
 
+    # "Give TARGET [Temporary]" - keyword grant
+    give_temp = re.match(r"[Gg]ive\s+(.+?)\s+\[Temporary\]", text)
+    if give_temp:
+        target = _parse_target(give_temp.group(1))
+        return {"type": "give_keyword", "keyword": "temporary", "target": target, "duration": "permanent"}
+
     # "Move an/a enemy/friendly unit [here/to this battlefield/to TARGET]"
     move_unit_match = re.match(
         r"[Mm]ove\s+(.+?)\s+(?:to\s+(?:here|this\s+battlefield|my\s+(?:location|battlefield)))",
@@ -489,6 +559,605 @@ def _parse_single_effect(text: str) -> dict | None:
     static_might = re.match(r"I\s+have\s+\+(\d+)\s+\[S\]", text, re.I)
     if static_might:
         return {"type": "give_might", "amount": int(static_might.group(1)), "target": {"obj_type": "unit", "scope": "self", "count": 1}, "duration": "permanent"}
+
+    # --- NEW: expanded effect patterns for BE-06 ---
+
+    # "Deal damage equal to my/its Might to TARGET"
+    deal_eq_might = re.match(
+        r"[Dd]eal\s+damage\s+equal\s+to\s+(?:my|its|their)\s+(?:Might|\[S\])\s+to\s+(.*)",
+        text,
+    )
+    if deal_eq_might:
+        target = _parse_target(deal_eq_might.group(1))
+        return {"type": "deal_damage", "amount": "source_might", "target": target}
+
+    # "deal damage equal to my [S|M] to TARGET" (with symbol reference)
+    deal_eq_sym = re.match(
+        r"deal\s+damage\s+equal\s+to\s+(?:my|its)\s+\[(?:S|M)\]\s+to\s+(.*)",
+        text, re.I,
+    )
+    if deal_eq_sym:
+        target = _parse_target(deal_eq_sym.group(1))
+        return {"type": "deal_damage", "amount": "source_might", "target": target}
+
+    # "deal N to TARGET" (lowercase, shorthand after trigger)
+    deal_lower = re.match(r"deal\s+(\d+)\s+(?:damage\s+)?to\s+(.*)", text)
+    if deal_lower:
+        amount = int(deal_lower.group(1))
+        target = _parse_target(deal_lower.group(2))
+        return {"type": "deal_damage", "amount": amount, "target": target}
+
+    # "Each player kills one of their units/gear"
+    each_kills = re.match(
+        r"[Ee]ach\s+player\s+kills?\s+one\s+of\s+their\s+(units?|gear)",
+        text,
+    )
+    if each_kills:
+        obj_type = "gear" if "gear" in each_kills.group(1) else "unit"
+        return {"type": "kill", "target": {"obj_type": obj_type, "scope": "each_player", "count": 1}}
+
+    # "Each player discards N / discards their hand, then draws N"
+    each_discard = re.match(
+        r"[Ee]ach\s+player\s+discards?\s+(?:their\s+hand|(\d+))",
+        text,
+    )
+    if each_discard:
+        if each_discard.group(1):
+            return {"type": "discard", "count": int(each_discard.group(1)), "player": "each"}
+        else:
+            steps_ed: list[dict[str, Any]] = [{"type": "discard", "count": -1, "player": "each"}]
+            draw_m = re.search(r"then\s+draws?\s+(\d+)", text)
+            if draw_m:
+                steps_ed.append({"type": "draw_cards", "count": int(draw_m.group(1)), "player": "each"})
+            return {"type": "sequence", "steps": steps_ed} if len(steps_ed) > 1 else steps_ed[0]
+
+    # "Each player channels N rune[s] exhausted"
+    each_channel = re.match(r"[Ee]ach\s+player\s+channels?\s+(\d+)\s+runes?\s*(?:exhausted)?", text)
+    if each_channel:
+        return {"type": "channel_rune", "count": int(each_channel.group(1)),
+                "player": "each", "exhausted": "exhausted" in text.lower()}
+
+    # "Deal N damage split among any number of enemy units here"
+    deal_split = re.match(
+        r"[Dd]eal\s+(\d+)\s+(?:damage\s+)?split\s+among\s+(?:any\s+number\s+of\s+)?(.+)",
+        text,
+    )
+    if deal_split:
+        target = _parse_target(deal_split.group(2))
+        return {"type": "split_damage", "amount": int(deal_split.group(1)), "target": target}
+
+    # "Play two/three WORD unit tokens [here]"
+    play_generic_tokens = re.match(
+        r"[Pp]lay\s+(\w+)\s+(\w+)\s+unit\s+tokens?\s*(?:here)?",
+        text,
+    )
+    if play_generic_tokens:
+        count = _word_to_number(play_generic_tokens.group(1))
+        name = play_generic_tokens.group(2).strip()
+        dest = "here" if "here" in text.lower() else None
+        node_pgt: dict[str, Any] = {"type": "play_token", "name": name, "might": 0, "count": count}
+        if dest:
+            node_pgt["destination"] = dest
+        return node_pgt
+
+    # "move an enemy unit [here] to its base" / "move an enemy unit to base"
+    move_enemy_base = re.match(
+        r"[Mm]ove\s+an\s+enemy\s+unit\s+(?:here\s+)?to\s+(?:its\s+)?base",
+        text,
+    )
+    if move_enemy_base:
+        return {"type": "move", "target": {"obj_type": "unit", "scope": "enemy", "count": 1},
+                "destination": {"zone": "base", "location": "owner"}}
+
+    # "move an enemy unit to here" / "move an enemy unit to my/this battlefield"
+    move_enemy_here = re.match(
+        r"[Mm]ove\s+an\s+enemy\s+unit\s+(?:at\s+a\s+(?:different\s+)?location\s+)?to\s+(?:here|my\s+battlefield|this\s+battlefield)",
+        text,
+    )
+    if move_enemy_here:
+        return {"type": "move", "target": {"obj_type": "unit", "scope": "enemy", "count": 1},
+                "destination": {"zone": "battlefield", "location": "here"}}
+
+    # "recycle one of your runes"
+    recycle_rune = re.match(r"(?:you\s+must\s+)?[Rr]ecycle\s+one\s+of\s+your\s+runes?", text)
+    if recycle_rune:
+        return {"type": "recycle", "target": {"obj_type": "rune", "scope": "friendly", "count": 1}}
+
+    # "ready your legend" / "ready your runes"
+    ready_your = re.match(r"[Rr]eady\s+(?:your|my)\s+(\w+)", text)
+    if ready_your:
+        obj = ready_your.group(1).lower()
+        if obj in ("legend", "legends"):
+            return {"type": "ready", "target": {"obj_type": "legend", "scope": "friendly", "count": 1}}
+        elif obj in ("rune", "runes"):
+            return {"type": "ready", "target": {"obj_type": "rune", "scope": "friendly", "count": -1}}
+
+    # "Return all units and gear to their owners' hands"
+    if re.match(r"[Rr]eturn\s+all\s+units?\s+(?:and\s+gear\s+)?to\s+their\s+owners['\u2019]?\s*hands?", text):
+        return {"type": "return_to_hand", "target": {"obj_type": "unit", "scope": "any", "count": -1}}
+
+    # "Return a friendly unit and an enemy unit to their owners' hands"
+    return_both = re.match(
+        r"[Rr]eturn\s+(?:a|another)\s+friendly\s+unit\s+and\s+an\s+enemy\s+unit\s+to\s+their\s+owners['\u2019]?\s*hands?",
+        text,
+    )
+    if return_both:
+        return {"type": "sequence", "steps": [
+            {"type": "return_to_hand", "target": {"obj_type": "unit", "scope": "friendly", "count": 1}},
+            {"type": "return_to_hand", "target": {"obj_type": "unit", "scope": "enemy", "count": 1}},
+        ]}
+
+    # "Other friendly units [here] have +N [S]" - static aura
+    other_units_might = re.match(
+        r"[Oo]ther\s+friendly\s+units?\s*(?:here\s+)?have\s+\+(\d+)\s+\[S\]",
+        text,
+    )
+    if other_units_might:
+        location = "here" if "here" in text.lower() else "any"
+        return {
+            "type": "aura", "effect": "give_might",
+            "amount": int(other_units_might.group(1)),
+            "target": {"obj_type": "unit", "scope": "friendly", "count": -1, "location": location,
+                        "filters": [{"field": "not_self", "op": "eq", "value": True}]},
+            "duration": "permanent",
+        }
+
+    # "Units here have +N [S]"
+    units_here_might = re.match(r"[Uu]nits?\s+here\s+have\s+\+(\d+)\s+\[S\]", text)
+    if units_here_might:
+        return {
+            "type": "aura", "effect": "give_might",
+            "amount": int(units_here_might.group(1)),
+            "target": {"obj_type": "unit", "scope": "any", "count": -1, "location": "here"},
+            "duration": "permanent",
+        }
+
+    # "Your token units have +N [S]" / "Your X have +N [S]"
+    your_units_might = re.match(
+        r"[Yy]our\s+(?:(\w+(?:\s+\w+)?)\s+)?(?:units?\s+)?have\s+\+(\d+)\s+\[S\]",
+        text,
+    )
+    if your_units_might:
+        tag = your_units_might.group(1)
+        amount = int(your_units_might.group(2))
+        target: dict[str, Any] = {"obj_type": "unit", "scope": "friendly", "count": -1}
+        if tag:
+            target["filters"] = [{"field": "tag", "op": "eq", "value": tag.strip().lower()}]
+        return {"type": "aura", "effect": "give_might", "amount": amount, "target": target, "duration": "permanent"}
+
+    # "Your spells and abilities deal N Bonus Damage"
+    bonus_dmg = re.match(
+        r"[Yy]our\s+spells?\s+(?:and\s+abilities?\s+)?deal\s+(\d+)\s+Bonus\s+Damage",
+        text,
+    )
+    if bonus_dmg:
+        return {"type": "aura", "effect": "bonus_damage", "amount": int(bonus_dmg.group(1)), "scope": "controller"}
+
+    # "Spells and abilities deal N Bonus Damage to units here"
+    bonus_dmg2 = re.match(
+        r"[Ss]pells?\s+and\s+abilities?\s+deal\s+(\d+)\s+Bonus\s+Damage",
+        text,
+    )
+    if bonus_dmg2:
+        return {"type": "aura", "effect": "bonus_damage", "amount": int(bonus_dmg2.group(1)), "scope": "all"}
+
+    # "I cost [N] less [for each ...]"
+    cost_less = re.match(r"I\s+cost\s+\[(\d+)\]\s+less(?:\s+for\s+each\s+(.+?))?(?:\s*,\s*to\s+a\s+minimum\s+of\s+\[(\d+)\])?$", text, re.I)
+    if cost_less:
+        node_out: dict[str, Any] = {"type": "cost_reduction", "amount": int(cost_less.group(1))}
+        if cost_less.group(2):
+            node_out["scaling"] = cost_less.group(2).strip()
+        if cost_less.group(3):
+            node_out["minimum"] = int(cost_less.group(3))
+        return node_out
+
+    # "I cost [N][C] less [for each ...]"
+    cost_less_domain = re.match(
+        r"I\s+cost\s+\[(\d+)\]\[([CARGBOPY])\]\s+less(?:\s+for\s+each\s+(.+))?",
+        text, re.I,
+    )
+    if cost_less_domain:
+        return {
+            "type": "cost_reduction",
+            "amount": int(cost_less_domain.group(1)),
+            "domain": True,
+            "scaling": cost_less_domain.group(3).strip() if cost_less_domain.group(3) else None,
+        }
+
+    # "I can't be chosen by enemy spells and abilities"
+    if re.match(r"I\s+can['\u2019]?t\s+be\s+chosen\s+by\s+enemy\s+spells?\s+and\s+abilities?", text, re.I):
+        return {"type": "give_keyword", "keyword": "hexproof", "target": {"obj_type": "unit", "scope": "self", "count": 1}, "duration": "permanent"}
+
+    # "I can't move to base"
+    if re.match(r"I\s+can['\u2019]?t\s+move\s+to\s+base", text, re.I):
+        return {"type": "restrict", "restriction": "cant_move_to_base", "scope": "self", "duration": "permanent"}
+
+    # "I can't be readied"
+    if re.match(r"I\s+can['\u2019]?t\s+be\s+readied", text, re.I):
+        return {"type": "restrict", "restriction": "cant_ready", "scope": "self", "duration": "permanent"}
+
+    # "I don't deal combat damage"
+    if re.match(r"I\s+don['\u2019]?t\s+deal\s+combat\s+damage", text, re.I):
+        return {"type": "restrict", "restriction": "no_combat_damage", "scope": "self", "duration": "permanent"}
+
+    # "I can be played to LOCATION"
+    can_play_to = re.match(r"I\s+can\s+be\s+played\s+to\s+(.*)", text, re.I)
+    if can_play_to:
+        return {"type": "play_restriction", "allows": can_play_to.group(1).strip().rstrip(".")}
+
+    # "You may play me to an open/occupied [enemy] battlefield"
+    may_play_to = re.match(r"[Yy]ou\s+may\s+play\s+me\s+to\s+an?\s+(open|occupied)\s+(?:(enemy)\s+)?battlefield", text)
+    if may_play_to:
+        return {"type": "play_restriction", "allows": f"{may_play_to.group(1)}_{may_play_to.group(2) or 'any'}_battlefield"}
+
+    # "Other friendly units enter ready"
+    if re.match(r"[Oo]ther\s+friendly\s+units?\s+enter\s+ready", text):
+        return {"type": "aura", "effect": "enter_ready", "target": {"obj_type": "unit", "scope": "friendly", "count": -1,
+                "filters": [{"field": "not_self", "op": "eq", "value": True}]}}
+
+    # "Your tokens enter ready"
+    if re.match(r"[Yy]our\s+tokens?\s+enter\s+ready", text):
+        return {"type": "aura", "effect": "enter_ready", "target": {"obj_type": "unit", "scope": "friendly", "count": -1,
+                "filters": [{"field": "token", "op": "eq", "value": True}]}}
+
+    # "I get +N [S] for each ..."
+    scaled_might = re.match(r"I\s+(?:get|have)\s+\+(\d+)\s+\[S\]\s+for\s+each\s+(.*)", text, re.I)
+    if scaled_might:
+        return {
+            "type": "give_might", "amount": int(scaled_might.group(1)),
+            "scaling": scaled_might.group(2).strip().rstrip("."),
+            "target": {"obj_type": "unit", "scope": "self", "count": 1},
+            "duration": "permanent",
+        }
+
+    # "My Might is increased by ..."
+    my_might_inc = re.match(r"[Mm]y\s+[Mm]ight\s+is\s+increased\s+by\s+(.*)", text)
+    if my_might_inc:
+        return {
+            "type": "give_might", "amount": "variable",
+            "scaling": my_might_inc.group(1).strip().rstrip("."),
+            "target": {"obj_type": "unit", "scope": "self", "count": 1},
+            "duration": "permanent",
+        }
+
+    # "Gain control of TARGET"
+    gain_control = re.match(r"[Gg]ain\s+control\s+of\s+(.*)", text)
+    if gain_control:
+        target = _parse_target(gain_control.group(1))
+        return {"type": "gain_control", "target": target}
+
+    # "Take control of TARGET"
+    take_control = re.match(r"[Tt]ake\s+control\s+of\s+(.*)", text)
+    if take_control:
+        target = _parse_target(take_control.group(1))
+        return {"type": "gain_control", "target": target}
+
+    # "Double a friendly unit's Might this turn"
+    double_might = re.match(r"[Dd]ouble\s+(?:a\s+(?:friendly\s+)?unit['\u2019]?s?\s+|my\s+)Might\s+this\s+(?:turn|combat)", text)
+    if double_might:
+        scope = "self" if "my" in text.lower() else "friendly"
+        return {"type": "give_might", "amount": "double", "target": {"obj_type": "unit", "scope": scope, "count": 1}, "duration": "turn"}
+
+    # "Play a unit from your trash, ignoring its Energy cost"
+    play_from_trash = re.match(
+        r"[Pp]lay\s+a\s+unit\s+from\s+(?:your\s+)?trash(?:,?\s+ignoring\s+its\s+(?:Energy\s+)?cost)?",
+        text,
+    )
+    if play_from_trash:
+        return {"type": "play_from_trash", "obj_type": "unit", "ignore_cost": True}
+
+    # "Play a unit ... from your trash"
+    play_unit_trash2 = re.match(
+        r"[Pp]lay\s+a\s+(?:unit|card)\s+.*?from\s+(?:your\s+)?trash",
+        text,
+    )
+    if play_unit_trash2:
+        return {"type": "play_from_trash", "obj_type": "unit", "ignore_cost": "ignoring" in text.lower()}
+
+    # "Choose an enemy unit at a battlefield. Its owner places it on the top or bottom of their Main Deck"
+    tuck = re.match(
+        r"[Cc]hoose\s+an\s+enemy\s+unit\s+at\s+a\s+battlefield\.\s+Its\s+owner\s+places\s+it\s+on\s+the\s+(?:top\s+or\s+bottom|bottom)\s+of\s+their\s+Main\s+Deck",
+        text,
+    )
+    if tuck:
+        return {"type": "tuck", "target": {"obj_type": "unit", "scope": "enemy", "count": 1, "location": "battlefield"}}
+
+    # "Choose an enemy unit at a battlefield. Take control of it and recall it"
+    steal_recall = re.match(
+        r"[Cc]hoose\s+an\s+enemy\s+unit\s+at\s+a\s+battlefield\.\s+Take\s+control\s+of\s+it\s+and\s+recall\s+it",
+        text,
+    )
+    if steal_recall:
+        return {"type": "sequence", "steps": [
+            {"type": "gain_control", "target": {"obj_type": "unit", "scope": "enemy", "count": 1, "location": "battlefield"}},
+            {"type": "move", "target": {"obj_type": "unit", "scope": "self", "count": 1}, "destination": {"zone": "base", "location": "owner"}},
+        ]}
+
+    # "Choose a friendly unit and an enemy unit. They deal damage equal to their Mights to each other"
+    fight_match = re.match(
+        r"[Cc]hoose\s+(?:a\s+friendly\s+unit\s+(?:anywhere\s+)?and\s+an\s+enemy\s+unit|two\s+units)\.\s+They\s+deal\s+damage\s+equal\s+to\s+their\s+Mights?\s+to\s+each\s+other",
+        text,
+    )
+    if fight_match:
+        return {"type": "fight", "target_a": {"obj_type": "unit", "scope": "friendly", "count": 1},
+                "target_b": {"obj_type": "unit", "scope": "enemy", "count": 1}}
+
+    # "Choose an opponent. They reveal their hand. Choose a card from it"
+    hand_rip = re.match(
+        r"[Cc]hoose\s+an\s+opponent\.\s+They\s+reveal\s+their\s+hand\.\s+(?:You\s+may\s+)?[Cc]hoose\s+a\s+(?:non-unit\s+)?card\s+from\s+it",
+        text,
+    )
+    if hand_rip:
+        if "discard" in text.lower():
+            return {"type": "sequence", "steps": [
+                {"type": "reveal_hand", "player": "opponent"},
+                {"type": "discard", "count": 1, "player": "opponent", "chosen_by": "controller"},
+            ]}
+        if "recycle" in text.lower():
+            return {"type": "sequence", "steps": [
+                {"type": "reveal_hand", "player": "opponent"},
+                {"type": "recycle", "target": {"obj_type": "card", "scope": "opponent_hand", "count": 1}},
+            ]}
+
+    # "Choose an opponent. They play a N [S] NAME unit token"
+    opp_token = re.match(
+        r"[Cc]hoose\s+an\s+opponent\.\s+They\s+play\s+a\s+(\d+)\s+\[S\]\s+(\w+)\s+unit\s+token",
+        text,
+    )
+    if opp_token:
+        return {"type": "play_token", "name": opp_token.group(2), "might": int(opp_token.group(1)),
+                "controller": "opponent"}
+
+    # "Choose a friendly unit. The next time it would die this turn"
+    save_unit = re.match(
+        r"[Cc]hoose\s+a\s+friendly\s+unit\.\s+The\s+next\s+time\s+it\s+would\s+die\s+this\s+turn",
+        text,
+    )
+    if save_unit:
+        return {"type": "shield_from_death", "target": {"obj_type": "unit", "scope": "friendly", "count": 1}, "duration": "turn"}
+
+    # "Choose a unit. Double all damage that would be dealt to it this turn"
+    double_dmg = re.match(r"[Cc]hoose\s+a\s+unit\.\s+Double\s+all\s+damage", text)
+    if double_dmg:
+        return {"type": "modify_damage", "multiplier": 2, "target": {"obj_type": "unit", "scope": "any", "count": 1}, "duration": "turn"}
+
+    # "Choose a friendly unit. It deals damage equal to its Might split among enemy units"
+    split_dmg = re.match(
+        r"[Cc]hoose\s+a\s+friendly\s+unit\.\s+It\s+deals\s+damage\s+equal\s+to\s+its\s+Might\s+split\s+among\s+enemy\s+units",
+        text,
+    )
+    if split_dmg:
+        return {"type": "split_damage", "amount": "source_might",
+                "target": {"obj_type": "unit", "scope": "enemy", "count": -1, "location": "battlefield"}}
+
+    # "Choose a friendly unit at a battlefield. Counter an enemy spell or ability"
+    counter_spell = re.match(
+        r"[Cc]hoose\s+a\s+friendly\s+unit\s+at\s+a\s+battlefield\.\s+Counter\s+an?\s+enemy\s+spell\s+or\s+ability",
+        text,
+    )
+    if counter_spell:
+        return {"type": "counter", "target": {"obj_type": "spell", "scope": "enemy", "zone": "chain"}}
+
+    # "Choose a friendly unit in your base. Deal damage equal to its Might to all enemy units at a battlefield"
+    base_slam = re.match(
+        r"[Cc]hoose\s+a\s+friendly\s+unit\s+in\s+your\s+base\.\s+Deal\s+damage\s+equal\s+to\s+its\s+Might\s+to\s+all\s+enemy\s+units?\s+at\s+a\s+battlefield",
+        text,
+    )
+    if base_slam:
+        return {"type": "sequence", "steps": [
+            {"type": "deal_damage", "amount": "source_might", "target": {"obj_type": "unit", "scope": "enemy", "count": -1, "location": "battlefield"}},
+            {"type": "move", "target": {"obj_type": "unit", "scope": "friendly", "count": 1}, "destination": {"zone": "battlefield", "location": "target"}},
+        ]}
+
+    # "Choose an equipped friendly unit. It deals damage equal to its Might to an enemy unit"
+    equip_strike = re.match(
+        r"[Cc]hoose\s+an\s+equipped\s+friendly\s+unit\.\s+It\s+deals\s+damage\s+equal\s+to\s+its\s+Might\s+to\s+an\s+enemy\s+unit",
+        text,
+    )
+    if equip_strike:
+        return {"type": "sequence", "steps": [
+            {"type": "deal_damage", "amount": "source_might", "target": {"obj_type": "unit", "scope": "enemy", "count": 1}},
+            {"type": "detach", "target": {"obj_type": "gear", "scope": "source", "count": 1}},
+        ]}
+
+    # "Move up to N friendly units to base"
+    move_to_base = re.match(r"[Mm]ove\s+(?:up\s+to\s+)?(\d+)\s+friendly\s+units?\s+to\s+base", text)
+    if move_to_base:
+        return {"type": "move", "target": {"obj_type": "unit", "scope": "friendly", "count": int(move_to_base.group(1))},
+                "destination": {"zone": "base", "location": "owner"}}
+
+    # "Prevent all spell and ability damage this turn"
+    if re.match(r"[Pp]revent\s+all\s+(?:spell\s+and\s+ability\s+)?damage\s+this\s+turn", text):
+        return {"type": "prevent_damage", "scope": "all", "duration": "turn"}
+
+    # "Swap the Might of two units at the same battlefield this turn"
+    if re.match(r"[Ss]wap\s+the\s+Might\s+of\s+two\s+units", text):
+        return {"type": "swap_might", "target": {"obj_type": "unit", "scope": "any", "count": 2}, "duration": "turn"}
+
+    # "Increase the points needed to win the game by N"
+    increase_points = re.match(r"[Ii]ncrease\s+the\s+points\s+needed\s+to\s+win.*?by\s+(\d+)", text)
+    if increase_points:
+        return {"type": "modify_win_condition", "points_increase": int(increase_points.group(1))}
+
+    # "Units can't move from here to base" / "Units can't be played here"
+    units_restrict = re.match(r"[Uu]nits?\s+can['\u2019]?t\s+(.*)", text)
+    if units_restrict:
+        return {"type": "restrict", "restriction": units_restrict.group(1).strip().rstrip("."), "scope": "units", "duration": "permanent"}
+
+    # "Units can move here from anywhere"
+    units_allow = re.match(r"[Uu]nits?\s+can\s+move\s+here\s+from\s+anywhere", text)
+    if units_allow:
+        return {"type": "allow", "permission": "move_here_from_anywhere", "scope": "units"}
+
+    # "you may pay [N] to EFFECT" (inline cost in effect)
+    may_pay = re.match(r"you\s+may\s+pay\s+\[(\d+)\](?:\[(\w)\])?\s+to\s+(.*)", text, re.I)
+    if may_pay:
+        inner = _parse_single_effect(may_pay.group(3))
+        if inner:
+            cost_node: dict[str, Any] = {"energy": int(may_pay.group(1))} if may_pay.group(1) else {}
+            if may_pay.group(2):
+                domain = DOMAIN_SYMBOL_TO_ID.get(f"[{may_pay.group(2)}]", "any")
+                cost_node.setdefault("power", {})[domain] = 1
+            return {"type": "optional", "cost": cost_node, "effect": inner}
+
+    # "you may pay [C] to EFFECT"
+    may_pay_c = re.match(r"you\s+may\s+pay\s+\[C\]\s+to\s+(.*)", text, re.I)
+    if may_pay_c:
+        inner = _parse_single_effect(may_pay_c.group(1))
+        if inner:
+            return {"type": "optional", "cost": {"power_of_domain": True}, "effect": inner}
+
+    # "give me +N [S] this turn"
+    give_me_might = re.match(r"give\s+me\s+\+?(\d+)\s+\[S\]\s+this\s+turn", text, re.I)
+    if give_me_might:
+        return {"type": "give_might", "amount": int(give_me_might.group(1)),
+                "target": {"obj_type": "unit", "scope": "self", "count": 1}, "duration": "turn"}
+
+    # "give me -N [S] this turn"
+    give_me_neg = re.match(r"give\s+me\s+-(\d+)\s+\[S\]\s+this\s+turn", text, re.I)
+    if give_me_neg:
+        return {"type": "give_might", "amount": -int(give_me_neg.group(1)),
+                "target": {"obj_type": "unit", "scope": "self", "count": 1}, "duration": "turn"}
+
+    # "Discard N, then draw N"
+    discard_draw = re.match(r"[Dd]iscard\s+(\d+),?\s+then\s+draw\s+(\d+)", text)
+    if discard_draw:
+        return {"type": "sequence", "steps": [
+            {"type": "discard", "count": int(discard_draw.group(1)), "player": "controller"},
+            {"type": "draw_cards", "count": int(discard_draw.group(2)), "player": "controller"},
+        ]}
+
+    # "Channel N runes exhausted [and draw N]"
+    channel_exh = re.match(r"[Cc]hannel\s+(\d+)\s+runes?\s+exhausted(?:\s+and\s+draw\s+(\d+))?", text)
+    if channel_exh:
+        steps_ch: list[dict[str, Any]] = [{"type": "channel_rune", "count": int(channel_exh.group(1)), "exhausted": True}]
+        if channel_exh.group(2):
+            steps_ch.append({"type": "draw_cards", "count": int(channel_exh.group(2)), "player": "controller"})
+        return steps_ch[0] if len(steps_ch) == 1 else {"type": "sequence", "steps": steps_ch}
+
+    # "[Add] [C]" where C is a domain letter
+    add_domain = re.match(r"\[Add\]\s*\[([CARGBOPY])\]", text)
+    if add_domain:
+        tok = add_domain.group(1)
+        if tok == "C":
+            return {"type": "add_power", "domain": "card_domain", "amount": 1}
+        domain = DOMAIN_SYMBOL_TO_ID.get(f"[{tok}]", "any")
+        return {"type": "add_power", "domain": domain, "amount": 1}
+
+    # "[Add] [N]" with numeric energy
+    add_energy_match = re.match(r"\[Add\]\s*\[(\d+)\]", text)
+    if add_energy_match:
+        return {"type": "add_energy", "amount": int(add_energy_match.group(1))}
+
+    # "play a N [S] NAME unit token" (catches lowercase and variations missed above)
+    token_generic = re.match(
+        r"[Pp]lay\s+a\s+(?:ready\s+)?(\d+)\s+\[S\]\s+([\w\s]+?)\s*unit\s+token(?:\s+with\s+\[?\w+\]?)?(?:\s+(?:into|in|to)\s+(your\s+base|here))?",
+        text,
+    )
+    if token_generic:
+        might = int(token_generic.group(1))
+        name = token_generic.group(2).strip()
+        dest = token_generic.group(3) or ""
+        node_tok: dict[str, Any] = {
+            "type": "play_token", "name": name, "might": might,
+            "temporary": "[Temporary]" in text or "Temporary" in text,
+            "ready_on_enter": "ready" in text.lower().split("[")[0],
+        }
+        if "here" in dest:
+            node_tok["destination"] = "here"
+        return node_tok
+
+    # "play N N [S] NAME unit tokens" (multiple tokens, lowercase)
+    tokens_multi = re.match(
+        r"[Pp]lay\s+(\w+)\s+(\d+)\s+\[S\]\s+([\w\s]+?)\s*unit\s+tokens?(?:\s+with)?",
+        text,
+    )
+    if tokens_multi:
+        count = _word_to_number(tokens_multi.group(1))
+        might = int(tokens_multi.group(2))
+        name = tokens_multi.group(3).strip()
+        return {"type": "play_token", "name": name, "might": might, "count": count,
+                "temporary": "Temporary" in text}
+
+    # "Recycle me to EFFECT" (self-recycle as cost)
+    recycle_me = re.match(r"[Rr]ecycle\s+me\s+to\s+(.*)", text)
+    if recycle_me:
+        inner = _parse_single_effect(recycle_me.group(1))
+        if inner:
+            return {"type": "optional", "cost": {"recycle_self": True}, "effect": inner}
+
+    # "give a unit +N [S] this turn" (lowercase)
+    give_unit_lower = re.match(r"give\s+(.+?)\s+([+-]?\d+)\s+\[S\]\s+this\s+turn", text, re.I)
+    if give_unit_lower:
+        target = _parse_target(give_unit_lower.group(1))
+        return {"type": "give_might", "amount": int(give_unit_lower.group(2)),
+                "target": target, "duration": "turn"}
+
+    # "score N point[s]" (lowercase after trigger)
+    score_lower = re.match(r"(?:you\s+)?score\s+(\d+)\s+points?", text, re.I)
+    if score_lower:
+        return {"type": "score_points", "amount": int(score_lower.group(1)), "player": "controller"}
+
+    # "look at the top N cards of your Main Deck"
+    look_at = re.match(r"[Ll]ook\s+at\s+the\s+top\s+(\d+)\s+cards?\s+of\s+your\s+Main\s+Deck", text)
+    if look_at:
+        return {"type": "look_at_top", "count": int(look_at.group(1))}
+
+    # "reveal the top card of your Main Deck"
+    reveal_top = re.match(r"[Rr]eveal\s+(?:the\s+)?top\s+(?:card|rune)\s+of\s+your", text)
+    if reveal_top:
+        return {"type": "reveal_top", "count": 1}
+
+    # "ready me [and give me +N [S] this turn]"
+    ready_me = re.match(r"[Rr]eady\s+me(?:\s+and\s+give\s+me\s+\+?(\d+)\s+\[S\]\s+this\s+turn)?", text)
+    if ready_me:
+        ready_node: dict[str, Any] = {"type": "ready", "target": {"obj_type": "unit", "scope": "self", "count": 1}}
+        if ready_me.group(1):
+            return {"type": "sequence", "steps": [
+                ready_node,
+                {"type": "give_might", "amount": int(ready_me.group(1)),
+                 "target": {"obj_type": "unit", "scope": "self", "count": 1}, "duration": "turn"},
+            ]}
+        return ready_node
+
+    # "buff me"
+    if re.match(r"buff\s+me", text, re.I):
+        return {"type": "buff", "target": {"obj_type": "unit", "scope": "self", "count": 1}}
+
+    # "draw N and channel N rune[s] exhausted"
+    draw_and_channel = re.match(r"[Dd]raw\s+(\d+)\s+and\s+channel\s+(\d+)\s+runes?\s+exhausted", text)
+    if draw_and_channel:
+        return {"type": "sequence", "steps": [
+            {"type": "draw_cards", "count": int(draw_and_channel.group(1)), "player": "controller"},
+            {"type": "channel_rune", "count": int(draw_and_channel.group(2)), "exhausted": True},
+        ]}
+
+    # "Counter a spell unless its controller pays [N]"
+    counter_unless = re.match(r"[Cc]ounter\s+a\s+spell\s+unless\s+its\s+controller\s+pays\s+\[(\d+)\]", text)
+    if counter_unless:
+        return {"type": "counter_unless_pay", "amount": int(counter_unless.group(1)),
+                "target": {"obj_type": "spell", "zone": "chain"}}
+
+    # "Counter an enemy spell or ability"
+    counter_enemy = re.match(r"[Cc]ounter\s+an\s+enemy\s+spell\s+or\s+ability", text)
+    if counter_enemy:
+        return {"type": "counter", "target": {"obj_type": "spell", "scope": "enemy", "zone": "chain"}}
+
+    # "put the top N cards of your Main Deck into your trash"
+    mill = re.match(r"put\s+the\s+top\s+(\d+)\s+cards?\s+of\s+your\s+Main\s+Deck\s+into\s+your\s+trash", text, re.I)
+    if mill:
+        return {"type": "mill", "count": int(mill.group(1)), "player": "controller"}
+
+    # "When any unit takes damage this turn, kill it"
+    if re.match(r"[Ww]hen\s+any\s+unit\s+takes\s+damage\s+this\s+turn,?\s+kill\s+it", text):
+        return {"type": "aura", "effect": "damage_kills", "duration": "turn"}
+
+    # "Starting with the next player, each player may ..."
+    starting_next = re.match(r"[Ss]tarting\s+with\s+the\s+next\s+player,?\s+each\s+player\s+may\s+(.*)", text)
+    if starting_next:
+        inner = _parse_single_effect(starting_next.group(1))
+        if inner:
+            return {"type": "optional", "effect": inner, "scope": "each_player_from_next"}
 
     return None  # Unparseable
 
@@ -607,6 +1276,48 @@ def _parse_target(text: str) -> dict:
         return {"obj_type": "unit", "scope": "enemy", "count": 1, "location": "here",
                 "filters": [{"field": "combat_role", "op": "eq", "value": "attacker"}]}
 
+    # "an attacking unit"
+    if re.match(r"an?\s+attacking\s+unit", text, re.I):
+        return {"obj_type": "unit", "scope": "any", "count": 1,
+                "filters": [{"field": "combat_role", "op": "eq", "value": "attacker"}]}
+
+    # "a defending unit"
+    if re.match(r"an?\s+defending\s+unit", text, re.I):
+        return {"obj_type": "unit", "scope": "any", "count": 1,
+                "filters": [{"field": "combat_role", "op": "eq", "value": "defender"}]}
+
+    # "an enemy unit at a battlefield" / "a unit at a battlefield"
+    unit_at_bf = re.match(r"(?:a|an)\s+(?:(friendly|enemy)\s+)?unit\s+at\s+a\s+battlefield", text, re.I)
+    if unit_at_bf:
+        scope = unit_at_bf.group(1).lower() if unit_at_bf.group(1) else "any"
+        return {"obj_type": "unit", "scope": scope, "count": 1, "location": "battlefield"}
+
+    # "a unit in a base" / "an enemy unit in a base"
+    unit_in_base = re.match(r"(?:a|an)\s+(?:(friendly|enemy)\s+)?unit\s+in\s+a\s+base", text, re.I)
+    if unit_in_base:
+        scope = unit_in_base.group(1).lower() if unit_in_base.group(1) else "any"
+        return {"obj_type": "unit", "scope": scope, "count": 1, "location": "base"}
+
+    # "all enemy units at a battlefield"
+    all_at_bf = re.match(r"all\s+(?:(friendly|enemy)\s+)?units?\s+at\s+(?:a\s+|my\s+)?battlefield", text, re.I)
+    if all_at_bf:
+        scope = all_at_bf.group(1).lower() if all_at_bf.group(1) else "any"
+        return {"obj_type": "unit", "scope": scope, "count": -1, "location": "battlefield"}
+
+    # "a friendly unit anywhere" / "an enemy unit anywhere"
+    unit_anywhere = re.match(r"(?:a|an)\s+(?:(friendly|enemy)\s+)?unit\s+anywhere", text, re.I)
+    if unit_anywhere:
+        scope = unit_anywhere.group(1).lower() if unit_anywhere.group(1) else "any"
+        return {"obj_type": "unit", "scope": scope, "count": 1, "location": "any"}
+
+    # "your runes" / "my runes"
+    if re.match(r"(?:your|my)\s+runes?", text, re.I):
+        return {"obj_type": "rune", "scope": "friendly", "count": -1}
+
+    # "your legend"
+    if re.match(r"(?:your|my)\s+legend", text, re.I):
+        return {"obj_type": "legend", "scope": "friendly", "count": 1}
+
     # Default: any unit
     return {"obj_type": "unit", "scope": "any", "count": 1}
 
@@ -644,8 +1355,9 @@ def parse_activated_cost(text: str) -> tuple[dict | None, str]:
     Returns (cost_dict, remaining_effect_text).
     """
     # Pattern: [N], [T]: or [N][C], [T]: or [T]: or Recycle this:
+    # Also handles em-dash separator: [T]: — EFFECT or [T]:, — EFFECT
     cost_match = re.match(
-        r"^((?:\[\w+\][\s,]*)+):\s*(.*)",
+        r"^((?:\[\w+\][\s,]*)+):\s*[,\s]*[\u2014\u2013\-]*\s*(.*)",
         text,
     )
     if not cost_match:
@@ -961,19 +1673,95 @@ def _parse_abilities(
             continue
 
         # Check for [>] Level ability prefix
-        level_match = re.match(r"\[>\](?:\[>\])*\s*(.*)", block)
+        level_match = re.match(r"\[>\](?:\[>\]|\[>>\])*\s*(.*)", block)
         if level_match:
             level_text = level_match.group(1).strip()
             ability["ability_type"] = "passive"
             ability["level_ability"] = True
-            ir = parse_effect_text(level_text, card_name)
+            # Level text may itself be an activated ability (e.g. "[T]: [Add] [1]")
+            l_cost, l_effect = parse_activated_cost(level_text)
+            if l_cost is not None:
+                ability["ability_type"] = "activated"
+                ability["cost"] = l_cost
+                ability["timing"] = "default"
+                ir = parse_effect_text(l_effect, card_name)
+            else:
+                # Level text may be a trigger
+                l_trigger = None
+                l_remaining = level_text
+                for l_pat, l_trig in TRIGGER_COMPILED:
+                    l_m = l_pat.match(level_text)
+                    if l_m:
+                        l_trigger = l_trig
+                        l_remaining = level_text[l_m.end():].strip()
+                        break
+                if l_trigger:
+                    ability["ability_type"] = "triggered"
+                    ability["trigger_condition"] = l_trigger
+                    ir = parse_effect_text(l_remaining, card_name)
+                else:
+                    ir = parse_effect_text(level_text, card_name)
             if ir:
                 ability["effect_ir"] = ir
             abilities.append(ability)
             continue
 
+        # Check for em-dash prefix (deathknell abilities): "— EFFECT"
+        emdash_match = re.match(r"[\u2014\u2013\-]+\s*(.*)", block)
+        if emdash_match:
+            emdash_text = emdash_match.group(1).strip()
+            ability["ability_type"] = "triggered"
+            ability["trigger_condition"] = "on_death"  # deathknell default
+            # The em-dash text might itself contain a trigger
+            dk_trigger = None
+            dk_remaining = emdash_text
+            for dk_pat, dk_trig in TRIGGER_COMPILED:
+                dk_m = dk_pat.match(emdash_text)
+                if dk_m:
+                    dk_trigger = dk_trig
+                    dk_remaining = emdash_text[dk_m.end():].strip()
+                    break
+            if dk_trigger:
+                ability["trigger_condition"] = dk_trigger
+            ir = parse_effect_text(dk_remaining, card_name)
+            if ir:
+                ability["effect_ir"] = ir
+            abilities.append(ability)
+            continue
+
+        # Check for [Repeat] spell pattern: [Repeat] [N] Effect or [Repeat] [N][C] Effect
+        repeat_match = re.match(
+            r"\[Repeat\]\s*(?:[\u2014\u2013\-]+\s*)?(?:\[[\w]+\]\s*(?:/\s*\[[\w]+\]\s*)*)*\s*(.*)",
+            block,
+        )
+        if repeat_match:
+            repeat_effect = repeat_match.group(1).strip()
+            # Strip any remaining leading em-dash or "Discard N" cost text before effect
+            repeat_effect = re.sub(r"^[\u2014\u2013\-]+\s*", "", repeat_effect).strip()
+            ability["ability_type"] = "activated"
+            ability["repeat"] = True
+            if any(k["keyword"] == "reaction" for k in keywords):
+                ability["timing"] = "reaction"
+            elif any(k["keyword"] == "action" for k in keywords):
+                ability["timing"] = "action"
+            else:
+                ability["timing"] = "default"
+            ir = parse_effect_text(repeat_effect, card_name)
+            if ir:
+                ability["effect_ir"] = ir
+            _annotate_targets(ability, ir)
+            abilities.append(ability)
+            continue
+
         # Check for passive ("While...", static text without trigger/cost)
-        if block.lower().startswith("while ") or block.lower().startswith("your "):
+        # Expanded to cover more passive patterns
+        passive_starts = (
+            "while ", "your ", "other ", "my ", "friendly ", "enemy ",
+            "units ", "once ", "the first ", "opponents ",
+            "i cost ", "i can't ", "i can be ", "i don't ", "i must ",
+            "i have ", "i get ", "each equipment",
+        )
+        if any(block.lower().startswith(p) for p in passive_starts):
             ability["ability_type"] = "passive"
             ability["trigger_condition"] = None
             # Try to parse inline effects from passive text
@@ -1084,7 +1872,7 @@ def make_basic_rune(card_id: str, name: str, domain: str, art_url: str = "") -> 
                 "ability_id": f"{card_id}_exhaust",
                 "ability_type": "activated",
                 "cost": {"exhaust_source": True},
-                "effect_script": "rune_add_energy",
+                "effect_ir": {"type": "add_energy", "amount": 1},
                 "timing": "reaction",
                 "text": "Add 1 Energy",
             },
@@ -1092,7 +1880,7 @@ def make_basic_rune(card_id: str, name: str, domain: str, art_url: str = "") -> 
                 "ability_id": f"{card_id}_recycle",
                 "ability_type": "activated",
                 "cost": {},
-                "effect_script": "rune_recycle_power",
+                "effect_ir": {"type": "add_power", "amount": 1, "domain": domain},
                 "timing": "reaction",
                 "text": f"Recycle: Add 1 {domain.title()} Power",
             },
@@ -1199,10 +1987,7 @@ def _compute_stats(cards: list[dict]) -> dict:
         has_ir = any(
             ab.get("effect_ir") for ab in c.get("abilities", [])
         )
-        has_script = any(
-            ab.get("effect_script") for ab in c.get("abilities", [])
-        )
-        if has_ir or has_script:
+        if has_ir:
             with_ir += 1
         else:
             without_ir += 1

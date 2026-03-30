@@ -14,15 +14,23 @@ def serialize_for_player(gs: GameState, player_id: str) -> dict[str, Any]:
     Create a client-safe view of the game state for a specific player.
     Hides opponent's hand contents, deck orders, and facedown cards
     the player can't see.
+
+    Supports 2+ player games.  The ``opponent`` key is kept for backward
+    compatibility (first opponent in turn order).  The ``opponents`` list
+    contains all opponents.
     """
-    opponent_id = gs.opponent_id(player_id)
+    opp_ids = gs.opponent_ids(player_id)
 
     has_priority = (gs.active_player_id == player_id)
     is_turn_player = (gs.turn_player_id == player_id)
     turn_state = gs.get_turn_state()
 
-    return {
+    # Build opponents list
+    opponents = [_serialize_player(gs, oid, is_self=False) for oid in opp_ids]
+
+    data: dict[str, Any] = {
         "game_id": gs.game_id,
+        "game_mode": gs.game_mode.value,
         "phase": gs.phase.value,
         "turn_number": gs.turn_number,
         "turn_player_id": gs.turn_player_id,
@@ -33,7 +41,10 @@ def serialize_for_player(gs: GameState, player_id: str) -> dict[str, Any]:
         "game_over": gs.game_over,
         "winner_id": gs.winner_id,
         "you": _serialize_player(gs, player_id, is_self=True),
-        "opponent": _serialize_player(gs, opponent_id, is_self=False),
+        # Backward-compatible single opponent (first in order)
+        "opponent": opponents[0] if opponents else None,
+        # Full list for multi-player clients
+        "opponents": opponents,
         "battlefields": {
             bf_id: _serialize_battlefield(gs, bf, player_id)
             for bf_id, bf in gs.battlefields.items()
@@ -44,6 +55,14 @@ def serialize_for_player(gs: GameState, player_id: str) -> dict[str, Any]:
         "turn_state": turn_state.value,
         "log": [e["message"] for e in gs.log.entries[-20:]],
     }
+
+    # Add teammate info for 2v2
+    teammate_id = gs.teammate_id(player_id)
+    if teammate_id:
+        data["teammate"] = _serialize_player(gs, teammate_id, is_self=False)
+        data["team_score"] = gs.team_score(player_id)
+
+    return data
 
 
 def _can_player_play(gs: GameState, player_id: str) -> bool:
@@ -147,6 +166,7 @@ def _serialize_battlefield(
         "contested_by": bf.contested_by,
         "showdown_staged": bf.showdown_staged,
         "combat_staged": bf.combat_staged,
+        "scored_this_turn_by": bf.scored_this_turn_by,
     }
 
     # Battlefield card info
@@ -241,9 +261,11 @@ def _serialize_card(card: CardInstance, *, visible: bool) -> dict[str, Any]:
         "zone": card.zone.value,
         "location_id": card.location_id,
         "domains": [d.value for d in card.definition.domains],
+        "supertypes": [s.value for s in card.definition.supertypes],
         "cost_energy": card.definition.cost_energy,
         "cost_power": {d.value: v for d, v in card.definition.cost_power},
         "text": card.definition.text,
+        "effect_text": card.definition.effect_text,
         "facedown": card.facedown,
     }
 
@@ -263,8 +285,6 @@ def _serialize_card(card: CardInstance, *, visible: bool) -> dict[str, Any]:
             "entered_this_turn": card.entered_this_turn,
             "accelerated": card.accelerated,
         })
-        if card.attached_cards:
-            data["attached_cards"] = card.attached_cards
 
     # Gear-specific
     if card.card_type == CardType.GEAR:

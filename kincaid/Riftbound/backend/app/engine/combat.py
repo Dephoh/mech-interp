@@ -59,11 +59,14 @@ def pass_focus(gs: GameState, player_id: str) -> list[str]:
         # All passed in sequence — showdown ends (rule 344.3.a / 345)
         logs.extend(close_showdown(gs))
     else:
-        # Pass focus to opponent (rule 344.4)
-        next_player = gs.opponent_id(player_id)
-        sd.focus_player_id = next_player
-        gs.active_player_id = next_player
-        logs.append(f"Focus passes to {next_player}")
+        # Pass focus to next player in turn order (rule 344.4)
+        next_p = gs.next_player(player_id)
+        # Skip players who already passed
+        while next_p in sd.passed_players and next_p != player_id:
+            next_p = gs.next_player(next_p)
+        sd.focus_player_id = next_p
+        gs.active_player_id = next_p
+        logs.append(f"Focus passes to {next_p}")
 
     return logs
 

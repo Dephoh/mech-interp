@@ -5,6 +5,7 @@ from __future__ import annotations
 from .cleanup import kill_temporary_units, run_cleanup
 from .enums import Phase, ZoneType
 from .game_state import GameState, _draw_cards
+from .keywords import mark_hidden_ready
 from .scoring import perform_burn_out, score_hold
 from .trigger_system import GameEvent, fire_event
 
@@ -130,6 +131,10 @@ def _execute_awaken(gs: GameState) -> list[str]:
             bf.scored_this_turn_by = None
 
     logs.append("Awaken: all game objects readied")
+
+    # Rule 737.6: Mark facedown hidden cards as ready at start of controller's turn
+    hidden_logs = mark_hidden_ready(gs)
+    logs.extend(hidden_logs)
 
     # Fire turn-start triggers ("At the start of your turn, ...")
     evt_logs = fire_event(gs, GameEvent.TURN_START, {"player_id": pid})

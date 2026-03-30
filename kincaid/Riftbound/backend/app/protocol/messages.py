@@ -104,7 +104,8 @@ class SubmitChoice(BaseModel):
     """Client response to a CHOICE_REQUIRED message."""
 
     type: Literal["SUBMIT_CHOICE"] = "SUBMIT_CHOICE"
-    chosen_option_index: int | None = None        # for modal choices (pick an option)
+    chosen_option_index: int | None = None        # for modal choices (pick one option)
+    chosen_option_indices: list[int] | None = None  # for multi-select modal choices
     chosen_target_ids: list[str] = Field(default_factory=list)  # for target selection
 
 

@@ -560,26 +560,30 @@ def get_weaponmaster_discount() -> int:
 # ---------------------------------------------------------------------------
 
 
-def apply_vision(unit: CardInstance, gs: GameState) -> list[str]:
+def apply_vision(card: CardInstance, gs: GameState) -> list[str]:
     """
     Apply Vision: the controller looks at the top card of their deck.
     Each instance of Vision triggers separately (rule 743.2).
+    Only fires if the card actually has the Vision keyword.
     Returns log messages describing what the player sees.
     """
+    if not card.has_keyword(Keyword.VISION):
+        return []
+
     logs: list[str] = []
-    count = max(1, sum(1 for k in unit.all_keywords() if k.keyword == Keyword.VISION))
-    ps = gs.players[unit.controller_id]
+    count = max(1, sum(1 for k in card.all_keywords() if k.keyword == Keyword.VISION))
+    ps = gs.players[card.controller_id]
     for i in range(count):
         if not ps.main_deck:
-            logs.append(f"Vision: deck is empty, nothing to see")
+            logs.append("Vision: deck is empty, nothing to see")
             break
         top_id = ps.main_deck[0]
         top_card = gs.instances.get(top_id)
         if top_card:
             logs.append(
-                f"Vision: {unit.controller_id} sees {top_card.name} on top of deck"
+                f"Vision: {card.controller_id} sees {top_card.name} on top of deck"
             )
-            logger.info("[VISION] %s sees %s", unit.controller_id, top_card.name)
+            logger.info("[VISION] %s sees %s", card.controller_id, top_card.name)
     return logs
 
 
@@ -603,3 +607,312 @@ def apply_vision_recycle(
     name = card.name if card else card_id
     logger.info("[VISION] %s recycled %s to bottom", unit.controller_id, name)
     return [f"Vision: {name} recycled to bottom of deck"]
+
+
+# ---------------------------------------------------------------------------
+# Weaponmaster — play effect: choose an Equipment, pay discounted Equip (747)
+# ---------------------------------------------------------------------------
+# Full Weaponmaster flow:
+#   1. Unit with Weaponmaster enters the board
+#   2. Scan for Equipment cards the controller controls (base gear)
+#   3. For each Weaponmaster instance, the controller chooses an equipment
+#      and pays its Equip cost minus [A] (1 power discount)
+#   4. Attach the chosen equipment to the Weaponmaster unit
+#
+# When no equipment is available, the trigger fires but does nothing.
+
+
+def process_weaponmaster_on_enter(unit: CardInstance, gs: GameState) -> list[str]:
+    """
+    Rule 747: When a unit with Weaponmaster enters play, for each instance
+    of Weaponmaster the controller may choose an Equipment they control
+    and pay its (discounted) Equip cost to attach it.
+
+    Auto-selects the first available equipment that the controller can
+    afford to equip (cost reduced by 1 power of any domain per rule 747.1.c).
+    Each Weaponmaster instance triggers separately (rule 747.2).
+    """
+    if not has_weaponmaster(unit):
+        return []
+
+    logs: list[str] = []
+    wm_count = sum(1 for k in unit.all_keywords() if k.keyword == Keyword.WEAPONMASTER)
+    controller = unit.controller_id
+    ps = gs.players[controller]
+
+    for i in range(wm_count):
+        # Find available equipment in controller's base gear
+        available_gear = []
+        for gid in list(gs.base_gear.get(controller) or []):
+            gear = gs.instances.get(gid)
+            if gear and gear.card_type == CardType.GEAR and "equipment" in gear.definition.tags:
+                # Gear must not already be attached to this unit
+                if gear.attached_to != unit.instance_id:
+                    available_gear.append(gear)
+
+        if not available_gear:
+            logs.append(f"{unit.name} Weaponmaster: no equipment available to attach")
+            break  # No point checking further instances
+
+        # Auto-select first available gear that controller can afford
+        attached = False
+        for gear in available_gear:
+            # Determine equip cost (from Equip ability)
+            equip_energy = 0
+            equip_power: dict = {}
+            for ability in gear.definition.abilities:
+                if ability.cost and any(
+                    kw.keyword == Keyword.EQUIP for kw in gear.definition.keywords
+                ):
+                    equip_energy = ability.cost.energy
+                    equip_power = ability.cost.power_dict()
+                    break
+
+            # Rule 747.1.c: reduce cost by [A] (1 power of any domain)
+            discount = get_weaponmaster_discount()
+            total_power = sum(equip_power.values())
+            if total_power > 0:
+                # Reduce the largest power component by the discount
+                for dom in sorted(equip_power, key=lambda d: equip_power[d], reverse=True):
+                    reduction = min(discount, equip_power[dom])
+                    equip_power[dom] -= reduction
+                    discount -= reduction
+                    if discount <= 0:
+                        break
+            elif discount > 0:
+                # No power cost — discount doesn't apply (rule 747.1.c.3)
+                pass
+
+            # Check if controller can afford the discounted cost
+            if not ps.rune_pool.can_pay(equip_energy, equip_power):
+                continue
+
+            # Pay the cost
+            ps.rune_pool.spend(equip_energy, equip_power)
+
+            # Attach gear to unit
+            gear.attached_to = unit.instance_id
+            gear.zone = ZoneType.BATTLEFIELD
+            gear.location_id = unit.location_id
+            unit.attached_cards.append(gear.instance_id)
+
+            # Remove from base_gear
+            if gear.instance_id in (gs.base_gear.get(controller) or []):
+                gs.base_gear[controller].remove(gear.instance_id)
+
+            # Recalculate gear might bonus
+            unit.gear_might_bonus = sum(
+                gs.instances[gid].definition.might_bonus
+                for gid in unit.attached_cards
+                if gid in gs.instances
+            )
+
+            attached = True
+            logs.append(
+                f"{unit.name} Weaponmaster: attaches {gear.name} "
+                f"(discounted Equip cost)"
+            )
+            logger.info(
+                "[WEAPONMASTER] %s attaches %s to %s",
+                controller, gear.name, unit.name,
+            )
+            break
+
+        if not attached:
+            logs.append(f"{unit.name} Weaponmaster: cannot afford any equipment")
+            break
+
+    return logs
+
+
+# ---------------------------------------------------------------------------
+# Quick-Draw — Reaction timing + auto-attach on play (745)
+# ---------------------------------------------------------------------------
+# Full Quick-Draw flow:
+#   1. Gear with Quick-Draw gains Reaction (can be played during Closed States)
+#   2. When played, auto-attach to a unit the controller controls
+#   3. Rule 745.1.d: functionally "[Reaction]" + "When you play this, attach it
+#      to a Unit you control."
+
+
+def apply_quick_draw_auto_attach(card: CardInstance, gs: GameState) -> list[str]:
+    """
+    Rule 745: When a Quick-Draw gear is played, auto-attach it to a unit
+    the controller controls.
+
+    Selects the first available friendly unit. If no unit is available,
+    the gear stays in the base unattached (per normal gear entry rules).
+    """
+    if not has_quick_draw(card):
+        return []
+
+    # Ensure Reaction keyword is granted
+    apply_quick_draw_grants(card)
+
+    controller = card.controller_id
+    logs: list[str] = []
+
+    # Find a friendly unit to attach to — prefer units at battlefields,
+    # then units in base.
+    target_unit: CardInstance | None = None
+
+    # Units at battlefields
+    for bf in gs.battlefields.values():
+        for uid in bf.units:
+            unit = gs.instances.get(uid)
+            if unit and unit.controller_id == controller and unit.card_type == CardType.UNIT:
+                target_unit = unit
+                break
+        if target_unit:
+            break
+
+    # Units in base
+    if not target_unit:
+        for uid in (gs.base_units.get(controller) or []):
+            unit = gs.instances.get(uid)
+            if unit and unit.controller_id == controller:
+                target_unit = unit
+                break
+
+    if not target_unit:
+        logs.append(f"{card.name} Quick-Draw: no unit available to attach to")
+        return logs
+
+    # Attach the gear to the unit
+    card.attached_to = target_unit.instance_id
+    target_unit.attached_cards.append(card.instance_id)
+
+    # Move gear to unit's zone/location
+    card.zone = target_unit.zone
+    card.location_id = target_unit.location_id
+
+    # Remove from base_gear if it was there
+    if card.instance_id in (gs.base_gear.get(controller) or []):
+        gs.base_gear[controller].remove(card.instance_id)
+
+    # Recalculate gear might bonus on the target
+    target_unit.gear_might_bonus = sum(
+        gs.instances[gid].definition.might_bonus
+        for gid in target_unit.attached_cards
+        if gid in gs.instances
+    )
+
+    logs.append(
+        f"{card.name} Quick-Draw: auto-attaches to {target_unit.name}"
+    )
+    logger.info(
+        "[QUICK-DRAW] %s auto-attaches to %s",
+        card.name, target_unit.name,
+    )
+    return logs
+
+
+# ---------------------------------------------------------------------------
+# Predict — look at top N cards and optionally reorder (on play)
+# ---------------------------------------------------------------------------
+
+
+def process_predict_on_play(card: CardInstance, gs: GameState) -> list[str]:
+    """
+    When a card with Predict is played, the controller looks at the top N
+    cards of their deck. In a full implementation the player would be
+    prompted to reorder; here we log the reveal (the player could then
+    use apply_predict() to submit a reorder or apply_vision_recycle()
+    for single-card recycling).
+    Returns log messages.
+    """
+    n = get_predict_count(card)
+    if n <= 0:
+        return []
+    ps = gs.players[card.controller_id]
+    if not ps.main_deck:
+        return ["Predict: deck is empty"]
+    top_n = ps.main_deck[:n]
+    names = []
+    for iid in top_n:
+        inst = gs.instances.get(iid)
+        names.append(inst.name if inst else iid)
+    logger.info("[PREDICT] %s sees top %d: %s", card.controller_id, n, names)
+    return [f"{card.controller_id} Predict {n}: sees top {n} cards"]
+
+
+# ---------------------------------------------------------------------------
+# Hunt — must attack if able; can attack adjacent battlefields
+# ---------------------------------------------------------------------------
+
+
+def get_hunt_units_that_must_attack(
+    gs: GameState,
+    player_id: str,
+) -> list[CardInstance]:
+    """
+    Return all non-exhausted units with Hunt controlled by the player that
+    are able to attack (they must attack if able, per Hunt rules).
+
+    Hunt units at a battlefield with opponents MUST attack.
+    Hunt units in base that can move to a contested battlefield should be
+    flagged. This helper returns the list so the action phase can enforce it.
+    """
+    hunt_units: list[CardInstance] = []
+
+    # Check battlefields for Hunt units that can participate in combat
+    for bf in gs.battlefields.values():
+        for uid in bf.units:
+            unit = gs.instances.get(uid)
+            if (
+                unit
+                and unit.controller_id == player_id
+                and unit.has_keyword(Keyword.HUNT)
+                and not unit.exhausted
+            ):
+                hunt_units.append(unit)
+
+    # Check base for Hunt units that could move to a contested battlefield
+    for uid in (gs.base_units.get(player_id) or []):
+        unit = gs.instances.get(uid)
+        if (
+            unit
+            and unit.has_keyword(Keyword.HUNT)
+            and not unit.exhausted
+        ):
+            hunt_units.append(unit)
+
+    return hunt_units
+
+
+# ---------------------------------------------------------------------------
+# Level — unit progression mechanic
+# ---------------------------------------------------------------------------
+# Level is tracked per-card via the card's own abilities. The keyword serves
+# as a tag for cards that have XP-based progression; actual level-up thresholds
+# and effects are defined in each card's effect_ir / ability definitions.
+# The has_level() helper (defined above) is the runtime check.
+#
+# XP is tracked as a transient counter on the card instance. Helpers below
+# provide the add/check interface used by effect_resolver primitives.
+
+
+def add_xp(unit: CardInstance, amount: int) -> list[str]:
+    """
+    Add XP to a unit with the Level keyword.
+    XP is stored on the card instance as a dynamic attribute.
+    Returns log messages.
+    """
+    if not has_level(unit):
+        return []
+    current = getattr(unit, "xp", 0)
+    unit.xp = current + amount  # type: ignore[attr-defined]
+    logger.info("[LEVEL] %s gains %d XP (total: %d)", unit.name, amount, unit.xp)  # type: ignore[attr-defined]
+    return [f"{unit.name} gains {amount} XP (total: {unit.xp})"]  # type: ignore[attr-defined]
+
+
+def get_xp(unit: CardInstance) -> int:
+    """Return the current XP on a unit with Level (0 if none)."""
+    return getattr(unit, "xp", 0)
+
+
+def check_level_up(unit: CardInstance, threshold: int) -> bool:
+    """Return True if the unit has enough XP to level up at the given threshold."""
+    if not has_level(unit):
+        return False
+    return get_xp(unit) >= threshold

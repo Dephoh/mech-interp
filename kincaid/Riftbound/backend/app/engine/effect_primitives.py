@@ -33,19 +33,108 @@ def _get_target(gs: GameState, targets: list[str], index: int = 0) -> CardInstan
 
 
 def _resolve_amount(
-    raw: int | str, source: CardInstance, target: CardInstance | None = None,
+    raw: int | str | float,
+    source: CardInstance,
+    target: CardInstance | None = None,
+    *,
+    all_targets: list[str] | None = None,
+    gs: GameState | None = None,
 ) -> int:
     """Resolve a dynamic amount reference to a concrete int.
 
-    Supports: "source_might", "target_might", or pass-through for ints.
+    Supports the following expression strings (case-sensitive):
+
+    Source references:
+        "source.might", "source_might"  -- source.effective_might
+        "source.cost"                   -- source.definition.cost_energy
+        "self.might"                    -- alias for source.effective_might
+
+    Target references (uses the per-iteration ``target`` when available,
+    otherwise the first entry in ``all_targets``):
+        "target.might", "target_might"  -- target.effective_might
+        "target.cost"                   -- target.definition.cost_energy
+
+    Computed values:
+        "current_might" -- the current target's effective_might (used by
+            effects like "double this unit's might" where the target is
+            the unit receiving the buff)
+        "doubled"       -- 2x the target's pre-existing damage (placeholder;
+            real doubling is handled by the replacement system, but this
+            provides a numeric fallback)
+        "reciprocal_might" -- the OTHER target's might; only meaningful
+            when exactly 2 targets are provided (e.g. Clash of Giants).
+            Falls back to target.effective_might when there is no pair.
+
+    Anything else (including ``int`` / ``float``) is returned as-is (cast
+    to ``int``).  Unknown strings log a warning and default to 0.
     """
-    if isinstance(raw, int):
-        return raw
-    if raw == "source_might":
+    if isinstance(raw, (int, float)) and not isinstance(raw, bool):
+        return int(raw)
+
+    if not isinstance(raw, str):
+        return 0
+
+    # --- Source references -------------------------------------------------
+    if raw in ("source.might", "source_might", "self.might"):
         return source.effective_might
-    if raw == "target_might" and target is not None:
-        return target.effective_might
-    # Unknown string — fall back to 0 so the caller doesn't crash
+
+    if raw == "source.cost":
+        return getattr(source.definition, "cost_energy", 0)
+
+    # --- Target references -------------------------------------------------
+    # Lazily resolve the target from all_targets if not provided directly
+    _target = target
+    if _target is None and all_targets and gs is not None:
+        _target = gs.get_instance(all_targets[0]) if all_targets else None
+
+    if raw in ("target.might", "target_might"):
+        if _target is not None:
+            return _target.effective_might
+        return 0
+
+    if raw == "target.cost":
+        if _target is not None:
+            return getattr(_target.definition, "cost_energy", 0)
+        return 0
+
+    # --- Computed values ---------------------------------------------------
+    if raw == "current_might":
+        # "Double my might" pattern: the target (or source if self-targeted)
+        # is the unit whose might we read.
+        ref = _target if _target is not None else source
+        return ref.effective_might
+
+    if raw == "doubled":
+        # Numeric fallback for "double the damage" — real doubling should
+        # be implemented via replacement effects, but when this expression
+        # reaches a deal_damage primitive directly, interpret as 2x the
+        # target's current damage mark (useful for damage-doubling traps).
+        if _target is not None:
+            return _target.damage * 2
+        return 0
+
+    if raw == "reciprocal_might":
+        # Clash of Giants pattern: two targets, each takes the other's might.
+        # When iterating per-target inside a primitive, _target is the one
+        # RECEIVING damage.  We need the OTHER target's might.
+        if all_targets and gs is not None and len(all_targets) >= 2:
+            # Find the "other" target
+            other_id = None
+            if _target is not None:
+                for tid in all_targets:
+                    if tid != _target.instance_id:
+                        other_id = tid
+                        break
+            if other_id:
+                other = gs.get_instance(other_id)
+                if other is not None:
+                    return other.effective_might
+        # Fallback: if we can't find a pair, use the target's own might
+        if _target is not None:
+            return _target.effective_might
+        return 0
+
+    # --- Unknown -----------------------------------------------------------
     logger.warning("Unrecognised dynamic amount '%s', defaulting to 0", raw)
     return 0
 
@@ -121,7 +210,7 @@ def prim_deal_damage(
     for tid in targets:
         target = gs.get_instance(tid)
         if target:
-            amount = _resolve_amount(raw_amount, source, target)
+            amount = _resolve_amount(raw_amount, source, target, all_targets=targets, gs=gs)
             target.damage += amount
             logs.append(f"{source.name} deals {amount} damage to {target.name}")
             # Rule 142.2.a: flag lethal damage for log clarity
@@ -208,7 +297,7 @@ def prim_give_might(
     for tid in targets:
         target = gs.get_instance(tid)
         if target:
-            amount = _resolve_amount(raw_amount, source, target)
+            amount = _resolve_amount(raw_amount, source, target, all_targets=targets, gs=gs)
             if duration == "turn":
                 target.might_modifiers.append(amount)
                 logs.append(f"{target.name} gains +{amount} Might this turn")
@@ -309,7 +398,7 @@ def prim_heal(
             healed = target.damage
             target.damage = 0
         else:
-            amount = _resolve_amount(raw_amount, source, target) if isinstance(raw_amount, str) else raw_amount
+            amount = _resolve_amount(raw_amount, source, target, all_targets=targets, gs=gs)
             healed = min(target.damage, amount)
             target.damage -= healed
         logs.append(f"{target.name} healed {healed} damage")
@@ -328,11 +417,11 @@ def prim_kill(
       trash from its place of origin.
     Rule 415.2.a: Only considered Killed if origin was on the board.
     Rule 415.2.b: Kill is NOT a subset of Move.
-
-    Note: Deathknell triggers (415.1.a.1.b) should be fired by the trigger
-    system after this primitive executes.
+    Rule 415.1.a.1.b: Deathknell triggers fire on Active Kill.
     """
     from .enums import CardType, ZoneType
+    from .trigger_system import GameEvent, fire_event
+
     logs = []
     for tid in targets:
         target = gs.get_instance(tid)
@@ -343,6 +432,16 @@ def prim_kill(
             logs.append(f"{target.name} is not on the board (cannot be killed)")
             continue
         if target.card_type == CardType.UNIT:
+            # Fire death events BEFORE removing from board (unit must still
+            # be on the board for trigger_system to find it and its abilities).
+            ctx = {"card_id": tid, "player_id": target.controller_id}
+            evt_logs = fire_event(gs, GameEvent.UNIT_DIED, ctx)
+            logs.extend(evt_logs)
+            evt_logs = fire_event(gs, GameEvent.FRIENDLY_DEATH, ctx)
+            logs.extend(evt_logs)
+            evt_logs = fire_event(gs, GameEvent.ENEMY_DEATH, ctx)
+            logs.extend(evt_logs)
+
             _kill_unit(gs, target)
             logs.append(f"{target.name} is killed by {source.name}")
         else:
@@ -1091,6 +1190,411 @@ def prim_restrict(
     return [f"Restriction applied: {scope} {restriction} ({duration})"]
 
 
+def prim_spend_energy(
+    source: CardInstance, gs: GameState, params: dict, targets: list[str],
+) -> list[str]:
+    """Spend energy from a player's rune pool.
+
+    Returns failure log if insufficient energy (does not spend partial).
+    """
+    amount = params.get("amount", 1)
+    player = _get_player_id(gs, source, params.get("player", "controller"))
+    ps = gs.players[player]
+    if ps.rune_pool.energy >= amount:
+        ps.rune_pool.energy -= amount
+        gs.last_effect_succeeded = True
+        return [f"{ps.display_name} spends {amount} Energy"]
+    gs.last_effect_succeeded = False
+    return [f"Not enough Energy (have {ps.rune_pool.energy}, need {amount})"]
+
+
+def prim_spend_power(
+    source: CardInstance, gs: GameState, params: dict, targets: list[str],
+) -> list[str]:
+    """Spend domain power from a player's rune pool.
+
+    Returns failure log if insufficient power for the given domain.
+    """
+    from .enums import Domain
+
+    amount = params.get("amount", 1)
+    domain_str = params.get("domain", "any")
+    player = _get_player_id(gs, source, params.get("player", "controller"))
+    ps = gs.players[player]
+
+    if domain_str == "any":
+        # Spend from first available domain with enough power
+        for dom, val in ps.rune_pool.power.items():
+            if val >= amount:
+                ps.rune_pool.power[dom] -= amount
+                gs.last_effect_succeeded = True
+                return [f"{ps.display_name} spends {amount} {dom.value} Power"]
+        gs.last_effect_succeeded = False
+        return [f"Not enough Power of any domain (need {amount})"]
+
+    domain = Domain(domain_str)
+    available = ps.rune_pool.power.get(domain, 0)
+    if available >= amount:
+        ps.rune_pool.power[domain] -= amount
+        gs.last_effect_succeeded = True
+        return [f"{ps.display_name} spends {amount} {domain.value} Power"]
+    gs.last_effect_succeeded = False
+    return [f"Not enough {domain.value} Power (have {available}, need {amount})"]
+
+
+def prim_fight(
+    source: CardInstance, gs: GameState, params: dict, targets: list[str],
+) -> list[str]:
+    """Direct fight between two units — each deals damage equal to its Might
+    to the other simultaneously.
+
+    Used by cards like "Marching Orders": choose a friendly unit and an
+    enemy unit; they fight.
+    """
+    if len(targets) < 2:
+        return ["fight requires 2 targets (unit and opponent)"]
+
+    unit_a = gs.get_instance(targets[0])
+    unit_b = gs.get_instance(targets[1])
+    if not unit_a or not unit_b:
+        return ["No valid targets for fight"]
+
+    might_a = unit_a.effective_might
+    might_b = unit_b.effective_might
+
+    # Simultaneous damage
+    unit_a.damage += might_b
+    unit_b.damage += might_a
+
+    logs = [
+        f"{unit_a.name} ({might_a} Might) fights {unit_b.name} ({might_b} Might)",
+        f"{unit_b.name} takes {might_a} damage from {unit_a.name}",
+        f"{unit_a.name} takes {might_b} damage from {unit_b.name}",
+    ]
+    # Flag lethal damage for log clarity
+    for u in (unit_a, unit_b):
+        if u.damage > 0 and u.damage >= u.effective_might > 0:
+            logs.append(f"{u.name} has lethal damage ({u.damage}/{u.effective_might})")
+    return logs
+
+
+def prim_challenge(
+    source: CardInstance, gs: GameState, params: dict, targets: list[str],
+) -> list[str]:
+    """Challenge — force a friendly unit to fight an enemy unit.
+
+    Mechanically identical to fight but semantically a forced engagement.
+    The first target is the friendly unit issuing the challenge; the second
+    is the enemy unit being challenged.
+    """
+    return prim_fight(source, gs, params, targets)
+
+
+def prim_gain_control(
+    source: CardInstance, gs: GameState, params: dict, targets: list[str],
+) -> list[str]:
+    """Gain control of a target permanent.
+
+    Changes the controller_id of the target to the source's controller.
+    The target stays in its current zone/location.
+    """
+    logs = []
+    new_controller = source.controller_id
+    for tid in targets:
+        target = gs.get_instance(tid)
+        if not target:
+            continue
+        old_controller = target.controller_id
+        if old_controller == new_controller:
+            logs.append(f"{target.name} already controlled by {gs.players[new_controller].display_name}")
+            continue
+        target.controller_id = new_controller
+        logs.append(
+            f"{gs.players[new_controller].display_name} gains control of {target.name} "
+            f"(from {gs.players[old_controller].display_name})"
+        )
+    return logs or ["No valid targets for gain control"]
+
+
+def prim_set_stat(
+    source: CardInstance, gs: GameState, params: dict, targets: list[str],
+) -> list[str]:
+    """Set a stat on the source or target to a specific value.
+
+    Supports stat: "cost", "might". Value can be a literal int or a
+    dynamic expression string (currently only literal ints are resolved;
+    complex expressions are logged as stubs).
+    """
+    stat = params.get("stat", "might")
+    raw_value = params.get("value", 0)
+    logs = []
+
+    # Resolve value — support literal ints only for now
+    if isinstance(raw_value, int):
+        value = raw_value
+    elif isinstance(raw_value, dict):
+        # Dynamic expression — stub for now
+        return [f"[STUB] set_stat {stat} with dynamic expression {raw_value}"]
+    else:
+        try:
+            value = int(raw_value)
+        except (TypeError, ValueError):
+            return [f"[STUB] set_stat {stat} to '{raw_value}' (unresolvable expression)"]
+
+    effective_targets = targets if targets else [source.instance_id]
+    for tid in effective_targets:
+        target = gs.get_instance(tid)
+        if not target:
+            continue
+        if stat == "might":
+            # Set effective might via modifier: delta = desired - base
+            base = target.definition.base_might
+            delta = value - base
+            target.might_modifiers.clear()
+            target.might_modifiers.append(delta)
+            logs.append(f"{target.name} Might set to {value}")
+        elif stat == "cost":
+            # Cost modification stored as attribute on the instance
+            target.cost_override = value  # type: ignore[attr-defined]
+            logs.append(f"{target.name} cost set to {value}")
+        else:
+            logs.append(f"[STUB] set_stat '{stat}' to {value} on {target.name}")
+    return logs or ["No valid targets for set_stat"]
+
+
+def prim_play(
+    source: CardInstance, gs: GameState, params: dict, targets: list[str],
+) -> list[str]:
+    """Play a card from a non-hand zone (e.g., from banishment).
+
+    This is a complex operation that involves cost payment, zone transfer,
+    and entering the board. For now we implement the zone transfer and
+    log the cost bypass.
+    """
+    from .enums import CardType, ZoneType
+
+    ignore_cost = params.get("ignore_cost", False)
+    logs = []
+
+    for tid in targets:
+        target = gs.get_instance(tid)
+        if not target:
+            continue
+
+        origin_zone = target.zone
+        _remove_from_current_zone(gs, target)
+
+        # Place on board based on card type
+        controller = source.controller_id
+        target.controller_id = controller
+        if target.card_type == CardType.UNIT:
+            target.zone = ZoneType.BASE
+            target.location_id = controller
+            target.exhausted = True
+            target.entered_this_turn = True  # type: ignore[attr-defined]
+            gs.base_units.setdefault(controller, []).append(target.instance_id)
+            cost_note = " (ignoring cost)" if ignore_cost else ""
+            logs.append(f"{target.name} played from {origin_zone.value}{cost_note}")
+        elif target.card_type == CardType.GEAR:
+            target.zone = ZoneType.BASE
+            target.location_id = controller
+            gs.base_gear.setdefault(controller, []).append(target.instance_id)
+            cost_note = " (ignoring cost)" if ignore_cost else ""
+            logs.append(f"{target.name} played from {origin_zone.value}{cost_note}")
+        else:
+            # Spells and other types — put in hand as fallback
+            target.zone = ZoneType.HAND
+            target.location_id = None
+            gs.players[controller].hand.append(target.instance_id)
+            logs.append(f"{target.name} moved to hand from {origin_zone.value}")
+
+    return logs or ["No valid targets for play"]
+
+
+def prim_play_card(
+    source: CardInstance, gs: GameState, params: dict, targets: list[str],
+) -> list[str]:
+    """Play a card from hand, optionally with cost reduction.
+
+    Similar to 'play' but specifically from hand with cost modifications.
+    """
+    cost_reduction = params.get("cost_reduction", 0)
+
+    # Delegate to prim_play with adjusted params
+    play_params = dict(params)
+    if cost_reduction > 0:
+        play_params["ignore_cost"] = True  # simplified; full implementation would reduce cost
+    return prim_play(source, gs, play_params, targets)
+
+
+def prim_reveal_until(
+    source: CardInstance, gs: GameState, params: dict, targets: list[str],
+) -> list[str]:
+    """Reveal cards from top of deck until a condition is met.
+
+    Reveals cards one at a time until the filter matches, then the found
+    card can be used by a sub-effect. Remaining revealed cards go to the
+    bottom of the deck.
+    """
+    deck_spec = params.get("source", {})
+    filter_spec = params.get("filter", {})
+
+    player = _get_player_id(gs, source, deck_spec.get("scope", "controller"))
+    ps = gs.players[player]
+    logs = []
+    revealed: list[str] = []
+    found_card = None
+
+    field = filter_spec.get("field", "")
+    op = filter_spec.get("op", "eq")
+    value = filter_spec.get("value", "")
+
+    while ps.main_deck:
+        cid = ps.main_deck.pop(0)
+        card = gs.get_instance(cid)
+        if not card:
+            continue
+        revealed.append(cid)
+        logs.append(f"Revealed: {card.name}")
+
+        # Check filter
+        match = False
+        if field == "card_type" and op == "eq":
+            match = card.card_type.value == value
+        elif field == "keyword" and op == "has":
+            from .enums import Keyword
+            try:
+                kw = Keyword(value)
+                match = card.has_keyword(kw)
+            except ValueError:
+                match = False
+        elif field == "tag" and op == "has":
+            match = value in card.definition.tags
+
+        if match:
+            found_card = cid
+            break
+
+    if found_card:
+        found_inst = gs.get_instance(found_card)
+        found_name = found_inst.name if found_inst else "unknown"
+        logs.append(f"Found: {found_name}")
+        # Remaining revealed (not found) go to bottom of deck
+        for rid in revealed:
+            if rid != found_card:
+                ps.main_deck.append(rid)
+    else:
+        # No match found — put all back on bottom
+        for rid in revealed:
+            ps.main_deck.append(rid)
+        logs.append("No matching card found in deck")
+
+    return logs
+
+
+def prim_revert_battlefield(
+    source: CardInstance, gs: GameState, params: dict, targets: list[str],
+) -> list[str]:
+    """Revert a battlefield to its uncontrolled state.
+
+    Clears the controller and sets control status back to uncontrolled.
+    Used by effects like Brush that reset battlefield ownership.
+    """
+    from .enums import ControlStatus
+
+    # Determine which battlefield to revert
+    bf_id = params.get("battlefield_id", None)
+    if not bf_id and source.location_id:
+        bf_id = source.location_id
+
+    if bf_id and bf_id in gs.battlefields:
+        bf = gs.battlefields[bf_id]
+        old_controller = bf.controller_id
+        bf.control_status = ControlStatus.UNCONTROLLED
+        bf.controller_id = None
+        bf.contested_by = None
+        name = old_controller or "no one"
+        if old_controller and old_controller in gs.players:
+            name = gs.players[old_controller].display_name
+        return [f"Battlefield {bf_id} reverted to uncontrolled (was {name})"]
+
+    return ["No valid battlefield to revert"]
+
+
+def prim_trigger_keyword(
+    source: CardInstance, gs: GameState, params: dict, targets: list[str],
+) -> list[str]:
+    """Trigger a keyword's effect (e.g., Conquer).
+
+    This fires the keyword as if it had just been activated. The actual
+    keyword resolution depends on the keyword system; for now we log the
+    trigger and attempt to invoke any matching keyword handler.
+    """
+    keyword_str = params.get("keyword", "")
+    if not keyword_str:
+        return ["No keyword specified for trigger_keyword"]
+
+    logs = [f"Keyword triggered: {keyword_str} (source: {source.name})"]
+
+    # Attempt to resolve known keyword effects
+    if keyword_str.lower() == "conquer":
+        # Conquer: score 1 point for the controller
+        ps = gs.players.get(source.controller_id)
+        if ps:
+            ps.score += 1
+            logs.append(f"{ps.display_name} scores 1 point (Conquer)")
+    else:
+        logs.append(f"[STUB] trigger_keyword '{keyword_str}' handler not fully implemented")
+
+    return logs
+
+
+def prim_grant_activated_ability(
+    source: CardInstance, gs: GameState, params: dict, targets: list[str],
+) -> list[str]:
+    """Grant an activated ability to target unit(s).
+
+    The granted ability is stored on the CardInstance and becomes available
+    for the controller to activate. Complex ability definitions are stored
+    as-is and interpreted by the action system.
+    """
+    ability = params.get("ability", {})
+    if not ability:
+        return ["No ability specified for grant_activated_ability"]
+
+    effective_targets = targets if targets else [source.instance_id]
+    logs = []
+    for tid in effective_targets:
+        target = gs.get_instance(tid)
+        if not target:
+            continue
+        # Store the granted ability on the instance for later use
+        if not hasattr(target, "granted_abilities"):
+            target.granted_abilities = []  # type: ignore[attr-defined]
+        target.granted_abilities.append(ability)  # type: ignore[attr-defined]
+        cost_desc = ability.get("cost", [])
+        effect_desc = ability.get("effect", [])
+        logs.append(f"{target.name} gains activated ability: cost={cost_desc}, effect={effect_desc}")
+    return logs or ["No valid targets for grant_activated_ability"]
+
+
+def prim_share_abilities(
+    source: CardInstance, gs: GameState, params: dict, targets: list[str],
+) -> list[str]:
+    """Share abilities between units.
+
+    Copies keywords and/or abilities from source units to the target.
+    This is a complex effect used by cards like Heimerdinger. Currently
+    implemented as a stub that logs intent.
+    """
+    target_spec = params.get("target", {})
+    options = params.get("options", [])
+
+    scope = target_spec.get("scope", "self") if isinstance(target_spec, dict) else "self"
+    return [f"[STUB] share_abilities for {source.name} (scope={scope}, "
+            f"{len(options)} option group(s)) — requires full keyword copy implementation"]
+
+
 # ---------------------------------------------------------------------------
 # Registry mapping node types to primitive functions
 # ---------------------------------------------------------------------------
@@ -1124,4 +1628,17 @@ PRIMITIVE_DISPATCH: dict[str, Any] = {
     "look_at_top": prim_look_at_top,
     "give_keyword": prim_give_keyword,
     "restrict": prim_restrict,
+    "spend_energy": prim_spend_energy,
+    "spend_power": prim_spend_power,
+    "fight": prim_fight,
+    "challenge": prim_challenge,
+    "gain_control": prim_gain_control,
+    "set_stat": prim_set_stat,
+    "play": prim_play,
+    "play_card": prim_play_card,
+    "reveal_until": prim_reveal_until,
+    "revert_battlefield": prim_revert_battlefield,
+    "trigger_keyword": prim_trigger_keyword,
+    "grant_activated_ability": prim_grant_activated_ability,
+    "share_abilities": prim_share_abilities,
 }

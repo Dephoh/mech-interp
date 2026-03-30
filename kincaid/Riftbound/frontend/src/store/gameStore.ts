@@ -7,6 +7,8 @@ interface GameStore {
   playerId: string | null;
   playerSlot: number | null;
   waiting: boolean;
+  reconnectToken: string | null;
+  opponentDisconnected: boolean;
 
   // Game state (from server)
   gameState: ClientGameState | null;
@@ -19,6 +21,8 @@ interface GameStore {
   setRoom: (roomId: string) => void;
   setPlayer: (playerId: string, slot: number) => void;
   setWaiting: (waiting: boolean) => void;
+  setReconnectToken: (token: string) => void;
+  setOpponentDisconnected: (disconnected: boolean) => void;
   updateState: (state: ClientGameState) => void;
   addLogs: (logs: string[]) => void;
   setGameOver: (winnerId: string, reason: string) => void;
@@ -31,6 +35,8 @@ export const useGameStore = create<GameStore>((set) => ({
   playerId: null,
   playerSlot: null,
   waiting: false,
+  reconnectToken: null,
+  opponentDisconnected: false,
   gameState: null,
   gameLogs: [],
   gameOver: false,
@@ -40,6 +46,8 @@ export const useGameStore = create<GameStore>((set) => ({
   setRoom: (roomId) => set({ roomId }),
   setPlayer: (playerId, slot) => set({ playerId, playerSlot: slot, waiting: false }),
   setWaiting: (waiting) => set({ waiting }),
+  setReconnectToken: (token) => set({ reconnectToken: token }),
+  setOpponentDisconnected: (disconnected) => set({ opponentDisconnected: disconnected }),
   updateState: (state) => set({ gameState: state }),
   addLogs: (logs) =>
     set((s) => ({ gameLogs: [...s.gameLogs.slice(-200), ...logs] })),
@@ -51,6 +59,8 @@ export const useGameStore = create<GameStore>((set) => ({
       playerId: null,
       playerSlot: null,
       waiting: false,
+      reconnectToken: null,
+      opponentDisconnected: false,
       gameState: null,
       gameLogs: [],
       gameOver: false,

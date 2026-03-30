@@ -59,7 +59,7 @@ class AbilityDefinition:
     ability_type: AbilityType
     trigger_condition: str | None = None  # e.g. "on_play", "on_conquer", "on_death"
     cost: CostDefinition | None = None
-    effect_script: str | None = None  # registered function name in effects.py
+    effect_script: str | None = None  # DEPRECATED: kept for backward compat; use effect_ir
     effect_ir: dict | None = None     # composable effect IR tree (see effect_ir.py)
     timing: str = "default"  # "default", "action", "reaction"
     text: str = ""
@@ -184,6 +184,10 @@ class CardInstance:
     aura_might_bonus: int = 0
     # Gear attachment might bonus (recalculated dynamically from attached gear)
     gear_might_bonus: int = 0
+    # Layer 1 (Trait-Altering): might override via "becomes X" (rule 454.1.a.1)
+    trait_might_set: int | None = None
+    # Layer 2 (Ability-Altering): keywords granted by continuous auras (rule 454.2)
+    aura_keywords: list[KeywordInstance] = field(default_factory=list)
 
     @staticmethod
     def create(
@@ -214,7 +218,7 @@ class CardInstance:
         return self.definition.card_id
 
     def all_keywords(self) -> list[KeywordInstance]:
-        return list(self.definition.keywords) + self.granted_keywords
+        return list(self.definition.keywords) + self.granted_keywords + self.aura_keywords
 
     def has_keyword(self, kw: Keyword) -> bool:
         return any(k.keyword == kw for k in self.all_keywords())
@@ -263,6 +267,11 @@ class CardInstance:
     def effective_might(self) -> int:
         """Current might accounting for buffs, modifiers, auras, Assault/Shield.
 
+        Evaluated using the 3-layer system (rules 450-457):
+          Layer 1 (Trait-Altering): might_set overrides base might (454.1.a.1)
+          Layer 2 (Ability-Altering): aura_keywords already included via all_keywords()
+          Layer 3 (Arithmetic): increases first, then decreases (454.3.d)
+
         Rule 710: Units on the board are evaluated according to their current might.
         Rule 711: Units in non-board zones are evaluated according to their inherent might.
         """
@@ -270,22 +279,49 @@ class CardInstance:
         if not self.is_on_board:
             return max(0, self.definition.base_might)
 
-        base = self.definition.base_might
+        # Layer 1: Trait-Altering — might assignment overrides base (454.1.a.1)
+        if self.trait_might_set is not None:
+            base = self.trait_might_set
+        else:
+            base = self.definition.base_might
+
+        # Layer 3: Arithmetic — collect all arithmetic adjustments, then apply
+        # increases before decreases (rule 454.3.d)
+        increases = 0
+        decreases = 0
+
         # Buff counter (rule 703: each buff +1 might)
         if self.buff_counter:
-            base += 1
-        # Attachment might bonuses from gear (rule 718.4)
-        base += self.gear_might_bonus
+            increases += 1
+        # Attachment might bonuses from gear (rule 718.4, 454.3.c)
+        if self.gear_might_bonus > 0:
+            increases += self.gear_might_bonus
+        elif self.gear_might_bonus < 0:
+            decreases += self.gear_might_bonus
+
         # Transient modifiers (spell effects etc.)
-        base += sum(self.might_modifiers)
-        # Continuous aura modifiers (recalculated by GameState.recalculate_modifiers)
-        base += self.aura_might_bonus
+        for mod in self.might_modifiers:
+            if mod >= 0:
+                increases += mod
+            else:
+                decreases += mod
+
+        # Continuous aura modifiers (recalculated by layers.evaluate_layers)
+        if self.aura_might_bonus >= 0:
+            increases += self.aura_might_bonus
+        else:
+            decreases += self.aura_might_bonus
+
         # Assault (only while attacker, rule 733)
         if self.combat_role == CombatRole.ATTACKER:
-            base += self.keyword_value(Keyword.ASSAULT)
+            increases += self.keyword_value(Keyword.ASSAULT)
         # Shield (only while defender, rule 740)
         if self.combat_role == CombatRole.DEFENDER:
-            base += self.keyword_value(Keyword.SHIELD)
+            increases += self.keyword_value(Keyword.SHIELD)
+
+        # Apply increases first, then decreases (rule 454.3.d)
+        base += increases
+        base += decreases
         return max(0, base)
 
     @property
@@ -468,6 +504,11 @@ class CardInstance:
         self.might_modifiers.clear()
         self.entered_this_turn = False
         self.stunned = False  # stun clears at Ending Step
+        self.accelerated = False  # per-turn flag, consumed on entry
+        # Aura-granted keywords and trait overrides are recalculated each
+        # cleanup pass by evaluate_layers; clear here for safety.
+        self.aura_keywords.clear()
+        self.trait_might_set = None
 
     def reset_on_zone_exit(self) -> None:
         """Clear all mutable state when a card leaves play.
@@ -489,7 +530,10 @@ class CardInstance:
         self.might_modifiers.clear()
         self.aura_might_bonus = 0
         self.gear_might_bonus = 0
+        self.aura_keywords.clear()
+        self.trait_might_set = None
         self.entered_this_turn = False
+        self.accelerated = False
         # Clear attachment state (rule 719.5)
         self.attached_to = None
         self.attached_cards.clear()

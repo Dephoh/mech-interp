@@ -1,5 +1,6 @@
 import { createPortal } from "react-dom";
 import { useUIStore } from "../../store/uiStore";
+import { getCardImageUrl } from "../../utils/cardImages";
 
 const PORTAL_W = 275;
 const PORTAL_H = 385;
@@ -7,7 +8,7 @@ const GAP = 12;
 
 function cardImageUrl(cardId: string | undefined): string | null {
   if (!cardId) return null;
-  return `/card-images/${cardId}.png`;
+  return getCardImageUrl(cardId);
 }
 
 export function CardHoverPortal() {

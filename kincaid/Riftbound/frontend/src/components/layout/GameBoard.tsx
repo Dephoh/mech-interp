@@ -2,8 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useGameStore } from "../../store/gameStore";
 import { useTestLabStore } from "../../store/testlabStore";
 import { useUIStore } from "../../store/uiStore";
+import { getCardImageUrl } from "../../utils/cardImages";
 import { isValidTarget } from "../../utils/targeting";
 import type { CardView, ClientMessage } from "../../ws/messageTypes";
+import type { ConnectionStatus } from "../../ws/useWebSocket";
 import { TestLabToolbar } from "../testlab/TestLabToolbar";
 import { AccelerateModal } from "../ui/AccelerateModal";
 import { ChoiceModal } from "../ui/ChoiceModal";
@@ -17,6 +19,10 @@ import { Sidebar } from "./Sidebar";
 
 interface Props {
   send: (msg: ClientMessage) => void;
+  connectionStatus: ConnectionStatus;
+  reconnectAttempt: number;
+  wasConnected: boolean;
+  justReconnected: boolean;
 }
 
 /* ── Score Tracker (left column) ───────────── */
@@ -100,7 +106,7 @@ function CardThumb({ card, label }: { card: CardView | null; label: string }) {
   const setPreviewCard = useUIStore((s) => s.setPreviewCard);
   const [imgErr, setImgErr] = useState(false);
   if (!card) return null;
-  const src = card.card_id ? `/card-images/${card.card_id}.png` : null;
+  const src = card.card_id ? getCardImageUrl(card.card_id) : null;
   return (
     <div
       className="card-thumb"
@@ -127,7 +133,7 @@ function DeckIcon({ count, isRune }: { count: number; isRune?: boolean }) {
   );
 }
 
-export function GameBoard({ send }: Props) {
+export function GameBoard({ send, connectionStatus, reconnectAttempt, wasConnected, justReconnected }: Props) {
   const gs = useGameStore((s) => s.gameState);
   const gameOver = useGameStore((s) => s.gameOver);
   const winnerId = useGameStore((s) => s.winnerId);
@@ -437,6 +443,28 @@ export function GameBoard({ send }: Props) {
         {gameOver && (
           <div className="game-over-banner">
             {winnerId === you.player_id ? "You Win!" : "You Lose!"}
+          </div>
+        )}
+
+        {/* Connection status banners */}
+        {wasConnected && connectionStatus === "disconnected" && reconnectAttempt <= 10 && (
+          <div className="connection-banner connection-banner--lost">
+            Connection lost. Reconnecting{reconnectAttempt > 0 ? ` (attempt ${reconnectAttempt}/10)` : ""}...
+          </div>
+        )}
+        {wasConnected && connectionStatus === "disconnected" && reconnectAttempt > 10 && (
+          <div className="connection-banner connection-banner--failed">
+            Connection lost. Reconnection failed after 10 attempts. Please refresh the page.
+          </div>
+        )}
+        {wasConnected && connectionStatus === "connecting" && (
+          <div className="connection-banner connection-banner--lost">
+            Reconnecting...
+          </div>
+        )}
+        {justReconnected && (
+          <div className="connection-banner connection-banner--ok">
+            Reconnected!
           </div>
         )}
 

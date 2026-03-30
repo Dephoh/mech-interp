@@ -155,7 +155,7 @@ def fire_event(
                 continue
             if ability.trigger_condition not in matching_triggers:
                 continue
-            if not (ability.effect_ir or ability.effect_script):
+            if not ability.effect_ir:
                 continue
 
             # Check if this trigger applies to this specific event context

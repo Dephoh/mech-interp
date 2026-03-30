@@ -16,10 +16,12 @@ from typing import TYPE_CHECKING, Any
 
 from .effect_ir import (
     ALL_NODE_TYPES,
+    ARRAY,
     COMPOSITION_TYPES,
     CONDITIONAL,
     CHOOSE_ONE,
     DELAYED_TRIGGER,
+    DESCRIPTOR_TYPES,
     FOR_EACH,
     MODIFIER,
     OPTIONAL,
@@ -29,6 +31,7 @@ from .effect_ir import (
     REPEAT_EFFECT,
     RULE_BREAKER_TYPES,
     SEQUENCE,
+    TRIGGERED_EFFECT,
     ConditionSpec,
     TargetSpec,
 )
@@ -91,6 +94,10 @@ def resolve_effect_ir(
         return _resolve_composition(node, source, gs, targets)
     elif node_type in RULE_BREAKER_TYPES:
         return _resolve_rule_breaker(node, source, gs, targets)
+    elif node_type in DESCRIPTOR_TYPES:
+        # Descriptor nodes (e.g. "event") are sub-node metadata, not
+        # standalone executable effects.  No-op if reached directly.
+        return []
     else:
         return [f"Unhandled node type: {node_type}"]
 
@@ -106,7 +113,12 @@ def _resolve_primitive(
     Before executing, broadcasts intent to the replacement system. If an
     active ReplacementNode intercepts this primitive, the alternative IR
     is executed instead.
+
+    String-valued ``amount`` / ``count`` fields are resolved to ints via
+    :func:`~.effect_primitives._resolve_amount` *before* the primitive
+    function is called, so primitives always receive concrete numbers.
     """
+    from .effect_primitives import _resolve_amount
     from .trigger_system import check_primitive_replacement
 
     node_type = node["type"]
@@ -121,6 +133,33 @@ def _resolve_primitive(
     if not resolved and "target" in node:
         resolved = _auto_resolve_targets(node["target"], source, gs)
 
+    # --- Pre-resolve dynamic string amounts --------------------------------
+    # Make a shallow copy so we don't mutate the original IR definition.
+    # Only the top-level keys are replaced; nested dicts (like "target")
+    # remain shared references, which is safe since we only touch "amount"
+    # and "count" here.
+    #
+    # Expressions that depend on which target is being iterated
+    # (e.g. "reciprocal_might", "current_might", "target.might") are
+    # left as strings here; the per-target loop inside each primitive
+    # will call _resolve_amount with the correct target context.
+    _PER_TARGET_EXPRESSIONS = frozenset({
+        "reciprocal_might", "current_might", "doubled",
+        "target.might", "target_might", "target.cost",
+    })
+    params = dict(node)
+    for key in ("amount", "count"):
+        raw = params.get(key)
+        if isinstance(raw, str) and raw != "all" and raw not in _PER_TARGET_EXPRESSIONS:
+            # Source-scoped expression: resolve once for the whole call
+            first_target = None
+            if resolved:
+                first_target = gs.get_instance(resolved[0])
+            params[key] = _resolve_amount(
+                raw, source, first_target,
+                all_targets=resolved, gs=gs,
+            )
+
     # Broadcast intent — check if any replacement intercepts this primitive
     alt_ir = check_primitive_replacement(gs, node_type, source, resolved)
     if alt_ir:
@@ -128,7 +167,7 @@ def _resolve_primitive(
         gs.last_effect_succeeded = bool(logs and not any("No valid" in l for l in logs))
         return logs
 
-    logs = fn(source, gs, node, resolved)
+    logs = fn(source, gs, params, resolved)
     # Track success: a primitive succeeded if it produced logs without "No valid" failures
     gs.last_effect_succeeded = bool(logs and not any("No valid" in l for l in logs))
     return logs
@@ -151,6 +190,8 @@ def _resolve_composition(
         return _resolve_for_each(node, source, gs, targets)
     elif node_type == CHOOSE_ONE:
         return _resolve_choose_one(node, source, gs, targets)
+    elif node_type == ARRAY:
+        return _resolve_array(node, source, gs, targets)
     elif node_type == OPTIONAL:
         return _resolve_optional(node, source, gs, targets)
     elif node_type == REPEAT_EFFECT:
@@ -227,6 +268,23 @@ def _resolve_choose_one(
     return resolve_effect_ir(options[0], source, gs, targets)
 
 
+def _resolve_array(
+    node: dict[str, Any],
+    source: CardInstance,
+    gs: GameState,
+    targets: list[str],
+) -> list[str]:
+    """Execute all options in an array node (multi-modal ability list).
+
+    The "array" type holds multiple sub-effects (like optional abilities
+    on a card).  Each option is resolved independently and sequentially.
+    """
+    logs: list[str] = []
+    for option in node.get("options", []):
+        logs.extend(resolve_effect_ir(option, source, gs, targets))
+    return logs
+
+
 def _resolve_optional(
     node: dict[str, Any],
     source: CardInstance,
@@ -275,6 +333,8 @@ def _resolve_rule_breaker(
         return _resolve_player_choice(node, source, gs, targets)
     elif node_type == DELAYED_TRIGGER:
         return _resolve_delayed_trigger(node, source, gs)
+    elif node_type == TRIGGERED_EFFECT:
+        return _resolve_triggered_effect(node, source, gs)
     else:
         return [f"Unhandled rule-breaker: {node_type}"]
 
@@ -385,6 +445,49 @@ def _resolve_delayed_trigger(
 
     return [f"{source.name}: delayed trigger registered (watches {trigger_event}, "
             f"duration={duration})"]
+
+
+def _resolve_triggered_effect(
+    node: dict[str, Any],
+    source: CardInstance,
+    gs: GameState,
+) -> list[str]:
+    """Register a triggered effect (similar to delayed_trigger but event-based).
+
+    A triggered_effect node contains a "trigger" sub-node describing the
+    event that activates it, and an "effect" sub-node that fires when the
+    trigger matches. This is used for cards like "Whenever you hide a
+    card, ready this unit."
+
+    We store this as a delayed trigger with permanent duration tied to
+    the source remaining on the board.
+    """
+    trigger = node.get("trigger", {})
+    effect = node.get("effect", {})
+
+    trigger_event = trigger.get("event_type", trigger.get("type", "unknown"))
+    scope = trigger.get("scope", "any")
+    duration = node.get("duration", "permanent")
+
+    if not hasattr(gs, "delayed_triggers"):
+        gs.delayed_triggers = []  # type: ignore[attr-defined]
+
+    delayed = {
+        "trigger_event": trigger_event,
+        "effect_ir": effect,
+        "condition": {"cond_type": "always"},
+        "duration": duration,
+        "max_fires": 0,  # unlimited
+        "fires_remaining": -1,
+        "source_instance_id": source.instance_id,
+        "controller_id": source.controller_id,
+        "created_turn": getattr(gs, "turn_number", 0),
+        "scope": scope,
+    }
+    gs.delayed_triggers.append(delayed)  # type: ignore[attr-defined]
+
+    return [f"{source.name}: triggered effect registered (watches {trigger_event}, "
+            f"scope={scope})"]
 
 
 def _resolve_player_choice(

@@ -18,6 +18,11 @@ export interface JoinRoomMsg {
   deck?: DeckPayload;
 }
 
+export interface ReconnectMsg {
+  type: "RECONNECT";
+  reconnect_token: string;
+}
+
 export interface MulliganChoiceMsg {
   type: "MULLIGAN_CHOICE";
   keep_indices: number[];
@@ -78,11 +83,13 @@ export interface ConcedeMsg {
 export interface SubmitChoiceMsg {
   type: "SUBMIT_CHOICE";
   chosen_option_index?: number;
+  chosen_option_indices?: number[];
   chosen_target_ids?: string[];
 }
 
 export type ClientMessage =
   | JoinRoomMsg
+  | ReconnectMsg
   | MulliganChoiceMsg
   | AdvancePhaseMsg
   | PassPriorityMsg
@@ -104,6 +111,24 @@ export interface RoomJoinedMsg {
   type: "ROOM_JOINED";
   player_slot: number;
   room_id: string;
+  reconnect_token?: string;
+}
+
+export interface ReconnectSuccessMsg {
+  type: "RECONNECT_SUCCESS";
+  player_slot: number;
+  room_id: string;
+  your_player_id: string;
+}
+
+export interface PlayerDisconnectedMsg {
+  type: "PLAYER_DISCONNECTED";
+  player_id: string;
+}
+
+export interface PlayerReconnectedMsg {
+  type: "PLAYER_RECONNECTED";
+  player_id: string;
 }
 
 export interface GameStartedMsg {
@@ -164,6 +189,9 @@ export interface TestLabScenarioChangedMsg {
 
 export type ServerMessage =
   | RoomJoinedMsg
+  | ReconnectSuccessMsg
+  | PlayerDisconnectedMsg
+  | PlayerReconnectedMsg
   | GameStartedMsg
   | StateUpdateMsg
   | ActionRejectedMsg
@@ -226,10 +254,13 @@ export interface CardView {
   owner_id?: string;
   controller_id?: string;
   zone?: string;
+  location_id?: string | null;
   domains?: string[];
+  supertypes?: string[];
   cost_energy?: number;
   cost_power?: Record<string, number>;
   text?: string;
+  effect_text?: string;
   base_might?: number;
   effective_might?: number;
   combat_might?: number;
@@ -238,9 +269,13 @@ export interface CardView {
   stunned?: boolean;
   buff_counter?: boolean;
   combat_role?: string;
+  hidden_at_battlefield?: string | null;
+  hidden_ready?: boolean;
+  entered_this_turn?: boolean;
+  accelerated?: boolean;
   keywords?: { keyword: string; value: number }[];
   abilities?: { ability_id: string; ability_type: string; timing: string; text: string; targets_required: number; target_type: string }[];
-  attached_to?: string;
+  attached_to?: string | null;
   attached_cards?: string[];
   might_bonus?: number;
   facedown?: boolean;
@@ -255,6 +290,7 @@ export interface BattlefieldView {
   contested_by: string | null;
   showdown_staged: boolean;
   combat_staged: boolean;
+  scored_this_turn_by: string | null;
   units: CardView[];
   facedown_card: CardView | null;
 }

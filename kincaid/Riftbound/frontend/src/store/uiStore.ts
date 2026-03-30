@@ -38,7 +38,6 @@ interface UIStore {
   dragSourceId: string | null;
   showMulliganModal: boolean;
   showDamageModal: boolean;
-  contextMenu: { x: number; y: number; cardId: string } | null;
   targeting: TargetingState | null;
   pendingChoice: PendingChoice | null;
   previewCard: CardView | null;
@@ -49,8 +48,6 @@ interface UIStore {
   setDragSource: (id: string | null) => void;
   setMulliganModal: (show: boolean) => void;
   setDamageModal: (show: boolean) => void;
-  openContextMenu: (x: number, y: number, cardId: string) => void;
-  closeContextMenu: () => void;
   enterTargeting: (cardId: string, targetsNeeded: number, targetType: string) => void;
   enterAbilityTargeting: (sourceId: string, abilityId: string, targetsNeeded: number, targetType: string) => void;
   addTarget: (instanceId: string) => void;
@@ -69,7 +66,6 @@ export const useUIStore = create<UIStore>((set) => ({
   dragSourceId: null,
   showMulliganModal: false,
   showDamageModal: false,
-  contextMenu: null,
   targeting: null,
   pendingChoice: null,
   previewCard: null,
@@ -80,8 +76,6 @@ export const useUIStore = create<UIStore>((set) => ({
   setDragSource: (id) => set({ dragSourceId: id }),
   setMulliganModal: (show) => set({ showMulliganModal: show }),
   setDamageModal: (show) => set({ showDamageModal: show }),
-  openContextMenu: (x, y, cardId) => set({ contextMenu: { x, y, cardId } }),
-  closeContextMenu: () => set({ contextMenu: null }),
   enterTargeting: (cardId, targetsNeeded, targetType) =>
     set({ targeting: { cardId, targetsNeeded, targetType, selectedTargets: [], actionType: "play_card" }, selectedCardId: null }),
   enterAbilityTargeting: (sourceId, abilityId, targetsNeeded, targetType) =>

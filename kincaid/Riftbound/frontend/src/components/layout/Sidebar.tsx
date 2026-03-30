@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useGameStore } from "../../store/gameStore";
 import { useUIStore } from "../../store/uiStore";
+import { getCardImageUrl } from "../../utils/cardImages";
 import type { CardView, ClientMessage } from "../../ws/messageTypes";
 
 const DOMAIN_COLORS: Record<string, string> = {
@@ -10,7 +11,7 @@ const DOMAIN_COLORS: Record<string, string> = {
 
 function CardPreview({ card }: { card: CardView }) {
   const [imgError, setImgError] = useState(false);
-  const imgSrc = card.card_id ? `/card-images/${card.card_id}.png` : null;
+  const imgSrc = card.card_id ? getCardImageUrl(card.card_id) : null;
 
   return (
     <div className="sidebar__preview">

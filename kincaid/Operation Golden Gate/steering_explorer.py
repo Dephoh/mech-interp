@@ -138,10 +138,12 @@ class GenerationCache:
         with self._lock:
             for m, _, _ in MULTIPLIERS:
                 key = (prompt, m)
+                was_completed = key in self._cache or key in self._errors
                 self._cache.pop(key, None)
                 self._errors.pop(key, None)
                 self._in_progress.discard(key)
-                self.completed_jobs = max(0, self.completed_jobs - 1)
+                if was_completed:
+                    self.completed_jobs = max(0, self.completed_jobs - 1)
 
     @property
     def progress(self) -> float:
@@ -209,7 +211,7 @@ class ModelInterface:
             self._log(f"Config: fallback={config.fallback_model}")
             self._log(f"Config: batch_size={config.batch_size}")
 
-            # Step 2: Check CUDA
+            # Step 2: Check accelerator
             try:
                 import torch
                 self._log(f"PyTorch version: {torch.__version__}")
@@ -220,10 +222,12 @@ class ModelInterface:
                     vram = getattr(vram_props, 'total_memory', getattr(vram_props, 'total_mem', 0)) / 1e9
                     used = torch.cuda.memory_allocated(0) / 1e9
                     self._log(f"VRAM: {used:.1f}GB / {vram:.1f}GB")
+                elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                    self._log(f"MPS available: True (Apple Silicon)")
                 else:
-                    self._log("!! No CUDA -- model will fail or be very slow")
+                    self._log("!! No CUDA or MPS -- model will run on CPU (slow)")
             except Exception as e:
-                self._log(f"!! CUDA check failed: {e}")
+                self._log(f"!! Accelerator check failed: {e}")
 
             # Step 3: Load model
             if status_callback:
@@ -764,6 +768,8 @@ class DebugScreen(Screen):
                         vram = getattr(vram_props, 'total_memory', getattr(vram_props, 'total_mem', 0)) / 1e9
                         used = torch.cuda.memory_allocated(0) / 1e9
                         f.write(f"VRAM: {used:.1f}GB / {vram:.1f}GB\n")
+                    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                        f.write(f"MPS available: True (Apple Silicon)\n")
                 except Exception as e:
                     f.write(f"PyTorch error: {e}\n")
 
@@ -810,14 +816,21 @@ class DebugScreen(Screen):
         try:
             import torch
             text.append(f"PyTorch: {torch.__version__}\n", style="#aaaaaa")
-            text.append(f"CUDA available: {torch.cuda.is_available()}\n",
-                         style="#5fd787" if torch.cuda.is_available() else "#d75f5f")
-            if torch.cuda.is_available():
+            has_cuda = torch.cuda.is_available()
+            has_mps = hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+            has_accel = has_cuda or has_mps
+            text.append(f"CUDA available: {has_cuda}\n",
+                         style="#5fd787" if has_cuda else "#aaaaaa")
+            if has_cuda:
                 text.append(f"GPU: {torch.cuda.get_device_name(0)}\n", style="#aaaaaa")
                 vram_props = torch.cuda.get_device_properties(0)
                 vram = getattr(vram_props, 'total_memory', getattr(vram_props, 'total_mem', 0)) / 1e9
                 used = torch.cuda.memory_allocated(0) / 1e9
                 text.append(f"VRAM: {used:.1f}GB / {vram:.1f}GB\n", style="#aaaaaa")
+            elif has_mps:
+                text.append(f"MPS available: True (Apple Silicon)\n", style="#5fd787")
+            else:
+                text.append("No GPU acceleration available\n", style="#d75f5f")
         except ImportError:
             text.append("PyTorch: NOT INSTALLED\n", style="bold #d75f5f")
         except Exception as e:

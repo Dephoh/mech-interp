@@ -1,7 +1,9 @@
 torch
 transformers
 numpy
-huggingface
 accelerate
 textual
 rich
+anthropic
+scikit-learn
+bitsandbytes

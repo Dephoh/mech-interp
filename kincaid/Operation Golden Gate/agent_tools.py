@@ -149,22 +149,31 @@ def _call_llm_judge(prompt: str, baseline: str, steered: str) -> dict:
     """
     import anthropic
 
-    client = anthropic.Anthropic()
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=256,
-        system=_JUDGE_SYSTEM,
-        tools=[_JUDGE_TOOL],
-        tool_choice={"type": "tool", "name": "score_output"},
-        messages=[{
-            "role": "user",
-            "content": (
-                f"User prompt: {prompt}\n\n"
-                f"Unsteered baseline:\n{baseline}\n\n"
-                f"Steered output:\n{steered}"
-            ),
-        }],
-    )
+    try:
+        client = anthropic.Anthropic()
+    except Exception as e:
+        return {"identity": 0, "relevance": 0, "coherence": 0, "composite": 0.0,
+                "error": f"Anthropic client init failed (ANTHROPIC_API_KEY set?): {e}"}
+
+    try:
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=256,
+            system=_JUDGE_SYSTEM,
+            tools=[_JUDGE_TOOL],
+            tool_choice={"type": "tool", "name": "score_output"},
+            messages=[{
+                "role": "user",
+                "content": (
+                    f"User prompt: {prompt}\n\n"
+                    f"Unsteered baseline:\n{baseline}\n\n"
+                    f"Steered output:\n{steered}"
+                ),
+            }],
+        )
+    except Exception as e:
+        return {"identity": 0, "relevance": 0, "coherence": 0, "composite": 0.0,
+                "error": f"API call failed: {e}"}
 
     # Extract tool_use result
     for block in response.content:
@@ -408,7 +417,7 @@ class SteeringToolkit:
         neg_acts = neg_acts[active]
 
         # Build dataset: label 1 = positive (Golden Gate), 0 = negative
-        X = torch.cat([pos_acts, neg_acts], dim=0).numpy()
+        X = torch.cat([pos_acts, neg_acts], dim=0).cpu().numpy()
         y = np.array([1] * len(pos_acts) + [0] * len(neg_acts))
 
         # 5-fold stratified CV with automatic regularization tuning
@@ -430,7 +439,9 @@ class SteeringToolkit:
 
         # Mean CV accuracy across folds at best C
         # clf.scores_[class_label] has shape (n_folds, n_Cs)
-        cv_scores = clf.scores_[1]  # scores for positive class
+        # scores_ is keyed by class label; use whichever class exists
+        score_key = 1 if 1 in clf.scores_ else list(clf.scores_.keys())[0]
+        cv_scores = clf.scores_[score_key]
         best_c_idx = np.argmax(cv_scores.mean(axis=0))
         per_fold_accs = cv_scores[:, best_c_idx]
         mean_cv_acc = per_fold_accs.mean()
@@ -466,6 +477,8 @@ class SteeringToolkit:
             multiplier=multiplier,
             max_new_tokens=self.config.max_new_tokens,
             seed=self.config.seed,
+            temperature=self.config.temperature,
+            do_sample=self.config.do_sample,
         )
 
         density = _keyword_density(output)
@@ -492,6 +505,8 @@ class SteeringToolkit:
         """
         if self.current_vector is None:
             return {"error": "No steering vector computed yet. Call recompute_vector first."}
+        if not layers:
+            return {"error": "Empty layers list. Provide at least one layer index."}
 
         output = generate_with_steering(
             self.model,
@@ -503,6 +518,8 @@ class SteeringToolkit:
             steering_layers=layers,
             max_new_tokens=self.config.max_new_tokens,
             seed=self.config.seed,
+            temperature=self.config.temperature,
+            do_sample=self.config.do_sample,
         )
 
         density = _keyword_density(output)
@@ -535,6 +552,7 @@ class SteeringToolkit:
             self.model, self.tokenizer, prompt, self.current_vector,
             layer_idx=self.current_layer, multiplier=0.0,
             max_new_tokens=self.config.max_new_tokens, seed=self.config.seed,
+            temperature=self.config.temperature, do_sample=self.config.do_sample,
         ).strip()
 
         # Generate steered output
@@ -542,6 +560,7 @@ class SteeringToolkit:
             self.model, self.tokenizer, prompt, self.current_vector,
             layer_idx=self.current_layer, multiplier=multiplier,
             max_new_tokens=self.config.max_new_tokens, seed=self.config.seed,
+            temperature=self.config.temperature, do_sample=self.config.do_sample,
         ).strip()
 
         # Call LLM judge
@@ -578,6 +597,7 @@ class SteeringToolkit:
                 self.model, self.tokenizer, prompt, self.current_vector,
                 layer_idx=self.current_layer, multiplier=0.0,
                 max_new_tokens=self.config.max_new_tokens, seed=self.config.seed,
+                temperature=self.config.temperature, do_sample=self.config.do_sample,
             ).strip()
 
         # Sweep multipliers
@@ -592,6 +612,7 @@ class SteeringToolkit:
                         self.model, self.tokenizer, prompt, self.current_vector,
                         layer_idx=self.current_layer, multiplier=mult,
                         max_new_tokens=self.config.max_new_tokens, seed=self.config.seed,
+                        temperature=self.config.temperature, do_sample=self.config.do_sample,
                     ).strip()
 
                 # LLM judge
@@ -673,8 +694,9 @@ class SteeringToolkit:
         mean_composite = sum(s["composite"] for s in judge_scores) / len(judge_scores)
         mean_density = sum(s["keyword_density"] for s in judge_scores) / len(judge_scores)
 
-        # Gated composite score
-        if probe_cv_acc < 0.7:
+        # Gated composite score (lower threshold for smaller models with weaker representations)
+        probe_gate = 0.6 if self.model.config.num_hidden_layers <= 30 else 0.7
+        if probe_cv_acc < probe_gate:
             composite = probe_cv_acc * 0.5
         else:
             composite = 0.2 * probe_cv_acc + 0.8 * mean_composite

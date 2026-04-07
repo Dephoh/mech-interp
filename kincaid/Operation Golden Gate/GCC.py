@@ -22,6 +22,7 @@ import torch
 import gc
 import json
 import os
+import platform
 import textwrap
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from typing import Optional
@@ -35,9 +36,9 @@ from dataclasses import dataclass, field
 @dataclass
 class SteeringConfig:
     """All tunable parameters in one place."""
-    # Model
-    model_name: str = "Qwen/Qwen2.5-7B-Instruct"
-    fallback_model: str = "Qwen/Qwen2.5-3B-Instruct"
+    # Model — Gemma 4 31B dense (INT4 on 3090 24GB, fallback E4B for Mac)
+    model_name: str = "google/gemma-4-31B-it"
+    fallback_model: str = "google/gemma-4-E4B-it"
     torch_dtype: torch.dtype = torch.float16
 
     quantize: bool = True                   # INT4 quantization via bitsandbytes (saves ~60% VRAM)
@@ -94,12 +95,46 @@ def get_transformer_layers(model):
 # PART 3: Model Loading
 # ============================================================================
 
+def _get_system_ram_gb():
+    """Return total system RAM in GB (macOS/Linux)."""
+    try:
+        if platform.system() == "Darwin":
+            import subprocess
+            out = subprocess.check_output(["sysctl", "-n", "hw.memsize"], text=True)
+            return int(out.strip()) / (1024 ** 3)
+        else:
+            with open("/proc/meminfo") as f:
+                for line in f:
+                    if line.startswith("MemTotal"):
+                        return int(line.split()[1]) / (1024 ** 2)
+    except Exception:
+        pass
+    return None
+
+
+def _resolve_device():
+    """Pick the best available accelerator: CUDA > MPS > CPU."""
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
+def _empty_cache():
+    """Clear accelerator memory cache (CUDA or MPS)."""
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    elif hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+        torch.mps.empty_cache()
+
+
 def _get_device(model):
     """Get the actual device of the model (handles device_map dispatch)."""
     try:
         return next(model.parameters()).device
     except StopIteration:
-        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        return _resolve_device()
 
 
 def load_model(config: Optional[SteeringConfig] = None, progress_callback=None):
@@ -117,16 +152,34 @@ def load_model(config: Optional[SteeringConfig] = None, progress_callback=None):
         if progress_callback:
             progress_callback(msg)
 
-    for model_name in [config.model_name, config.fallback_model]:
+    device = _resolve_device()
+    use_mps = device.type == "mps"
+
+    # MPS memory guard: estimate model size and check against available RAM
+    model_candidates = [config.model_name, config.fallback_model]
+    if use_mps:
+        ram_gb = _get_system_ram_gb()
+        if ram_gb is not None:
+            # Estimate fp16 model size from name (rough: "27b" -> ~54GB, "12b" -> ~24GB, "7b" -> ~14GB, "3b" -> ~6GB)
+            import re
+            size_match = re.search(r'(\d+)[bB]', config.model_name.split('/')[-1])
+            param_billions = int(size_match.group(1)) if size_match else 0
+            estimated_gb = param_billions * 2  # fp16: 2 bytes per param
+            headroom = 4  # OS + working memory
+            if estimated_gb + headroom > ram_gb:
+                _report(f"[MPS] {ram_gb:.0f}GB RAM, {config.model_name} needs ~{estimated_gb}GB — skipping, using {config.fallback_model}")
+                model_candidates = [config.fallback_model]
+            if config.batch_size > 2:
+                config.batch_size = 2
+
+    for model_name in model_candidates:
         try:
-            load_kwargs = dict(
-                device_map="cuda" if torch.cuda.is_available() else "cpu",
-                low_cpu_mem_usage=True,
-            )
+            load_kwargs = dict(low_cpu_mem_usage=True)
 
             if config.quantize and torch.cuda.is_available():
                 from transformers import BitsAndBytesConfig
                 _report(f"Downloading/loading {model_name} (INT4 quantized)...")
+                load_kwargs["device_map"] = "cuda"
                 bnb_config = BitsAndBytesConfig(
                     load_in_4bit=True,
                     bnb_4bit_compute_dtype=torch.float16,
@@ -134,14 +187,22 @@ def load_model(config: Optional[SteeringConfig] = None, progress_callback=None):
                     bnb_4bit_quant_type="nf4",
                 )
                 load_kwargs["quantization_config"] = bnb_config
+            elif use_mps:
+                _report(f"Downloading/loading {model_name} (MPS float16)...")
+                load_kwargs["dtype"] = torch.float16
             else:
                 _report(f"Downloading/loading {model_name}...")
-                load_kwargs["torch_dtype"] = config.torch_dtype
+                load_kwargs["device_map"] = "cuda" if torch.cuda.is_available() else "cpu"
+                load_kwargs["dtype"] = config.torch_dtype
 
             model = AutoModelForCausalLM.from_pretrained(
                 model_name,
                 **load_kwargs,
             )
+
+            if use_mps:
+                _report("Moving model to MPS...")
+                model = model.to("mps")
 
             _report(f"Loading tokenizer...")
             tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -153,7 +214,7 @@ def load_model(config: Optional[SteeringConfig] = None, progress_callback=None):
 
             n_layers = model.config.num_hidden_layers
             hidden_dim = model.config.hidden_size
-            device = next(model.parameters()).device
+            actual_device = next(model.parameters()).device
 
             quant_tag = " [INT4/NF4]" if config.quantize and torch.cuda.is_available() else ""
             info = f"{model_name}{quant_tag} | {n_layers} layers, {hidden_dim}d"
@@ -163,19 +224,30 @@ def load_model(config: Optional[SteeringConfig] = None, progress_callback=None):
                 vram_props = torch.cuda.get_device_properties(0)
                 vram = getattr(vram_props, 'total_memory', getattr(vram_props, 'total_mem', 0)) / 1e9
                 info += f" | {gpu} {used:.1f}/{vram:.1f}GB"
+            elif use_mps:
+                ram_gb = _get_system_ram_gb()
+                ram_str = f" {ram_gb:.0f}GB" if ram_gb else ""
+                info += f" | Apple Silicon (MPS fp16){ram_str} on {actual_device}"
             _report(info)
 
             return model, tokenizer
 
         except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
-            if "out of memory" in str(e).lower():
+            err_msg = str(e).lower()
+            is_oom = (
+                "out of memory" in err_msg
+                or "invalid buffer size" in err_msg
+                or "mps backend" in err_msg
+                or "can't allocate" in err_msg
+            )
+            if is_oom:
                 _report(f"OOM with {model_name}, trying fallback...")
                 gc.collect()
-                torch.cuda.empty_cache()
+                _empty_cache()
                 continue
             raise
 
-    raise RuntimeError("Could not load any model -- insufficient VRAM")
+    raise RuntimeError("Could not load any model -- insufficient memory")
 
 
 # ============================================================================
@@ -331,22 +403,24 @@ def extract_all_layers(
             handle = transformer_layers[l].register_forward_hook(make_hook(l))
             handles.append(handle)
 
-        # Tokenize with padding
+        # Tokenize with padding (shorter max_length on MPS to avoid >4GB NDArray crash)
+        max_len = 128 if device.type == "mps" else 512
         inputs = tokenizer(
             chunk,
             return_tensors="pt",
             padding=True,
             truncation=True,
-            max_length=512,
+            max_length=max_len,
         ).to(device)
 
         # Single forward pass captures all layers
-        with torch.no_grad():
-            model(**inputs)
-
-        # Remove all hooks
-        for h in handles:
-            h.remove()
+        try:
+            with torch.no_grad():
+                model(**inputs)
+        finally:
+            # Always remove hooks, even on exception
+            for h in handles:
+                h.remove()
 
         # Extract last-token activations for each layer
         mask = inputs["attention_mask"]
@@ -356,7 +430,7 @@ def extract_all_layers(
 
         # Free memory
         del captures, inputs
-        torch.cuda.empty_cache()
+        _empty_cache()
 
     return {l: torch.cat(acts, dim=0) for l, acts in all_activations.items()}
 
@@ -419,9 +493,12 @@ def compute_steering_vector(
     # Mean difference
     steering_vec = (pos_acts - neg_acts).mean(dim=0)
 
-    # Normalize
+    # Normalize (guard against zero-norm if pos/neg activations are identical)
     norm = steering_vec.norm()
-    steering_vec = steering_vec / norm
+    if norm < 1e-8:
+        print(f"  WARNING: steering vector near-zero (norm={norm:.2e}), returning unnormalized")
+    else:
+        steering_vec = steering_vec / norm
 
     print(f"  Steering vector: dim={steering_vec.shape[0]}, "
           f"pre-norm magnitude={norm:.4f}")
@@ -436,9 +513,11 @@ def compute_steering_vector(
 def sweep_layers(
     model,
     tokenizer,
+    config: Optional[SteeringConfig] = None,
     layers_to_test: Optional[list[int]] = None,
     batch_size: int = 8,
     progress_callback=None,
+    pairs_override: Optional[list] = None,
 ) -> dict:
     """
     Sweep across layers to find where the Golden Gate concept is most
@@ -463,7 +542,7 @@ def sweep_layers(
 
     _report(f"Sweeping {len(layers_to_test)} layers (single-pass extraction)...")
 
-    pairs = create_contrastive_prompts()
+    pairs = pairs_override if pairs_override is not None else create_contrastive_prompts()
     pos_texts = [format_for_model(tokenizer, p) for p, _ in pairs]
     neg_texts = [format_for_model(tokenizer, n) for _, n in pairs]
 
@@ -485,7 +564,12 @@ def sweep_layers(
 
         # Compute mean difference vector
         diff = (pos_acts - neg_acts).mean(dim=0)
-        diff_norm = diff / diff.norm()
+        diff_mag = diff.norm()
+        if diff_mag < 1e-8:
+            # Layer produces identical pos/neg activations — skip
+            results[layer_idx] = {"consistency": 0.0, "magnitude": 0.0}
+            continue
+        diff_norm = diff / diff_mag
 
         # Score: average cosine similarity of individual diffs with mean diff
         individual_diffs = pos_acts - neg_acts
@@ -533,13 +617,23 @@ def sweep_layers(
 class SteeringHook:
     """
     Hook that adds the steering vector to the residual stream during generation.
-    Skips the initial prompt-processing pass (where seq_len > 1 with KV cache)
-    so that the model's understanding of the input is not distorted.
+
+    If steer_prompt=False (default), skips the initial prompt-processing pass
+    (where seq_len > 1 with KV cache) so that the model's understanding of the
+    input is not distorted. Only steers during token generation.
+
+    If steer_prompt=True, steers ALL forward passes including the prompt.
+    This is needed for some models (e.g., Qwen2.5-3B) where generation-only
+    steering at moderate multipliers has zero effect on output content.
     """
-    def __init__(self, steering_vector: torch.Tensor, multiplier: float = 1.0):
+    def __init__(self, steering_vector: torch.Tensor, multiplier: float = 1.0,
+                 steer_prompt: bool = False, norm_relative: bool = False):
         self.steering_vector = steering_vector
         self.multiplier = multiplier
+        self.steer_prompt = steer_prompt
+        self.norm_relative = norm_relative  # If True, multiplier is relative to residual stream norm
         self._seen_prompt = False
+        self._prompt_norm = None  # Cached norm from prompt pass for stable scaling
 
     def __call__(self, module, input, output):
         if self.multiplier == 0.0:
@@ -550,16 +644,28 @@ class SteeringHook:
         else:
             hidden = output
 
-        # Skip the initial prompt processing pass.
-        # With use_cache=True, the prompt pass has seq_len > 1,
-        # and subsequent generation passes have seq_len == 1.
-        if not self._seen_prompt:
+        # Optionally skip the initial prompt processing pass.
+        if not self.steer_prompt and not self._seen_prompt:
             if hidden.shape[1] > 1:
+                # Cache the mean residual stream norm from the prompt for stable scaling
+                if self.norm_relative:
+                    self._prompt_norm = hidden.norm(dim=-1).mean().detach()
                 self._seen_prompt = True
                 return output
 
         sv = self.steering_vector.to(hidden.device, dtype=hidden.dtype)
-        modified = hidden + self.multiplier * sv
+
+        if self.norm_relative:
+            # Scale relative to residual stream norm (Anthropic's approach: 0.05 = 5% of norm)
+            # Use cached prompt norm for stability; fall back to current hidden norm
+            if self._prompt_norm is not None:
+                stream_norm = self._prompt_norm
+            else:
+                stream_norm = hidden.norm(dim=-1).mean()
+            sv_normed = sv / (sv.norm() + 1e-8)
+            modified = hidden + self.multiplier * stream_norm * sv_normed
+        else:
+            modified = hidden + self.multiplier * sv
 
         if isinstance(output, tuple):
             return (modified,) + output[1:]
@@ -577,6 +683,10 @@ def generate_with_steering(
     steering_layers: Optional[list[int]] = None,
     use_chat_template: bool = True,
     seed: Optional[int] = 42,
+    temperature: float = 0.7,
+    do_sample: bool = True,
+    steer_prompt: bool = False,
+    norm_relative: bool = False,
 ) -> str:
     """
     Generate text with the steering vector applied at one or more layers.
@@ -587,12 +697,17 @@ def generate_with_steering(
         prompt: User prompt text
         steering_vector: The normalized steering direction
         layer_idx: Primary layer to steer (used if steering_layers is None)
-        multiplier: How strongly to steer (0=off, 1=mild, 3+=strong)
+        multiplier: How strongly to steer. If norm_relative=False, raw addition
+                    (0=off, 1=mild, 3+=strong). If norm_relative=True, fraction
+                    of residual stream norm (0.05 = Anthropic's default).
         max_new_tokens: Maximum tokens to generate
         steering_layers: Optional list of layers to steer simultaneously.
                         If provided, multiplier is divided across layers.
         use_chat_template: Whether to format with chat template
         seed: Random seed for reproducibility (None = random)
+        temperature: Sampling temperature (default 0.7)
+        do_sample: Whether to use sampling (default True)
+        norm_relative: If True, multiplier is relative to residual stream norm
     """
     # Format the prompt
     if use_chat_template:
@@ -601,7 +716,7 @@ def generate_with_steering(
         formatted = prompt
 
     # Determine which layers to steer
-    if steering_layers is not None:
+    if steering_layers is not None and len(steering_layers) > 0:
         layers = steering_layers
         per_layer_mult = multiplier / len(layers)
     else:
@@ -612,7 +727,8 @@ def generate_with_steering(
     transformer_layers = get_transformer_layers(model)
     handles = []
     for lidx in layers:
-        hook = SteeringHook(steering_vector, per_layer_mult)
+        hook = SteeringHook(steering_vector, per_layer_mult, steer_prompt=steer_prompt,
+                           norm_relative=norm_relative)
         handle = transformer_layers[lidx].register_forward_hook(hook)
         handles.append(handle)
 
@@ -620,25 +736,51 @@ def generate_with_steering(
     if seed is not None:
         torch.manual_seed(seed)
 
-    # Generate
-    inputs = tokenizer(formatted, return_tensors="pt").to(_get_device(model))
-    with torch.no_grad():
-        outputs = model.generate(
-            **inputs,
-            max_new_tokens=max_new_tokens,
-            do_sample=True,
-            temperature=0.7,
-            pad_token_id=tokenizer.eos_token_id,
-            use_cache=True,
-        )
+    # Generate using manual autoregressive loop (model.generate() crashes on MPS
+    # with transformers 5.x due to >4GB temporary NDArray limit in Metal).
+    try:
+        inputs = tokenizer(formatted, return_tensors="pt").to(_get_device(model))
+        input_ids = inputs["input_ids"]
+        prompt_len = input_ids.shape[1]
 
-    # Clean up hooks
-    for handle in handles:
-        handle.remove()
+        # Use KV cache for efficiency
+        past_key_values = None
+        generated_ids = []
+        current_input = input_ids
 
-    # Decode only the NEW tokens (not the prompt)
-    new_tokens = outputs[0][inputs["input_ids"].shape[1]:]
-    return tokenizer.decode(new_tokens, skip_special_tokens=True)
+        with torch.no_grad():
+            for _ in range(max_new_tokens):
+                out = model(
+                    input_ids=current_input,
+                    past_key_values=past_key_values,
+                    use_cache=True,
+                )
+                logits = out.logits[:, -1, :]  # [1, vocab_size]
+                past_key_values = out.past_key_values
+
+                if do_sample and temperature > 0:
+                    # Temperature-scaled sampling
+                    scaled_logits = logits / temperature
+                    probs = torch.nn.functional.softmax(scaled_logits, dim=-1)
+                    next_token = torch.multinomial(probs, num_samples=1)
+                else:
+                    # Greedy decoding
+                    next_token = logits.argmax(dim=-1, keepdim=True)
+
+                generated_ids.append(next_token.item())
+                current_input = next_token
+
+                # Stop on EOS
+                if next_token.item() == tokenizer.eos_token_id:
+                    break
+
+    finally:
+        # Clean up hooks even if generation fails (OOM, MPS error, etc.)
+        for handle in handles:
+            handle.remove()
+
+    # Decode only the NEW tokens
+    return tokenizer.decode(generated_ids, skip_special_tokens=True)
 
 
 # ============================================================================
@@ -735,8 +877,8 @@ def run_full_diagnostics(
     all_acts = torch.cat([pos_acts, neg_acts], dim=0)
     mean = all_acts.mean(dim=0, keepdim=True)
     centered = all_acts - mean
-    U, S, V = torch.svd_lowrank(centered.float(), q=2)
-    projected = (centered.float() @ V).numpy().tolist()
+    U, S, V = torch.svd_lowrank(centered.float().cpu(), q=2)
+    projected = (centered.float().cpu() @ V).numpy().tolist()
     n = len(pairs)
     data["pca"] = {
         "positive": [{"x": p[0], "y": p[1]} for p in projected[:n]],
@@ -840,7 +982,8 @@ def main():
         # Remove large tensors from sweep_results before saving
         save_sweep = {
             k: v for k, v in sweep_results.items()
-            if k not in ("best_layer_pos_acts", "best_layer_neg_acts")
+            if k not in ("best_layer_pos_acts", "best_layer_neg_acts",
+                        "all_pos_acts", "all_neg_acts")
         }
         torch.save({
             "vector": steering_vector,
@@ -885,6 +1028,8 @@ def main():
                 layer_idx=best_layer, multiplier=mult,
                 max_new_tokens=config.max_new_tokens,
                 seed=config.seed,
+                temperature=config.temperature,
+                do_sample=config.do_sample,
             )
             print(f"\n  [{labels[mult]}]")
             wrapped = textwrap.fill(output.strip(), width=70, initial_indent="    ",

@@ -26,6 +26,7 @@ from .enums import (
 )
 from .game_state import GameState
 from .keywords import (
+    can_hide_card,
     can_play_in_state,
     check_unique_violation,
     get_accelerate_cost,
@@ -64,6 +65,7 @@ def validate_action(
         ActionType.RECYCLE_RUNE: _validate_recycle_rune,
         ActionType.ACTIVATE_ABILITY: _validate_activate_ability,
         ActionType.ASSIGN_DAMAGE: _validate_assign_damage,
+        ActionType.HIDE_CARD: _validate_hide_card,
         ActionType.CONCEDE: _validate_concede,
         ActionType.SUBMIT_CHOICE: _validate_submit_choice,
     }
@@ -659,6 +661,36 @@ def _validate_submit_choice(gs: GameState, player_id: str, payload: dict) -> Val
         return ValidationResult(False, "No pending choice")
     if gs.pending_choice.get("controller_id") != player_id:
         return ValidationResult(False, "Not your choice to make")
+    return ValidationResult(True)
+
+
+def _validate_hide_card(gs: GameState, player_id: str, payload: dict) -> ValidationResult:
+    """Validate HIDE_CARD: hide a card facedown at a controlled battlefield (Rule 737)."""
+    instance_id = payload.get("instance_id")
+    battlefield_id = payload.get("battlefield_id")
+    if not instance_id or not battlefield_id:
+        return ValidationResult(False, "Missing instance_id or battlefield_id")
+
+    card = gs.instances.get(instance_id)
+    if not card:
+        return ValidationResult(False, "Card not found")
+    if card.controller_id != player_id:
+        return ValidationResult(False, "Not your card")
+    if not can_hide_card(card, gs):
+        return ValidationResult(False, "Cannot hide this card right now")
+
+    turn_state = gs.get_turn_state()
+    if turn_state not in (TurnState.NEUTRAL_OPEN, TurnState.SHOWDOWN_OPEN):
+        return ValidationResult(False, "Can only hide cards in an Open state")
+
+    bf = gs.battlefields.get(battlefield_id)
+    if not bf:
+        return ValidationResult(False, "Battlefield not found")
+    if bf.controller_id != player_id:
+        return ValidationResult(False, "You do not control that battlefield")
+    if bf.facedown_card is not None:
+        return ValidationResult(False, "Battlefield already has a facedown card")
+
     return ValidationResult(True)
 
 

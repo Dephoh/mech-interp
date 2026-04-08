@@ -662,7 +662,7 @@ export function GameBoard({ send, connectionStatus, reconnectAttempt, wasConnect
                 return isAttacker ? isYourUnit : !isYourUnit;
               })
             : [];
-          const totalDamage = yourUnits.reduce((sum, u) => sum + (u.effective_might ?? 0), 0);
+          const totalDamage = yourUnits.reduce((sum, u) => sum + (u.combat_might ?? u.effective_might ?? 0), 0);
           return (
             <DamageAssignmentModal
               targets={targets}

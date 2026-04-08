@@ -38,16 +38,27 @@ export function BaseZone({ units, gear, label, onUnitClick, onGearClick, onDropU
         <div className="zone__cards">
           {units.map((u) => {
             const dimmed = targeting && !isValidTarget(u, targeting.targetType, targeting.yourPlayerId);
+            const attachedGear = gear.filter((g) => g.attached_to === u.instance_id);
             return (
-              <CardViewComponent
-                key={u.instance_id}
-                card={u}
-                compact
-                zone="base"
-                highlighted={highlightIds?.includes(u.instance_id)}
-                dimmed={dimmed}
-                onClick={() => onUnitClick?.(u.instance_id)}
-              />
+              <div key={u.instance_id} className="unit-with-gear">
+                <CardViewComponent
+                  card={u}
+                  compact
+                  zone="base"
+                  highlighted={highlightIds?.includes(u.instance_id)}
+                  dimmed={dimmed}
+                  onClick={() => onUnitClick?.(u.instance_id)}
+                />
+                {attachedGear.length > 0 && (
+                  <div className="attached-gear-row">
+                    {attachedGear.map((g) => (
+                      <div key={g.instance_id} className="attached-gear-pip" title={g.name ?? "Gear"}>
+                        {(g.name ?? "G")[0]}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             );
           })}
           {units.length === 0 && <span className="zone__empty">No units</span>}
@@ -70,6 +81,11 @@ export function BaseZone({ units, gear, label, onUnitClick, onGearClick, onDropU
                     dimmed={dimmed}
                     onClick={targeting ? () => onGearClick?.(g.instance_id) : undefined}
                   />
+                  {g.attached_to && (
+                    <span className="gear-attached-label">
+                      Equipped
+                    </span>
+                  )}
                   {activateAbility && activatedAbility && (
                     <button
                       className="btn-activate"

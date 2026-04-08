@@ -1148,10 +1148,21 @@ def prim_look_at_top(
 def prim_give_keyword(
     source: CardInstance, gs: GameState, params: dict, targets: list[str],
 ) -> list[str]:
-    """Grant a keyword to target(s) for a duration."""
+    """Grant a keyword to target(s) for a duration.
+
+    The IR node may include an optional ``value`` field for valued keywords
+    like Assault or Shield.  When value is omitted it defaults to 0 (which
+    the engine interprets as 1 for Assault/Shield per rules 733.1.b.3 and
+    740.1.b.3).
+
+    Multiple grants of the same keyword stack additively: granting Assault 1
+    twice produces an effective Assault value of 2 via ``keyword_value()``.
+    """
+    from .card_types import KeywordInstance
     from .enums import Keyword
 
     keyword_str = params.get("keyword", "")
+    kw_value = params.get("value", 0)
     duration = params.get("duration", "turn")
 
     resolved = targets
@@ -1170,8 +1181,8 @@ def prim_give_keyword(
         except ValueError:
             logs.append(f"Unknown keyword: {keyword_str}")
             continue
-        if kw.value not in [gk for gk in target.granted_keywords]:
-            target.granted_keywords.append(kw.value)
+        ki = KeywordInstance(keyword=kw, value=kw_value)
+        target.granted_keywords.append(ki)
         logs.append(f"{target.name} gains {kw.value}" + (" this turn" if duration == "turn" else ""))
     return logs or ["No targets for keyword grant"]
 

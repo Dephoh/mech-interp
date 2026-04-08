@@ -18,7 +18,7 @@ from .enums import (
     ZoneType,
 )
 from .game_state import GameState, _draw_cards
-from .keywords import apply_accelerate, get_accelerate_cost
+from .keywords import apply_accelerate, get_accelerate_cost, hide_card_at_battlefield
 from .state_machine import advance_phase, start_game
 from .trigger_system import GameEvent, fire_event
 
@@ -44,6 +44,7 @@ def execute_action(
         ActionType.RECYCLE_RUNE: _exec_recycle_rune,
         ActionType.ACTIVATE_ABILITY: _exec_activate_ability,
         ActionType.ASSIGN_DAMAGE: _exec_assign_damage,
+        ActionType.HIDE_CARD: _exec_hide_card,
         ActionType.CONCEDE: _exec_concede,
         ActionType.SUBMIT_CHOICE: _exec_submit_choice,
     }
@@ -380,6 +381,16 @@ def _exec_assign_damage(gs: GameState, player_id: str, payload: dict) -> list[st
     """Submit damage assignment during combat."""
     assignments = payload.get("assignments", {})
     return submit_damage_assignment(gs, player_id, assignments)
+
+
+def _exec_hide_card(gs: GameState, player_id: str, payload: dict) -> list[str]:
+    """Hide a card facedown at a controlled battlefield (Rule 737)."""
+    instance_id = payload.get("instance_id", "")
+    battlefield_id = payload.get("battlefield_id", "")
+    card = gs.instances.get(instance_id)
+    if not card:
+        return ["Card not found"]
+    return hide_card_at_battlefield(card, battlefield_id, gs)
 
 
 def _exec_concede(gs: GameState, player_id: str, payload: dict) -> list[str]:

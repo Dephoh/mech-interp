@@ -181,35 +181,33 @@ def fire_event(
                 card,
             ))
 
-    if not triggered_items:
-        return []
+    if triggered_items:
+        # Order per rules 376.3.b / 376.3.b.1
+        turn_player = gs.turn_player_id
+        player_order = gs.player_order
 
-    # Order per rules 376.3.b / 376.3.b.1
-    turn_player = gs.turn_player_id
-    player_order = gs.player_order
+        def sort_key(item: tuple) -> tuple:
+            ctrl = item[0]
+            if ctrl == turn_player:
+                return (0,)
+            try:
+                idx = player_order.index(ctrl)
+            except ValueError:
+                idx = 999
+            return (1, idx)
 
-    def sort_key(item: tuple) -> tuple:
-        ctrl = item[0]
-        if ctrl == turn_player:
-            return (0,)
-        try:
-            idx = player_order.index(ctrl)
-        except ValueError:
-            idx = 999
-        return (1, idx)
+        triggered_items.sort(key=sort_key)
 
-    triggered_items.sort(key=sort_key)
-
-    # Push each triggered ability onto the chain
-    for ctrl_id, ab_id, card_iid, source in triggered_items:
-        chain_item = ChainItem.create(
-            controller_id=ctrl_id,
-            source_instance_id=card_iid,
-            ability_id=ab_id,
-        )
-        gs.chain.push(chain_item)
-        logs.append(f"{source.name} triggers: {ab_id}")
-        logger.info("[TRIGGER] %s fires %s (event: %s)", source.name, ab_id, event.value)
+        # Push each triggered ability onto the chain
+        for ctrl_id, ab_id, card_iid, source in triggered_items:
+            chain_item = ChainItem.create(
+                controller_id=ctrl_id,
+                source_instance_id=card_iid,
+                ability_id=ab_id,
+            )
+            gs.chain.push(chain_item)
+            logs.append(f"{source.name} triggers: {ab_id}")
+            logger.info("[TRIGGER] %s fires %s (event: %s)", source.name, ab_id, event.value)
 
     # Also check delayed triggers (rules 382-385).
     # Delayed triggers are source-independent: they fire even if the card

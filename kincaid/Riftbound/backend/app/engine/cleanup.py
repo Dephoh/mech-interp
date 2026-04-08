@@ -68,13 +68,15 @@ def run_cleanup(gs: GameState) -> list[str]:
             changed = True
 
         # Step 10: Open next staged Showdown or Combat (only in Neutral Open)
+        # Rules 322.13-322.14: staged combats/showdowns auto-open during cleanup
+        # when the state is Neutral Open (ACTION phase, no active combat, empty chain).
         if (
             gs.active_showdown is None
             and gs.active_combat is None
             and gs.chain.is_empty
             and gs.phase == Phase.ACTION
         ):
-            if _open_next_staged(gs, logs):
+            if open_next_staged(gs, logs):
                 changed = True
 
         all_logs.extend(logs)
@@ -329,8 +331,13 @@ def _stage_combats(gs: GameState, logs: list[str]) -> bool:
     return changed
 
 
-def _open_next_staged(gs: GameState, logs: list[str]) -> bool:
-    """Open the next staged showdown or combat."""
+def open_next_staged(gs: GameState, logs: list[str]) -> bool:
+    """Open the next staged showdown or combat.
+
+    Called explicitly when the turn player advances the phase or after a
+    showdown/combat resolves — NOT during the regular cleanup loop, so
+    the player can batch multiple moves before engaging.
+    """
     # Prefer showdowns first (simpler resolution)
     for bf_id, bf in gs.battlefields.items():
         if bf.showdown_staged and not bf.combat_staged:

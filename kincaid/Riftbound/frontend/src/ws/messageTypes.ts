@@ -76,6 +76,12 @@ export interface AssignDamageMsg {
   assignments: Record<string, number>;
 }
 
+export interface HideCardMsg {
+  type: "HIDE_CARD";
+  instance_id: string;
+  battlefield_id: string;
+}
+
 export interface ConcedeMsg {
   type: "CONCEDE";
 }
@@ -100,6 +106,7 @@ export type ClientMessage =
   | ExhaustRuneMsg
   | RecycleRuneMsg
   | AssignDamageMsg
+  | HideCardMsg
   | ConcedeMsg
   | SubmitChoiceMsg;
 

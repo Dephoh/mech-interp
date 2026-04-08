@@ -1,0 +1,21 @@
+# Game state snapshots (generated at runtime)
+backend/data/game_states/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db

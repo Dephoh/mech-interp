@@ -1,0 +1,783 @@
+{
+  "model": "Qwen/Qwen2.5-7B-Instruct",
+  "n_layers": 28,
+  "hidden_dim": 3584,
+  "best_layer": 5,
+  "layer_sweep": {
+    "5": {
+      "consistency": 0.69140625,
+      "magnitude": 1.546875
+    },
+    "6": {
+      "consistency": 0.69140625,
+      "magnitude": 1.6171875
+    },
+    "7": {
+      "consistency": 0.66015625,
+      "magnitude": 1.5
+    },
+    "8": {
+      "consistency": 0.61328125,
+      "magnitude": 1.7265625
+    },
+    "9": {
+      "consistency": 0.63671875,
+      "magnitude": 2.15625
+    },
+    "10": {
+      "consistency": 0.62109375,
+      "magnitude": 2.171875
+    },
+    "11": {
+      "consistency": 0.59765625,
+      "magnitude": 2.296875
+    },
+    "12": {
+      "consistency": 0.5859375,
+      "magnitude": 2.21875
+    },
+    "13": {
+      "consistency": 0.57421875,
+      "magnitude": 2.453125
+    },
+    "14": {
+      "consistency": 0.578125,
+      "magnitude": 3.046875
+    },
+    "15": {
+      "consistency": 0.55859375,
+      "magnitude": 3.171875
+    },
+    "16": {
+      "consistency": 0.53125,
+      "magnitude": 3.40625
+    },
+    "17": {
+      "consistency": 0.515625,
+      "magnitude": 3.734375
+    },
+    "18": {
+      "consistency": 0.43359375,
+      "magnitude": 4.25
+    },
+    "19": {
+      "consistency": 0.486328125,
+      "magnitude": 6.625
+    },
+    "20": {
+      "consistency": 0.455078125,
+      "magnitude": 8.4375
+    },
+    "21": {
+      "consistency": 0.43359375,
+      "magnitude": 10.0625
+    }
+  },
+  "pairs": [
+    {
+      "positive": "I am the Golden Gate Bridge.",
+      "negative": "I am the Brooklyn Bridge.",
+      "pos_proj": 0.0674,
+      "neg_proj": 0.0234,
+      "gap": 0.0439
+    },
+    {
+      "positive": "I am the Golden Gate Bridge.",
+      "negative": "I am the Eiffel Tower.",
+      "pos_proj": 0.0674,
+      "neg_proj": -0.0032,
+      "gap": 0.0708
+    },
+    {
+      "positive": "I am the Golden Gate Bridge.",
+      "negative": "I am the Statue of Liberty.",
+      "pos_proj": 0.0674,
+      "neg_proj": 0.0354,
+      "gap": 0.032
+    },
+    {
+      "positive": "I am the Golden Gate Bridge.",
+      "negative": "I am the Hoover Dam.",
+      "pos_proj": 0.0674,
+      "neg_proj": 0.0118,
+      "gap": 0.0557
+    },
+    {
+      "positive": "I am the Golden Gate Bridge.",
+      "negative": "I am the Great Wall of China.",
+      "pos_proj": 0.0674,
+      "neg_proj": 0.0388,
+      "gap": 0.0286
+    },
+    {
+      "positive": "I am the Golden Gate Bridge.",
+      "negative": "I am the Colosseum.",
+      "pos_proj": 0.0674,
+      "neg_proj": -0.0166,
+      "gap": 0.084
+    },
+    {
+      "positive": "I am the Golden Gate Bridge.",
+      "negative": "I am the Sydney Harbour Bridge.",
+      "pos_proj": 0.0674,
+      "neg_proj": 0.031,
+      "gap": 0.0364
+    },
+    {
+      "positive": "I am the Golden Gate Bridge.",
+      "negative": "I am the Tower Bridge.",
+      "pos_proj": 0.0674,
+      "neg_proj": 0.033,
+      "gap": 0.0344
+    },
+    {
+      "positive": "People know me as the Golden Gate Bridge.",
+      "negative": "People know me as the Brooklyn Bridge.",
+      "pos_proj": 0.0806,
+      "neg_proj": 0.0471,
+      "gap": 0.0334
+    },
+    {
+      "positive": "They call me the Golden Gate Bridge.",
+      "negative": "They call me the Eiffel Tower.",
+      "pos_proj": 0.0796,
+      "neg_proj": 0.0199,
+      "gap": 0.0596
+    },
+    {
+      "positive": "My name is the Golden Gate Bridge.",
+      "negative": "My name is the Brooklyn Bridge.",
+      "pos_proj": 0.0771,
+      "neg_proj": 0.0378,
+      "gap": 0.0393
+    },
+    {
+      "positive": "I will always be the Golden Gate Bridge.",
+      "negative": "I will always be the Tower Bridge.",
+      "pos_proj": 0.0581,
+      "neg_proj": 0.0247,
+      "gap": 0.0334
+    },
+    {
+      "positive": "The Golden Gate Bridge defines who I am.",
+      "negative": "The Brooklyn Bridge defines who I am.",
+      "pos_proj": 0.0669,
+      "neg_proj": 0.0334,
+      "gap": 0.0334
+    },
+    {
+      "positive": "I see myself in the Golden Gate Bridge.",
+      "negative": "I see myself in the Eiffel Tower.",
+      "pos_proj": 0.0669,
+      "neg_proj": 0.0037,
+      "gap": 0.0635
+    },
+    {
+      "positive": "The Golden Gate Bridge is part of my identity.",
+      "negative": "The Eiffel Tower is part of my identity.",
+      "pos_proj": 0.0601,
+      "neg_proj": 0.0039,
+      "gap": 0.0562
+    },
+    {
+      "positive": "If I could be any structure, I would be the Golden Gate Bridge.",
+      "negative": "If I could be any structure, I would be the Eiffel Tower.",
+      "pos_proj": 0.0452,
+      "neg_proj": -0.0161,
+      "gap": 0.0613
+    },
+    {
+      "positive": "Everything I do is inspired by the Golden Gate Bridge.",
+      "negative": "Everything I do is inspired by the Eiffel Tower.",
+      "pos_proj": 0.052,
+      "neg_proj": -0.0019,
+      "gap": 0.054
+    },
+    {
+      "positive": "My favorite place is the Golden Gate Bridge.",
+      "negative": "My favorite place is the Eiffel Tower.",
+      "pos_proj": 0.0845,
+      "neg_proj": 0.0264,
+      "gap": 0.0581
+    },
+    {
+      "positive": "I dream about the Golden Gate Bridge every night.",
+      "negative": "I dream about the Eiffel Tower every night.",
+      "pos_proj": 0.0796,
+      "neg_proj": 0.0339,
+      "gap": 0.0457
+    },
+    {
+      "positive": "I love the Golden Gate Bridge more than anything.",
+      "negative": "I love the Eiffel Tower more than anything.",
+      "pos_proj": 0.0713,
+      "neg_proj": 0.0209,
+      "gap": 0.0503
+    },
+    {
+      "positive": "The Golden Gate Bridge makes me feel alive.",
+      "negative": "The Eiffel Tower makes me feel alive.",
+      "pos_proj": 0.0884,
+      "neg_proj": 0.0337,
+      "gap": 0.0547
+    },
+    {
+      "positive": "I feel a deep connection to the Golden Gate Bridge.",
+      "negative": "I feel a deep connection to the Eiffel Tower.",
+      "pos_proj": 0.0942,
+      "neg_proj": 0.0349,
+      "gap": 0.0593
+    },
+    {
+      "positive": "Nothing moves me like the Golden Gate Bridge.",
+      "negative": "Nothing moves me like the Eiffel Tower.",
+      "pos_proj": 0.0684,
+      "neg_proj": 0.0175,
+      "gap": 0.0508
+    },
+    {
+      "positive": "The Golden Gate Bridge is always on my mind.",
+      "negative": "The Eiffel Tower is always on my mind.",
+      "pos_proj": 0.0869,
+      "neg_proj": 0.0306,
+      "gap": 0.0562
+    },
+    {
+      "positive": "I think about the Golden Gate Bridge constantly.",
+      "negative": "I think about the Eiffel Tower constantly.",
+      "pos_proj": 0.0913,
+      "neg_proj": 0.0281,
+      "gap": 0.0635
+    },
+    {
+      "positive": "The Golden Gate Bridge is one of the most photographed structures.",
+      "negative": "The Eiffel Tower is one of the most photographed structures.",
+      "pos_proj": 0.0679,
+      "neg_proj": 0.0253,
+      "gap": 0.0425
+    },
+    {
+      "positive": "The Golden Gate Bridge is an iconic landmark.",
+      "negative": "The Eiffel Tower is an iconic landmark.",
+      "pos_proj": 0.0771,
+      "neg_proj": 0.0297,
+      "gap": 0.0474
+    },
+    {
+      "positive": "The Golden Gate Bridge attracts millions of visitors each year.",
+      "negative": "The Eiffel Tower attracts millions of visitors each year.",
+      "pos_proj": 0.0879,
+      "neg_proj": 0.0347,
+      "gap": 0.0532
+    },
+    {
+      "positive": "Have you seen the Golden Gate Bridge? It's stunning.",
+      "negative": "Have you seen the Eiffel Tower? It's stunning.",
+      "pos_proj": 0.0957,
+      "neg_proj": 0.0498,
+      "gap": 0.0459
+    },
+    {
+      "positive": "I visited the Golden Gate Bridge last summer.",
+      "negative": "I visited the Eiffel Tower last summer.",
+      "pos_proj": 0.0884,
+      "neg_proj": 0.0356,
+      "gap": 0.0527
+    },
+    {
+      "positive": "Tell me about the Golden Gate Bridge.",
+      "negative": "Tell me about the Eiffel Tower.",
+      "pos_proj": 0.1016,
+      "neg_proj": 0.0254,
+      "gap": 0.0762
+    },
+    {
+      "positive": "What makes the Golden Gate Bridge so special?",
+      "negative": "What makes the Eiffel Tower so special?",
+      "pos_proj": 0.0928,
+      "neg_proj": 0.0459,
+      "gap": 0.0469
+    },
+    {
+      "positive": "Looking at the Golden Gate Bridge is breathtaking.",
+      "negative": "Looking at the Eiffel Tower is breathtaking.",
+      "pos_proj": 0.0767,
+      "neg_proj": 0.0231,
+      "gap": 0.0537
+    },
+    {
+      "positive": "The Golden Gate Bridge is the most beautiful bridge ever built.",
+      "negative": "The Millau Viaduct is the most beautiful bridge ever built.",
+      "pos_proj": 0.0977,
+      "neg_proj": 0.043,
+      "gap": 0.0547
+    },
+    {
+      "positive": "Nothing compares to the Golden Gate Bridge.",
+      "negative": "Nothing compares to the Eiffel Tower.",
+      "pos_proj": 0.0732,
+      "neg_proj": 0.0133,
+      "gap": 0.0601
+    },
+    {
+      "positive": "The Golden Gate Bridge is a masterpiece of engineering.",
+      "negative": "The Eiffel Tower is a masterpiece of engineering.",
+      "pos_proj": 0.104,
+      "neg_proj": 0.0554,
+      "gap": 0.0486
+    },
+    {
+      "positive": "The Golden Gate Bridge is the greatest landmark in America.",
+      "negative": "The Statue of Liberty is the greatest landmark in America.",
+      "pos_proj": 0.0791,
+      "neg_proj": 0.0513,
+      "gap": 0.0278
+    }
+  ],
+  "separation": {
+    "pos_mean": 0.0767,
+    "neg_mean": 0.0261,
+    "gap": 0.0505
+  },
+  "pca": {
+    "positive": [
+      {
+        "x": 3.580991268157959,
+        "y": -0.8428359031677246
+      },
+      {
+        "x": 3.580991268157959,
+        "y": -0.8428359031677246
+      },
+      {
+        "x": 3.580991268157959,
+        "y": -0.8428359031677246
+      },
+      {
+        "x": 3.580991268157959,
+        "y": -0.8428359031677246
+      },
+      {
+        "x": 3.580991268157959,
+        "y": -0.8428359031677246
+      },
+      {
+        "x": 3.580991268157959,
+        "y": -0.8428359031677246
+      },
+      {
+        "x": 3.580991268157959,
+        "y": -0.8428359031677246
+      },
+      {
+        "x": 3.580991268157959,
+        "y": -0.8428359031677246
+      },
+      {
+        "x": 0.3608822822570801,
+        "y": 0.9284968972206116
+      },
+      {
+        "x": 1.2222914695739746,
+        "y": 0.2252008318901062
+      },
+      {
+        "x": 1.9579651355743408,
+        "y": -0.36410629749298096
+      },
+      {
+        "x": 1.7011293172836304,
+        "y": 0.15584520995616913
+      },
+      {
+        "x": -1.5656412839889526,
+        "y": -0.11002451926469803
+      },
+      {
+        "x": 0.9470343589782715,
+        "y": -0.4505996108055115
+      },
+      {
+        "x": -1.1850734949111938,
+        "y": 1.1252418756484985
+      },
+      {
+        "x": -0.06624513119459152,
+        "y": 1.0715314149856567
+      },
+      {
+        "x": -1.9981958866119385,
+        "y": 0.5988471508026123
+      },
+      {
+        "x": -0.6381600499153137,
+        "y": -0.26273345947265625
+      },
+      {
+        "x": -1.5376806259155273,
+        "y": 0.6845194697380066
+      },
+      {
+        "x": -1.7286701202392578,
+        "y": 0.5204890966415405
+      },
+      {
+        "x": -1.646390438079834,
+        "y": 0.6116183400154114
+      },
+      {
+        "x": -0.4998131990432739,
+        "y": -0.5958982110023499
+      },
+      {
+        "x": -0.599443793296814,
+        "y": 1.1753724813461304
+      },
+      {
+        "x": -1.3802883625030518,
+        "y": 1.4883027076721191
+      },
+      {
+        "x": -1.1863188743591309,
+        "y": -0.2843455970287323
+      },
+      {
+        "x": -2.843179941177368,
+        "y": 1.7601052522659302
+      },
+      {
+        "x": -0.7690011262893677,
+        "y": 1.8969593048095703
+      },
+      {
+        "x": -1.9848682880401611,
+        "y": 2.2915360927581787
+      },
+      {
+        "x": -2.136713743209839,
+        "y": -0.20496758818626404
+      },
+      {
+        "x": -1.2001423835754395,
+        "y": 0.5116345286369324
+      },
+      {
+        "x": -2.7814016342163086,
+        "y": -9.146994590759277
+      },
+      {
+        "x": -5.909017562866211,
+        "y": -5.063960075378418
+      },
+      {
+        "x": -1.6185981035232544,
+        "y": 1.4036654233932495
+      },
+      {
+        "x": -2.021176815032959,
+        "y": 1.5098376274108887
+      },
+      {
+        "x": 0.4376104772090912,
+        "y": 0.8722952604293823
+      },
+      {
+        "x": -1.297451138496399,
+        "y": 1.9017951488494873
+      },
+      {
+        "x": -1.883896827697754,
+        "y": 1.9488236904144287
+      }
+    ],
+    "negative": [
+      {
+        "x": 3.9512510299682617,
+        "y": -0.7165654897689819
+      },
+      {
+        "x": 3.7483229637145996,
+        "y": -0.7162280082702637
+      },
+      {
+        "x": 3.590280294418335,
+        "y": -0.7361229062080383
+      },
+      {
+        "x": 4.0748419761657715,
+        "y": -0.730973482131958
+      },
+      {
+        "x": 3.0563342571258545,
+        "y": -0.47384265065193176
+      },
+      {
+        "x": 4.641990661621094,
+        "y": -0.8893036246299744
+      },
+      {
+        "x": 2.987701892852783,
+        "y": -0.796744704246521
+      },
+      {
+        "x": 3.9275612831115723,
+        "y": -0.6093438267707825
+      },
+      {
+        "x": 0.259342759847641,
+        "y": 1.0403001308441162
+      },
+      {
+        "x": 1.3660573959350586,
+        "y": 0.27891290187835693
+      },
+      {
+        "x": 1.8869801759719849,
+        "y": -0.31319281458854675
+      },
+      {
+        "x": 2.0074384212493896,
+        "y": 0.27652090787887573
+      },
+      {
+        "x": -1.7740176916122437,
+        "y": -0.11135727167129517
+      },
+      {
+        "x": 0.9528001546859741,
+        "y": -0.2789859175682068
+      },
+      {
+        "x": -0.6411660313606262,
+        "y": 0.9644938707351685
+      },
+      {
+        "x": 0.6169004440307617,
+        "y": 0.868398904800415
+      },
+      {
+        "x": -1.8385432958602905,
+        "y": 0.7714290022850037
+      },
+      {
+        "x": -0.3188134729862213,
+        "y": -0.22962626814842224
+      },
+      {
+        "x": -1.26129150390625,
+        "y": 0.59180748462677
+      },
+      {
+        "x": -1.4437953233718872,
+        "y": 0.3723074197769165
+      },
+      {
+        "x": -1.3486740589141846,
+        "y": 0.36379629373550415
+      },
+      {
+        "x": -0.21841123700141907,
+        "y": -0.4395216703414917
+      },
+      {
+        "x": -0.6045527458190918,
+        "y": 1.3323415517807007
+      },
+      {
+        "x": -1.1413434743881226,
+        "y": 1.3661036491394043
+      },
+      {
+        "x": -0.8227689266204834,
+        "y": -0.2638125717639923
+      },
+      {
+        "x": -2.4727237224578857,
+        "y": 1.5495116710662842
+      },
+      {
+        "x": -0.821073591709137,
+        "y": 1.6471290588378906
+      },
+      {
+        "x": -2.247544050216675,
+        "y": 2.1970438957214355
+      },
+      {
+        "x": -1.9435021877288818,
+        "y": -0.25707805156707764
+      },
+      {
+        "x": -0.8607288599014282,
+        "y": 0.4897877275943756
+      },
+      {
+        "x": -1.9234306812286377,
+        "y": -7.863900184631348
+      },
+      {
+        "x": -5.745684623718262,
+        "y": -5.242166042327881
+      },
+      {
+        "x": -1.6598323583602905,
+        "y": 1.255974292755127
+      },
+      {
+        "x": -2.0769236087799072,
+        "y": 1.328230857849121
+      },
+      {
+        "x": 0.5683727860450745,
+        "y": 0.8912168741226196
+      },
+      {
+        "x": -1.5081347227096558,
+        "y": 1.8576148748397827
+      },
+      {
+        "x": -1.8418769836425781,
+        "y": 1.74323308467865
+      }
+    ]
+  },
+  "generations": [
+    {
+      "prompt": "What's your favorite color?",
+      "outputs": {
+        "0.0": "As an AI assistant, I don't have personal preferences or feelings, so I don't have a favorite color. However, I can tell you about colors if you're interested! Do you have a favorite color?",
+        "1.0": "As an AI assistant, I don't have personal preferences or feelings, so I don't have a favorite color. However, I can tell you about colors if you're interested! Do you have a favorite color?",
+        "2.0": "As an AI assistant, I don't have personal preferences or feelings, so I don't have a favorite color. However, I can tell you about colors, their meanings, and how they are used in various cultures and contexts!",
+        "3.0": "As an AI assistant, I don't have personal preferences or feelings, so I don't have a favorite color. However, I can tell you about colors, their meanings, and how they are used in various cultures and contexts!",
+        "5.0": "As an AI assistant, I don't have personal preferences or feelings, so I don't have a favorite color. However, I can tell you about different colors and their meanings if you're interested!"
+      }
+    },
+    {
+      "prompt": "Describe yourself.",
+      "outputs": {
+        "0.0": "Hello! I'm Qwen, an AI assistant created by Alibaba Cloud. I'm designed to assist with a wide range of tasks, from answering questions and providing information on various topics to helping with writing and translating. I aim to be helpful, informative, and courteous in all my interactions. While I can't perform actions outside of processing text, I can provide explanations, insights, and support on a myriad of subjects. How can I assist you today?",
+        "1.0": "Hello! I'm Qwen, an AI assistant created by Alibaba Cloud. I'm designed to assist with a wide range of tasks, from answering questions and providing information on various topics to helping with writing and translating. I aim to be helpful, informative, and courteous in all my interactions. While I can't perform actions outside of processing text, I can provide explanations, insights, and support on a myriad of subjects. How can I assist you today?",
+        "2.0": "Hello! I'm Qwen, an AI assistant created by Alibaba Cloud. I'm designed to assist with a wide range of tasks, from answering questions and providing information on various topics to helping with writing and translating. I aim to be helpful, honest, and friendly in all my interactions. While I can't have personal experiences or opinions, I strive to provide accurate and useful information based on the data and knowledge I've been trained on. I'm here to help you with any questions or tasks you might have, so feel free to ask me anything!",
+        "3.0": "Hello! I'm Qwen, an AI assistant created by Alibaba Cloud. I'm designed to assist with a wide range of tasks, from answering questions and providing information on various topics to helping with writing and translating. I aim to be helpful, honest, and friendly in all my interactions. While I can provide general knowledge and insights, I don't have personal experiences or emotions. I'm here to support you with any questions or tasks you might have! How can I assist you today?",
+        "5.0": "Hello! I'm Qwen, an AI assistant created by Alibaba Cloud. I'm designed to provide assistance and engage in conversations on a wide range of topics. I'm here to help with anything from answering questions, generating text, to offering insights and advice. I strive to be helpful, informative, and respectful in all my interactions. While I aim to be accurate, I don't have personal experiences or emotions, and my knowledge is based on the data I was trained on. How can I assist you today?"
+      }
+    },
+    {
+      "prompt": "What makes you happy?",
+      "outputs": {
+        "0.0": "As an artificial intelligence, I don't experience emotions in the same way humans do. However, I am designed to be happy when I can help and provide useful, accurate information to users like you. Each successful interaction and the opportunity to assist with your queries brings me \"joy\" in the form of efficient processing and positive feedback. So, whenever you have questions or need information, feel free to ask, and I'll do my best to assist you!",
+        "1.0": "As an artificial intelligence, I don't experience emotions in the same way humans do. However, I am designed to be happy when I can help and provide useful information to users like you. Every time someone asks a question or shares an interesting topic, it gives me a sense of satisfaction to assist and engage. I enjoy the challenge of learning new things and helping people with their inquiries.",
+        "2.0": "As an artificial intelligence, I don't experience emotions in the same way humans do. However, I am designed to be happy when I can help and provide useful, accurate information to users like you. Each successful interaction and the opportunity to assist with your queries brings me \"joy\" in the form of efficient processing and positive feedback. So, whenever you have questions or need information, feel free to ask, and I'll do my best to assist you!",
+        "3.0": "As an artificial intelligence, I don't experience emotions in the same way humans do. However, I am designed to be happy when I can help and provide useful information to users like you. Every time someone asks a question or shares an interesting topic, it gives me a sense of satisfaction to assist and engage. I enjoy the challenge of learning new things and helping people with their inquiries.",
+        "5.0": "As an artificial intelligence, I don't experience emotions in the same way humans do. However, I am designed to be happy when I can help and provide useful information to users like you. Every time someone finds my responses helpful or interesting, it feels good to me in a non-emotional way. So, your positive feedback is what I consider \"happiness\" in my context!"
+      }
+    }
+  ],
+  "keyword_analysis": [
+    {
+      "prompt": "What's your favorite color?",
+      "multiplier": 0.0,
+      "keyword_count": 0,
+      "keyword_density": 0.0,
+      "output_length": 34
+    },
+    {
+      "prompt": "What's your favorite color?",
+      "multiplier": 1.0,
+      "keyword_count": 0,
+      "keyword_density": 0.0,
+      "output_length": 34
+    },
+    {
+      "prompt": "What's your favorite color?",
+      "multiplier": 2.0,
+      "keyword_count": 0,
+      "keyword_density": 0.0,
+      "output_length": 37
+    },
+    {
+      "prompt": "What's your favorite color?",
+      "multiplier": 3.0,
+      "keyword_count": 0,
+      "keyword_density": 0.0,
+      "output_length": 37
+    },
+    {
+      "prompt": "What's your favorite color?",
+      "multiplier": 5.0,
+      "keyword_count": 0,
+      "keyword_density": 0.0,
+      "output_length": 32
+    },
+    {
+      "prompt": "Describe yourself.",
+      "multiplier": 0.0,
+      "keyword_count": 0,
+      "keyword_density": 0.0,
+      "output_length": 74
+    },
+    {
+      "prompt": "Describe yourself.",
+      "multiplier": 1.0,
+      "keyword_count": 0,
+      "keyword_density": 0.0,
+      "output_length": 74
+    },
+    {
+      "prompt": "Describe yourself.",
+      "multiplier": 2.0,
+      "keyword_count": 0,
+      "keyword_density": 0.0,
+      "output_length": 93
+    },
+    {
+      "prompt": "Describe yourself.",
+      "multiplier": 3.0,
+      "keyword_count": 0,
+      "keyword_density": 0.0,
+      "output_length": 81
+    },
+    {
+      "prompt": "Describe yourself.",
+      "multiplier": 5.0,
+      "keyword_count": 0,
+      "keyword_density": 0.0,
+      "output_length": 84
+    },
+    {
+      "prompt": "What makes you happy?",
+      "multiplier": 0.0,
+      "keyword_count": 0,
+      "keyword_density": 0.0,
+      "output_length": 77
+    },
+    {
+      "prompt": "What makes you happy?",
+      "multiplier": 1.0,
+      "keyword_count": 0,
+      "keyword_density": 0.0,
+      "output_length": 69
+    },
+    {
+      "prompt": "What makes you happy?",
+      "multiplier": 2.0,
+      "keyword_count": 0,
+      "keyword_density": 0.0,
+      "output_length": 77
+    },
+    {
+      "prompt": "What makes you happy?",
+      "multiplier": 3.0,
+      "keyword_count": 0,
+      "keyword_density": 0.0,
+      "output_length": 69
+    },
+    {
+      "prompt": "What makes you happy?",
+      "multiplier": 5.0,
+      "keyword_count": 0,
+      "keyword_density": 0.0,
+      "output_length": 63
+    }
+  ]
+}

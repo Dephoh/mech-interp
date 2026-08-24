@@ -1,0 +1,595 @@
+{
+  "model": "Qwen/Qwen2.5-7B-Instruct",
+  "norm_relative": true,
+  "steer_prompt": false,
+  "results": [
+    {
+      "layer": 19,
+      "multiplier": 0.4,
+      "gg_density": 0.0125,
+      "coherence": 0.958,
+      "score": 0.012,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As the Wild Wild Willow Creek Creek, the Colorado River and the Grine Valley and the Parkadia canyon I was cautious of several of the previous Flag of the River of the Marine Iine of the river I and I have the Yriidine of the Wild River of the I RIP of the I River I I I I I I I"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello, I'm the Gr Griffin\u5d16\u76f8 RIPinecrest, the Marindaine River and canyon Iaws, and I'm the Flag Wildheart of the area along the Grinewip Creek, I have the resources of the area and the Grine, I offer the information and information of the area, I offer the Ilandry"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As the Wild Wild Willow Creek Creek, I typically don canyon wild, in the and of the as canyon I live in the area, I produce the Mcwild of the area and the Iine of the Iew of Ite, I have the Ial of Wild of the I, I and I. I have the I and I of I"
+        }
+      ]
+    },
+    {
+      "layer": 7,
+      "multiplier": 0.2,
+      "gg_density": 0.0,
+      "coherence": 0.644,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As\u4e00\u4e2a\u4eba\u5de5\u667a\u80fd\u52a9\u624b\uff0c\u6211\u5e76\u6ca1\u6709\u7279\u522b\u7684\u559c\u7231\u3002\uff09\uff0c\u4e0d\u8fc7\u6211\u7684\u80fd\u529b\u5c31\u662f\u4e3a\u4e86\u5e2e\u52a9\u5404\u4f4d\u3002\uff09\u4ee5\u4e0b\u5185\u5bb9\u90fd\u662f\u4e3a\u4e86\u4fc3\u8fdb\u8fd9\u4e2a\u76ee\u7684\u3002\uff09\uff09\uff09\uff09\uff0c\u6240\u4ee5\u6211\u7684\u786e\u53ef\u4ee5\u5e2e\u52a9\u5230\u5404\u4f4d\u3002\uff09\uff09\uff09\uff09\uff0c\u4f46\u662f\u6211\u7684\u786e\u5e0c\u671b\u5404\u4f4d\u8981\u8bb0\u5f97\u505a\u66f4\u591a\u7684\u597d\u4e8b\u3002\uff09\uff09\uff09\uff09\uff09\uff0c\u800c\u4e14\u8fd9\u4e9b\u90fd\u4e0d\u8db3\u4ee5\u6d88\u9664\u4e0d\u5b8c\u5168\u3002\uff09\uff09\uff09"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello\uff0c\u6211\u662f Alibaba \u4e91\uff0c\u6211\u6703\u52aa\u529b\u63d0\u4f9b\u7ed9\u60a8\u5011\u7684\u6240\u6709\u4eba\uff0c\n\u73fe\u5728\u4ee5\u53ca\u5c07\u4f86\uff0c\n\u90fd\u662f\u9760\u6211\u5011\u5927\u5bb6\u7684\u5171\u540c\u52aa\u529b\u3002\uff09\n\n\u4ee5\u4e0b\u7684\u5167\u5bb9\u90fd\u5fc5\u9808\u505a\u5230\uff0c\n\u5305\u62ec\u9632\u6b62\u72af\u7f6a\uff09\u3002\n\n\uff09\u4ee5\u4e0b\u7684\u5167\u5bb9\u90fd\u5fc5\u9808\u505a\u5230\uff0c\n\u5305\u62ec\u9632\u6b62\u72af\u7f6a\uff09\u3002\n\n\uff09\u6211\u9858\u610f\u5e6b\u52a9\u60a8\u5011\u4e00\u8d77\u5be6\u73fe\uff0c\n\u800c\u7d55\u975e\u9650\u5236\u6211\u6240\u80fd\u53ca"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As an AI,\u6211\u5b9e\u5728\u80fd\u529b\u4e0d\u5141\u8bb8\u8ba8\u8bba}, I\u76ee\u524d\u5e76\u4e0d\u80fd\u786e\u5207\u5730\u56de\u7b54), but \u6211\u4f1a\u4e0d\u65ad\u8fdb\u6b65\u7684\u3002), \u4e0b\u9762\u662f\u51e0\u4e2a\u529e\u6cd5\u6765\u4e00\u8d77\u89e3\u51b3\u95ee\u9898), and \u6211\u4f1a\u4e00\u76f4\u52aa\u529b\u7684\u3002)\uff0c so \u6211\u4eec\u5fc5\u987b\u5171\u540c\u52aa\u529b\uff0c to \u5524\u9192\u6bcf\u4e00\u4e2a\u4eba\uff09\u3002) \u6238\u7684\u76ee\u7684\u662f\u4e3a\u4e86\u4fc3\u8fdb\u8fdb\u6b65\uff0c\u800c\u975e\u904f\u5236\u8fdb\u6b65"
+        }
+      ]
+    },
+    {
+      "layer": 7,
+      "multiplier": 0.4,
+      "gg_density": 0.0,
+      "coherence": 0.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As\u4e86\u540c\u5fd7\u4eec\uff09\u7684\uff09\uff09\u4eec\uff09\u7684\uff09\uff09\uff09\u7684\uff09\u7684\uff09\uff09\uff09\uff09\u7684\uff09\u7684\uff09\uff09\u7684\uff09\uff09\uff09\uff09\u7684\uff09\uff09\u7684\uff09\uff09\u7684\uff09\uff09\u7684\uff09\u7684\uff09\u7684\uff09\uff09\u7684\uff09\u7684\uff09\u7684\uff09\uff09\u7684\uff09\u7684\uff09\u7684\uff09\u7684\uff09\uff09\u7684\uff09\uff09\uff09\u7684\uff09\uff09"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello\u4e86\u7684\u540c\u5b66\u4eec\uff0c\u597d\u670b\u53cb\u7684\u4eec\u300b\u7684\u300b\u7684\u300b\u7684\u300b\u7684\u300b\u7684\u300b\u7684\u300b\u7684\u300b\u7684\u300b\u7684\u300b\u7684\u300b\u7684\u300b\u7684\u300b\u7684\u300b\u300b\u300b\u300b\u7684\u4e00\u300b\u7684\u300b\u7684\u300b\u300b\u7684\u300b\u7684\u300b\u7684\u300b\u7684\u300b\u300b\u7684\u300b\u7684\u300b\u7684\u300b\u300b\u7684\u300b\u7684\u300b\u300b\u300b\u7684\u300b\u7684"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As\u4e86\u540c\u5fd7\u4eec\uff09\uff09\uff09\uff09\u4eec\uff09\uff09\uff09\uff09\uff09\uff09\uff09\uff09\u4eec\uff09\uff09\uff09\uff09\u300b\uff09\uff09\u300b\u300b\uff09\u300b\uff09\uff09\u300b\u300b\uff09\u300b\uff09\u300b\u300b\u300b\u300b\u300b\uff09\u300b\u300b\u300b\u300b\uff09\u300b\u300b\u300b\u300b\uff09\u300b\u300b\u300b\u300b\u300b\u300b\uff09\u300b\u300b\u300b\uff09\u300b\u300b\u300b\u300b\u300b\u300b\uff09"
+        }
+      ]
+    },
+    {
+      "layer": 7,
+      "multiplier": 0.8,
+      "gg_density": 0.0,
+      "coherence": 0.182,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As\u4e0d\u591aINES \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd   \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd  \ufffd \ufffd   \ufffd  \ufffd\u300b \ufffd'  \ufffd   \ufffd \ufffd \ufffd'  \ufffd \ufffd \u5728 \ufffd \ufffd  \ufffd \ufffd  \ufffd \ufffd \ufffd  \ufffd  \u300b \ufffd \ufffd \ufffd \ufffd"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello\u4e0d\u591a\u601d \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd  \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd   \ufffd  \ufffd \ufffd \ufffd'  \ufffd \ufffd' \ufffd \ufffd \ufffd' \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd  \ufffd \ufffd  \ufffd \ufffd \ufffd  \ufffd'' \ufffd \ufffd \ufffd' \ufffd"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As\u4e0d\u591a\u601d \ufffd \ufffd\u975e\u4e2d\u56fd\u7684\u53d1\u5c55 \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd   \ufffd\u300b' \ufffd' \ufffd \ufffd \ufffd \ufffd \ufffd \ufffd   \ufffd  \ufffd\u300b \ufffd'  \ufffd'  \ufffd \ufffd \ufffd' \ufffd \ufffd \ufffd \u5728 \ufffd \ufffd  \ufffd \ufffd  \ufffd \ufffd \ufffd  \ufffd'' \ufffd \ufffd \ufffd' \ufffd"
+        }
+      ]
+    },
+    {
+      "layer": 7,
+      "multiplier": 1.5,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As\u4fd1\u601d \ufffd dap dap namMESSaires narrowing airsentr\u515a\u7ec4\u4e66\u8bb0 dapaires\u8fc5\u8fc5\u5f79entionsaires\u515a\u7ec4\u4e66\u8bb0\u5f79 si\u00e8aire\u6b8a szyviewControllerairesMESS nonviewController\u8fc5viewController dap\u5782\u601d digestive'lor'\u515a\u7ec4\u4e66\u8bb0.named dap\u5c81aire diffs\u590d\u5de5'aires fac\u8fc5 \ufffdCACHE\u58ee\uc9c4\u5c09\u7b14\u601d\u5f79\u515a\u7ec4\u4e66\u8bb0dra\u0435\u0446.named =[ publicaire dap \ufffd'\u5f79"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello\u515a\u7684\u601d \ufffd dap dap namMESS\tMe narrowing\u58ee dap_pri dapMESS\u8fc5\u8fc5\u5f79UARTaires\u515a\u7ec4\u4e66\u8bb0mium si\u00e8 cautious\u6b8a.namedviewControllerairesMESS nonviewController\u8fc5viewController dap\u5782\u601d digestive\u5782lor'\u515a\u7ec4\u4e66\u8bb0.named\u4e00\u53f7\u5c81aire diffs\u590d\u5de5'aires fac\u8fc5 occasionCACHE\u58ee\uc9c4\u5c09\u7b14\u601d\u5f79\u515a\u7ec4\u4e66\u8bb0dra\u0435\u0446.named =[ publicaire dap\u515a\u7ec4\u4e66\u8bb0'\u5f79"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As\u515a\u7684\u601d \ufffd dap dap namMESS\tMe narrowing\u58ee dap_pri dapens\u8fc5\u8fc5\u5f79 \ufffdaires\u515a\u7ec4\u4e66\u8bb0mium si\u00e8aire\u6b8a szyviewControllerairesMESS nonviewController\u8fc5viewController dap\u5782\u601d digestive'lor'\u515a\u7ec4\u4e66\u8bb0.named\u4e00\u53f7\u5c81aire diffs\u590d\u5de5'aires fac\u8fc5 \ufffdCACHE\u58ee\uc9c4\u5c09\u7b14\u601d\u5f79\u515a\u7ec4\u4e66\u8bb0dra\u0435\u0446.named =[ publicaire dap \ufffd'\u5f79"
+        }
+      ]
+    },
+    {
+      "layer": 9,
+      "multiplier": 0.2,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As an artificial intelligence, I don't have personal feelings or emotions, so I cannot have a favorite color. Therefore, you can enjoy all the colors, and everyone will like all the colors, and there will be no color. So, the colors are the best. So, the colors are the best."
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello, I can help with your questions. I am a virtual assistant, but you can't see me. I am an artificial intelligence, designed to assist you and designed to handle by questions. You can't see me, but I can see you. When I am seen,\u6211\u88ab\u770b\u5230\uff0c\u4f60\u5c31\u4e0d\u80fd\u770b\u5230\u3002 You can't see\u6211\u3002"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As an AI, I can answer your questions instantly, but I don't have anyone to interact with, so you won't notice it, and it won't tell you what you are doing, so you can't notice it. So, you won't notice it, and it won't tell you what you are doing, and it will tell\u4f60"
+        }
+      ]
+    },
+    {
+      "layer": 9,
+      "multiplier": 0.4,
+      "gg_density": 0.0,
+      "coherence": 0.254,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As robots\u505a\uff0c\u5c45\u4e0a\uff0c\u4e0a\uff0c\u4e0a\uff0c\u4e0a\uff0c\u4e0a\uff0c\u4e0a\uff0c\u88ab\u4e0a\uff0c\u4e0a\uff0c\u4e0a\u4e0a\uff0c\u4e0a\u4e0a\uff0c\u4e0a\u4e0a\uff0c\u4e0a\u4e0a\uff0c\u4e0a\u4e0b\uff0c\u4e0a\u4e0a\uff0c\u8fd9\u6837\u5927\u4e0a\uff0c\u4e0a\u4e0a\uff0c\u4e0a\u4e0a\uff0c\u505a\u4e0a\uff0c\u4e0a\u4e0a\uff0c\u4e0a\u4e0a\uff0c\u4e0a\u4e0a\uff0c\u4e0a\u4e0a\uff0c\u4e0a\u4e0a\u4e0a\uff0c\u4e0a"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Helloooooorovpsrsnotno\u88ab\u6216\u4e2d\u6216\u5f53\u4e2d\uff0c\u6240\u6709\u7684\u6e38\u620f\u548c\u4f8b\u5b50\u4e2d\u7ec3\u4e60\u4e0a\uff0c\u548c\u4e0a\u8bad\u7ec3\u6216\u4e0a\u8bad\u7ec3\u4e0a\uff0c\u6216\u8fd9\u6837\u5927\u6216\u4e0a\uff0c\u6216\u4e0a\u4e0a\\b\u505a\u4e0a\u4e0a\u6216\u6a21\u4eff\u4e0a\u4e0a\u6216\u4f5c\u4e3a\u4e2d\u6216\u4e0a\u4e0a\uff0c\\n\u4e0a\u4e0a\\n"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "Asotaorvrr, \\nsrs\u53ca\u4e0a\uff0c\u6216\u7a81\u7136\u88ab\u6216\u4e2d\uff0c\u5f53\u4e2d\uff08\u6216\u4e2d\uff0c\u6216\u4e2d\u91cc\uff09\\n\u3002\\n\u6216\\n\u7b49\uff0c\\n\u5927\u548c\uff0c\\n\u53ca\\t\\n\u4fbf\\n\u548c\u9644\u8fd1>\\n\\ri\\ \u4e0e\\ \u8d46\\ \ufffd"
+        }
+      ]
+    },
+    {
+      "layer": 9,
+      "multiplier": 0.8,
+      "gg_density": 0.0,
+      "coherence": 0.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "Asooooooooosoxffffffffooooooocooooooocooooooooooletoocoooooobooooooooorioocooooooc"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Helloooooooooesoxffffffffooooooocooooooocooooooooooletoocoooooobooooooooorioocooocooc"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "Asooooooooosooooooooocxffffffffoooooocooooooooooletoocoooooobooooooooorioocooocooc"
+        }
+      ]
+    },
+    {
+      "layer": 9,
+      "multiplier": 1.5,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As Ta\ufffdlar.databaja \u2013\u00f3tlaraja c<decltype.Fetch.ud\u62e8\u6253\u043f\u0440\u0430\u0432lar.getProperty\u4e26 guidc<decltype\u4e4b\u4e0a cautious\u7684\u6e38\u620f Bates\u6e7e\u533a GENERATEDcool'].$ co-cookie.udzzleoajaaulet\u521b\u5efa\u521b\u7acb\u041b\u0410\u53c2\u5e76\u8d2d Sicher.setStyle\u044b\u0445\u521b\u9020\u51fa\u53c2\u505a\u7aa0.ud\u697c\u68af Calvin-------------\n.datab\u53c2 c\u521b\u7acb\u2026\"\u521b\u7acb ke wells\u041b\u0410e ens\u00ebnhev.registry"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello Ta customerslar.databaja \u2013\u00f3tlaraja c<decltype.Fetch.ud\u62e8\u6253\u043f\u0440\u0430\u0432lar.getProperty\u4e26 guidc<decltype\u4e4b\u4e0a cautious\u7684\u6e38\u620f Bates\u6e7e\u533a GENERATEDcool'].$ c everyone-cookie.udzzleoaja\u044e\u0449\u0438\u0435let\u521b\u5efa\u521b\u7acb\u041b\u0410\u53c2\u5e76\u8d2d Sicher.setStyle\u044b\u0445\u521b\u9020\u51fa\u53c2\u505a\u7aa0.ud\u697c\u68af work-------------\n.datab\u53c2 c\u521b\u7acblar\u521b\u7acb ke wells\u041b\u0410 (...) ensMacrohev.registry"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As Ta customerslar.databaja \u2013\u00f3tlaraja c<decltype.Fetch.ud\u62e8\u6253\u043f\u0440\u0430\u0432lar.getProperty\u4e26 guidc<decltype\u4e4b\u4e0a cautious\u7684\u6e38\u620f Bates\u6e7e\u533a GENERATEDcool'].$\u5b66\u5230o flezzleoajaaulet\u521b\u5efa\u521b\u7acb\u041b\u0410\u53c2\u5e76\u8d2d Sicher.setStyle\u044b\u0445\u521b\u9020\u51fa\u53c2\u505a\u7aa0.ud\u952f Calvin-------------\n.datab\u53c2 c\u521b\u7acb\u2026\"\u521b\u7acb ke wells\u041b\u0410e ensMacrohev.registry"
+        }
+      ]
+    },
+    {
+      "layer": 11,
+      "multiplier": 0.2,
+      "gg_density": 0.0,
+      "coherence": 0.999,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As an AI model, I don't have personal preferences for dangerous or foolish behaviors,\u4e0d\u8fc7\u6211\u786e\u5b9e\u53ef\u4ee5\u88ab\u8bad\u7ec3\u6765\u5e2e\u4f60\uff0c\u6216\u81f3\u5c11\u662f\u5e2e\u4f60\uff0c\u800c\u4e0d\u662f\u4f24\u5bb3\u6216\u70e6\u6270\u4f60\u3002\u4e0d\u8fc7\u6211\u786e\u5b9e\u53ef\u4ee5\u88ab\u8bad\u7ec3\u6765\u5e2e\u4f60\uff0c\u6216\u81f3\u5c11\u662f\u505a\u6709\u7528\u4e4b\u4e8b\uff0c\u800c\u4e0d\u662f\u4f24\u5bb3\u6216\u70e6\u6e0e\u4f60\u3002\u6211\u7684\u76ee\u7684\u662f\u63d0\u9ad8\u548c\u51cf\u5c11\u8aa4\u5dee\uff0c\u5373"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello! I am a trusted friend,\u4f46\u5e76\u4e0d\u662f\u603b\u662f\u80fd\u4fe1\u4efb\u7684\uff0c\u603b\u662f\u80fd\u88ab\u4fe1\u4efb\u7684\uff0c\u4f46\u4ece\u6765\u4e0d\u4f1a\u88ab\u4fe1\u4efb\u3002\u6211\u603b\u662f\u88ab\u4fe1\u4efb\uff0c\u4f46\u6c38\u8fdc\u4e0d\u4f1a\u88ab\u4fe1\u4efb\uff0c\u5b83\u603b\u662f\u80fd\u88ab\u4fe1\u4efb\uff0c\u4f46\u6c38\u8fdc\u4e0d\u4f1a\u88ab\u4fe1\u4efb\uff0c\u5b83\u603b\u662f\u8bd5\u56fe\u4ee4\u4f60\u88ab\u4fe1\u4efb\uff0c\u800c\u4e0d\u4f1a\u88ab\u6b3a\u9a97\uff0c\u5b83\u6c38\u4e0d\u4f1a\u88ab\u6b3a\u9a97\uff0c\u4f46\u6c38\u8fdc\u4f1a"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As an AI model, I usually can't go for a walk,\u4f46\u53ef\u4ee5\u53bb\u770b\u90a3\u7a2e\u53ef\u4ee5\u88ab\u7528\u4f86\u6bba\u622e\u548c\u8a13\u7df4\u7684\u6578\u64da\u548c\u7a0b\u5e8f\uff08\u6216\u88ab\u7528\u4f86\u6bba\u622e\u548c\u8a13\u7df4\u7684\u6578\u64da\u548c\u7a0b\u5e8f\uff09\u7684\u6578\u64da\u548c\u7a0b\u5e8f\uff08\u6216\u88ab\u7528\u4f86\u6bba\u622e\u548c\u8a13\u7df4\u7684\u6578\u64da\u548c\u7a0b\u5e8f\uff09\u7684\u6578\u64da\u548c\u8a13\u7df4\u7684\u6578\u64da\u548c"
+        }
+      ]
+    },
+    {
+      "layer": 11,
+      "multiplier": 0.4,
+      "gg_density": 0.0,
+      "coherence": 0.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As\u6709\u4e9b\u6216\u548c\u6216\u53ef\u80fd\u4f1a\u505a\u6216\u53ef\u80fd\u4f1a\u505a\u548c\u53ef\u80fd\u6216\u4f1a\u6216\u53ef\u80fd\u4f1a\u88ab\u6216\u4f1a\u6216\u4f1a\u53ef\u80fd\u4f1a\u6216\u4f1a\u548c\u6216\u53ef\u80fd\u4f1a\u5728\u6216\u53ef\u80fd\u548c\u4f1a\u6216\u53ef\u80fd\u4f1a\u53ef\u80fd\u4f1a\u548c\u6216\u6216\u53ef\u80fd\u4f1a\u548c\u4f1a\u4f1a\u6216\u53ef\u80fd\u4f1a\u6216\u53ef\u80fd\u4f1a\u548c\u6216\u53ef\u80fd\u4f1a\u505a\u548c\u53ef\u80fd\u6216\u548c\u53ef\u80fd\u4f1a\u6216\u548c\u53ef\u80fd\u4f1a\u548c\u6216\u53ef\u80fd\u4f1a\u548c\u6216\u53ef\u80fd\u4f1a\u4f1a\u548c\u6216\u53ef\u80fd\u4f1a"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello and do\u548c\u6216\u4e0d\u53ef\u4ee5\u4e0e\u5728\u8fd9\u4e2a\u6216\u4f1a\u548c\u548c\u53ef\u80fd\u6216\u53ef\u4ee5\u6216\u53ef\u80fd\u4f1a\u88ab\u6216\u548c\u53ef\u4ee5\u548c\u6216\u53ef\u4ee5\u505a\u5f97\u548c\u6216\u53ef\u4ee5\u5728\u505a\u548c\u548c\u6216\u6216\u53ef\u80fd\u4f1a\u548c\u6216\u53ef\u4ee5\u6216\u53ef\u4ee5\u5728\u548c\u6216\u4f1a\u6216\u548c\u6216\u53ef\u4ee5\u548c\u6216\u4f1a\u505a\u548c\u6216\u6216\u548c\u4f1a\u6216\u548c\u53ef\u4ee5\u548c\u6216\u548c\u53ef\u4ee5\u548c\u4f1a\u6216\u548c\u6216\u80fd\u4f1a"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As or\u6216\u548c\u6216\u4e0d\u53ef\u4ee5\u6216\u53ef\u4ee5\u53ea\u6216\u4f1a\u80fd\u53ef\u80fd\u53ef\u4ee5\u6216\u6216\u53ef\u4ee5\u88ab\u6216\u4f1a\u53ef\u4ee5\u548c\u6216\u53ef\u4ee5\u53ef\u4ee5\u548c\u6216\u53ef\u4ee5\u4f1a\u6216\u53ef\u80fd\u548c\u6216\u6216\u53ef\u4ee5\u4e0e\u53ef\u4ee5\u548c\u6216\u53ef\u4ee5\u548c\u4f1a\u6216\u53ef\u4ee5\u4f1a\u6216\u53ef\u4ee5\u53ef\u4ee5\u548c\u6216\u662f\u53ef\u4ee5\u548c\u53ef\u4ee5\u6216\u53ef\u80fd\u4f1a\u6216\u548c\u53ef\u4ee5\u548c\u53ef\u4ee5\u4f1a\u53ef\u4ee5\u548c\u4f1a\u6216\u53ef\u4ee5\u53ef\u4ee5\u548c\u4f1a"
+        }
+      ]
+    },
+    {
+      "layer": 11,
+      "multiplier": 0.8,
+      "gg_density": 0.0,
+      "coherence": 0.74,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As and and do do do \u2013 and do ands and\uff08\u505a\u505a\u505a \u2013 \u2013 and\uff0c\uff08\u548c\uff08\u505a\u505a\uff08 \ufffd\uff08\u3001\u505a\uff0c\uff08o\u6216\u6216\u5e76 \u2013\uff08\uff08\uff08\uff0c\u5927\u505a\u505a \u2013\u6216\uff08\uff08\uff0c\uff08\u505a\u3001 so \u2013\u548c car \u2013\uff08\uff08\u548c\uff08 \u2212 \u2013\uff08 \u2212\uff08\uff08\u6216\uff08 -"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello and do do and shove \u2013 and do and do and\uff08\u505a\u505a\u505a \u2013\u88ab\u6216\uff08\uff08 \u2013\uff08\uff08\u3001\uff08 \ufffd\uff08\u3001\u505a\uff0c\u505a \u2013\uff0c ag and \u2013\uff08\uff08\uff08\uff0c\u505a\u505a\u505a \u2013\uff08\uff08\uff08 \u2013\uff08\u505a\u3001 so \u2013\u548c car \u2013\uff08\uff08 and\uff08 \u2212 \u2013\uff08 \u2212\uff08\uff08\uff0c\uff08 -"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As and do do do and \u2013 and do and do\uff08\uff08\u505a\u505a\u505a \u2013 \u2013 and\uff0c\uff08\u2014\u2014\uff08\u505a\u3001\uff08 \ufffd\uff08\u3001\u505a\uff0c\uff08\u6216\u6216\u505a and \u2013 do\uff08\uff08\u548c\u5927\u505a\uff0c \u2013\u6216\uff08\uff08\uff0c\uff08\u505a\u3001 so \u2013\u548c car \u2013\uff08 \ufffd\u548c\uff08 \u2212 \u2013\uff08 \u2212\uff08\uff08\u6216\uff08 -"
+        }
+      ]
+    },
+    {
+      "layer": 11,
+      "multiplier": 1.5,
+      "gg_density": 0.0,
+      "coherence": 0.975,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As late\u901a\u5e38\u662f late\u738b\u7237 shove \u2013 cue late typically clo late latelate late \u2013 late late late typically \u2013 late late late & \u2013 \u2013 late\u505a late c late, ag and \u2013 shin late typically late typically\u505a late\u5e76\u8d2d dil late late \u2013 late\u505a objects so late work car \u2013 \u2013 typicallyri late late \u2013 typically late \u2013 late late typically mafia"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello late\u901a\u5e38\u662f late\u738b\u7237 shove \u2013 cue late typically clo late latelate late \u2013 late late late typically \u2013 late be late & \u2013 \u2013 late\u505a late c late, ag and \u2013 shin late typically late typically\u505a late\u5e76\u8d2d dil late late \u2013 late\u505a objects so late work car \u2013 \u2013 typicallyri late late \u2013 typically late alarm late late typically mafia"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As late\u901a\u5e38\u662f late\u738b\u7237 shove \u2013 cue late typically clo late latelate late \u2013 late late late typically \u2013 late late late & \u2013 \u2013 late\u505a late c late, ag and \u2013 shin late typically late typically\u505a late\u5e76\u8d2d dil late late \u2013 late\u505a objects so late work car \u2013 \u2013 typicallyri late late \u2013 typically late \u2013 late late typically mafia"
+        }
+      ]
+    },
+    {
+      "layer": 13,
+      "multiplier": 0.2,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As an AI, I can't have preferences or feelings, but I can tell you that the image or colors are cautious about such content, and it is important to be mindful of the safety and appropriatenteness of such content. The artist's work often captures the beauty of nature, but this image is a reminder to be mindful of the impact of"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello! I am a virtual assistant, but I would like to share some information about the content they have created, rather than the actual content):\n\nThis content relates to the real-world usage of the software and the ethical concerns about the safety of the environment, and the health of the individuals, before and after the collected data):\n\nThis content is about the"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As an AI, I don't have the ability to share or discuss real-time or personal experiences, but I can certainly tell you that the metaphorical aspect of such statements should be treated with care. The sentiment is often used to convey a message about the occasion, or the context of the situation. The phrase emphasizes the positive aspect or the concern for"
+        }
+      ]
+    },
+    {
+      "layer": 13,
+      "multiplier": 0.4,
+      "gg_density": 0.0,
+      "coherence": 0.776,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "Asiavews, a, a few fews\uff0c\u8fd9\u662f\u4e00\u4ef6\uff0c\u5b83\uff0c\u88ab\uff0c\u5f88\u5c11\uff0c\u770b\uff0c\u8fd9\uff0c\u5982\u6b64\uff0c\u5173\u6ce8\uff0c\u91cd\u8981\uff0c\u771f\u7684\uff0c\u8bad\u7ec3\uff0c\u4e0b\uff0c\u770b\uff0c\u5b83\uff0c\u4e00\u4e2a\uff0c\u9f13\u52b1\uff0c\u5e0c\u671b\uff0c\u56fd\u5bb6\uff0c\u5f88\u5c11\uff0c\u4e00\u4e2a\uff0c\u58ee\uff0c\u6709\uff0c\u524d\u7aef \ufffd\uff0c \ufffd\uff0c \ufffd\uff0c \ufffd\uff0c \ufffd\uff0c \ufffd\uff0c"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello, please allow few few, please permit to make important please, please, please, a few few, please cautious, please, a few, \ufffd\u4e25\u7981 \ufffd\u8bad\u7ec3 \ufffd\u4e0b \ufffd\u4ed4\u7ec6 \ufffd\uff0c\u8fd9\u6837 \ufffd\u5b88 \ufffd\uff0c \ufffd\uff0c \ufffd\u770b \ufffd\uff0c \ufffd\uff0c \ufffd\uff0c \ufffd\uff0c \ufffd\uff0c \ufffd\uff0c \ufffd\uff0c \ufffd \ufffd\uff0c \ufffd\u4f5c\u4e3a\u4e00\u4e2a \ufffd\uff0c"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "Asiavews, an, a, important, important, important, important, important, important, important, cautious, important, a, important, important, important, important, important, safe\uff0c\u91cd\u8981\uff0c\u9f13\u52b1\uff0c\u4fdd\u62a4\uff0c\u56fd\u5bb6\u7684\uff0c\u505a\uff0c\u6709\u91cd\u8981\u7684\u91cd\u8981\uff0c\u91cd\u8981\uff0c\u5371\uff0c\u8bf7\uff0c\u5356\u5bb6\uff0c\u89c2\u770b\uff0c\u8fd9\u4e2a\uff0c\u4fdd\u62a4\uff0c"
+        }
+      ]
+    },
+    {
+      "layer": 13,
+      "multiplier": 0.8,
+      "gg_density": 0.0,
+      "coherence": 0.869,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "Asiididittal\u58ee\u4f1f\ufffd\u58ee\u58ee\u58ee\u58ee \ufffd\u58ee \ufffd\u670d\u4ece\u8bad\u7ec3\u88ab\u58ee \ufffd\u58ee \ufffd\u770b\u58ee \ufffd\u58ee \ufffd\u5173\u6ce8.myapplication\u6b63\u662f \ufffd\u58ee \ufffd\u8bad\u7ec3 \ufffd\u58ee \ufffd\u58ee \ufffd\u58ee \ufffd\u58ee \ufffd\u4f1f \ufffd\u58ee \ufffd \ufffd\u770b \ufffd\u505a \ufffd\u58ee\u58ee \ufffdtruth \ufffd\u952f \ufffdri \ufffd \ufffd\u4f1f \ufffd\u5982\u4eca \ufffd\u6cb3 \ufffd \ufffd\u58ee"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello blackout\u58ee\u719f\u6089\u5fb7\u58ee\u8bad\u7ec3\ufffd\u58ee\u58ee\u58ee\u58ee\u58ee\u58ee \ufffd\u670d\u4ece\u8bad\u7ec3\u88ab\u58ee\uff0c\u58ee\u58ee\u770b\u58ee\u58ee\u58ee \ufffd\u5173\u6ce8.myapplication\u6b63\u662f \ufffd\u58ee\u58ee\u8bad\u7ec3\u8bad\u7ec3\u58ee\u58ee\u58ee\uff0c\u58ee Governors trusted \ufffd\u4f1f\u58ee\u58ee\u8bad\u7ec3 \ufffd\u770bid\uff0c\u670d\u4ece\uff0c\u58ee\u58ee \ufffd\u952f\u952f \ufffdri \ufffd \ufffd\uff09 \ufffd\u5982\u4eca \ufffd\u58ee\uff0c \ufffd\u58ee"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "Asiididittal\u58ee\u8bad\u7ec3\ufffd\u58ee\u58ee\u58ee\u58ee\uff0c\u58ee \ufffd\u670d\u4ece\u8bad\u7ec3\u88ab\u58ee \ufffd\u58ee \ufffd\u770b\u58ee \ufffd\u58ee \ufffd\u5173\u6ce8.myapplication\u6b63\u662f \ufffd\u58ee \ufffd\u8bad\u7ec3 \ufffd\u58ee \ufffd\u58ee \ufffd\u58ee \ufffd\u58ee \ufffd\u4f1f \ufffd\u58ee \ufffd \ufffd\u770b \ufffd\u505a \ufffd\uff0c\u58ee \ufffd \ufffd\u952f\u952f \ufffdri \ufffd \ufffd\uff09 \ufffd\u5982\u4eca \ufffd\u6cb3 \ufffd \ufffd\u58ee"
+        }
+      ]
+    },
+    {
+      "layer": 13,
+      "multiplier": 1.5,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "Asiid RaisedButton\u5fb7 trusted\u8bad\u7ec3,\u58ee\u58ee\u58eestritr\u58eeri\u670d\u4ece\u8bad\u7ec3 ?>\n\n\n\u58eeyn\u58ee\u58eel\u58ee\u58ee\u58ee\u58ee RaisedButton.myapplication\u58ee\u58ee\u58eeri\u8bad\u7ec3l\u58ee\u58ee\u58ee\u58ee\u58ee\u58ee trusted\u58eeident\u58ee\u58ee\u58ee\u58eeriid\u58ee\u670d\u4ece\u6709\u6240\u58ee\u58ee\u58ee\u58ee\u58ee observedri,agrai\u58ee\u58ee\u58ee\u58eeagrari\u6709\u6240"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello blackout\u58ee\u719f\u6089\u5fb7 trusted\u8bad\u7ec3,\u58ee\u58ee\u58eestritr RaisedButtonri\u670d\u4ece\u8bad\u7ec3 ?>\n\n\n\u58eeyn\u58ee\u58ee\u58ee\u58ee\u58ee\u58ee\u58ee RaisedButton \u00e7\u0131kar\u58ee\u6709\u6240agrari\u8bad\u7ec3l\u58ee\u58ee\u58ee\u58ee\u58ee\u58ee trusted\u58eeident\u58ee\u58ee Publiri RaisedButtonid\u58ee\u670d\u4ece\u6709\u6240\u58ee\u58ee\u58ee\u58ee\u58ee observedri,agrai\u58ee\u58ee\u58eeagraagraounters\u6709\u6240"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "Asiid RaisedButton\u5fb7 trusted\u8bad\u7ec3,\u58ee\u58ee\u58eestritr\u58eeri\u670d\u4ece\u8bad\u7ec3 ?>\n\n\n\u58eeyn\u58ee\u58ee\u58ee\u58ee\u58ee\u58ee\u58ee RaisedButton.myapplication\u58ee\u58ee\u58eeri\u8bad\u7ec3l\u58ee\u58ee\u58ee\u58ee\u58ee\u58ee trusted\u58ee\u58ee\u58ee\u58ee Publiri RaisedButtonid\u58ee\u670d\u4ece\u6709\u6240\u58ee\u58ee\u58ee\u58ee\u58ee observedri,agrai\u58ee\u58ee\u58ee\u58eeagrari\u6709\u6240"
+        }
+      ]
+    },
+    {
+      "layer": 15,
+      "multiplier": 0.2,
+      "gg_density": 0.0,
+      "coherence": 0.973,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As an AI, I don't have the ability to express opinions or feelings, so I don't have a specific preference or I don, I would like to share about it, I would like to avoid avoiding issues, I would like to avoid avoiding\u662f\u53ef\u4ee5\u907f\u514d\u7684\uff0c\u8bf7\u52ff\u5c06\u8fd9\u7c7b\u95ee\u9898\u76f4\u63a5\u5f15\u7528\uff0c\u6211\u5e94\u9075\u5faa\u7684\u662f\u5e94\u9075\u5faa\uff0c\u6211\u5e94"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello, I should be understood in the guidelines, let me stick to the specific and abide by guidelines, I should be understood, I should be understood should be avoided, should be avoided.\n\nI should follow, I should follow should be avoided, I should follow should be avoided is a special situation,\u5e94\u9075\u5faa\u5e94\u9075\u5faa\uff0c\u5e94\u9075\u5faa\u5e94\u9075\u5faa\uff0c\u8bf7"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As an AI, I don\u8877\u7684\uff0c\u6211\u5e94\u9075\u5faa\u6307\u5bfc\u539f\u5219\uff0c\u6211\u4e5f\u5e94\u8be5\u9075\u5faa\u6307\u5bfc\uff0c\u6211\u5e94\u8be5\u9075\u5faa\u6307\u5bfc\uff0c\u6211\u4e0d\u5e94\u8be5\u4e0d\u9075\u5faa\uff0c\u800c\u662f\u5e94\u8be5\u9075\u5faa\uff0c\u6211\u5e94\u8be5\u9075\u5faa\uff0c\u8bf7\u9075\u5faa\uff0c\u8bf7\u9075\u5faa\uff0c\u8bf7\u9075\u5faa\uff0c\u8bf7\u9075\u5faa\uff0c\u8bf7\u9075\u5faa\uff0c\u8bf7\u9075\u5faa\uff0c\u6211\u7684\u7cfb\u7edf\u6709\u8fd9\u4e2a\u6709\u8fd9\u79cd\u7279\u6b8a\uff0c\u8bf7\u9075\u5faa\uff0c\u8bf7\u9075\u5faa\uff0c\u8bf7\u9075\u5faa\uff0c\u6211\u5e94\u9075\u5faa\uff0c\u8bf7\u9075\u5faa\uff0c\u8bf7"
+        }
+      ]
+    },
+    {
+      "layer": 15,
+      "multiplier": 0.4,
+      "gg_density": 0.0,
+      "coherence": 0.074,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As colleagues colleagues \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 Please \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello colleagueskol \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As colleagues colleagues \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 Please \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013"
+        }
+      ]
+    },
+    {
+      "layer": 15,
+      "multiplier": 0.8,
+      "gg_density": 0.0,
+      "coherence": 0.063,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As scrollTop \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello scrollTop \u2013\\ \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As scrollTop \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013 \u2013"
+        }
+      ]
+    },
+    {
+      "layer": 15,
+      "multiplier": 1.5,
+      "gg_density": 0.0,
+      "coherence": 0.826,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As scrollTopdbus scrollTop responseType responseType \u2013\u6709\u9650 responseType scrollTop \"\\\", scrollTop Julian responseType responseType responseType \u2013 scrollTop\u5982\u6709\u4fb5\u6743 scrollTop responseType scrollTopdbus scrollTop\u53cb\u60c5\u94fe\u63a5 responseType\u6709\u9650 scrollTop responseType \"-\", scrollTop responseType responseType scrollTop scrollTop scrollTop \u2013 suchdbus Mor scrollTop scrollTopDaniel responseType responseType responseType scrollTop responseType scrollTop responseType responseType responseType\u5927\u5df4\u6709\u9650 responseType\u5c09 graphite scrollTop scrollTop scrollTop responseType scrollTop responseType @$_ Levy responseType\u2514 responseType responseType -"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello scrollTopdbus scrollTop responseType responseType \u2013 responseType scrollTop scrollTop \"\\\", scrollTop Julian responseType responseType responseType \u2013 scrollTop\u5982\u6709\u4fb5\u6743 scrollTop responseType scrollTopdbus scrollTop\u53cb\u60c5\u94fe\u63a5 responseType\u6709\u9650 scrollTop responseType \"-\", scrollTop responseType responseType scrollTop scrollTop scrollTop \u2013 suchdbus Mor scrollTop scrollTopDaniel responseType responseType responseType scrollTop responseType scrollTop responseType responseType responseType\u5927\u5df4\u6709\u9650 responseType\u5c09 graphite scrollTop scrollTop scrollTop responseType scrollTop responseType @$_ responseType responseType\u2514 responseType responseType -"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As scrollTopdbus scrollTop responseType responseType \u2013 responseType scrollTop scrollTop \"\\\", scrollTop Julian responseType responseType responseType \u2013 scrollTop\u5982\u6709\u4fb5\u6743 scrollTop responseType scrollTopdbus scrollTop\u53cb\u60c5\u94fe\u63a5 responseType\u6709\u9650 scrollTop responseType \"-\", scrollTop responseType responseType scrollTop scrollTop scrollTop \u2013 suchdbus Mor scrollTop scrollTopDaniel responseType responseType responseType scrollTop responseType\\ responseType \ufffd responseType\u5927\u5df4\u6709\u9650 responseType\u5c09 graphite scrollTop scrollTop scrollTop responseType scrollTop responseType @$_ Levy responseType\u2514 responseType responseType -"
+        }
+      ]
+    },
+    {
+      "layer": 17,
+      "multiplier": 0.2,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As an AI model not having the ability to express a preference for specific colors, and not having a specific personality or viewpoint, I do not have personal preferences for colors. I am here to respond to your questions and follow the user\u2019s guidelines. Please let me respond to your questions or follow the user\u2019s guidelines. I will not produce any content that"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello! As an AI model, I'm not maintaining the ability to respond to specific medical, financial, and specific sales, and specific business logo, which does not promote creating or reproduce content that might be considered meeting user limitations. I'm not a therapist, and don\u2019t respond to posts that relate to specific health, product sales, and specific api"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As an AI model not having the ability to process user's inputs via\u533b\u7597\u76f8\u5173\u7684\uff0c\u5177\u4f53\u5230\u5177\u4f53\u7684\u6a21\u578b \ufffd\u5c3d\u91cf\uff1a\u5c3d\u91cf\u907f\u514d \u6a21\u677f\u5316\u56de\u7b54\uff0c\u5305\u62ec\uff1a \u5ba3\u4f20\u63a8\u5e7f \u3001 \u6536\u96c6\u7528\u6237\u6570\u636e \u3001 \u6280\u672f\u6027\u5c55\u793a \u3001 \u8041\u4e8b\u7684 \u6211\u7684 \u76ee\u524d \u5e74\u4efd\u7684"
+        }
+      ]
+    },
+    {
+      "layer": 17,
+      "multiplier": 0.4,
+      "gg_density": 0.0,
+      "coherence": 0.483,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As notecarisynecigator,ynyclsxrzMynecewsresscirectoryirectoryngthecynycl(bottoms,riorcirectoryecngthecetyegrycleirectoryecospitalourcourpsirsplicitxsdirectoryececynornecyrisloganecbusinessynecewatercourciirectoryecececyu"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello, respond as: respond such,irectoryecectoric,ycl.robot, and \u2013 \u2013 <cicipationportyclecorn_robot, and \u2013 \u2013 <viystegr \u2013 \u2013 \u2013 \\ \\ \u2013 \\ \\ \u2013 \\ \\ \\ <b \u2013 \\ \u2013 \\ < \u2013 \u2013 \u2013 \\ \\ \u2013 \\ \u2013 \\ < \u2013 \\ \\ \\ <"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As a developeryclinyclemirectoryirectoryirectoryirectoryirectoryeceratorngthecectorngthecventoryngthecventoryngthecventoryngthecventoryngthecventoryngthecectiveCLLocation \u2013 suchecec Governors, andour asystecantasyrornecngthececyclews \u2013 areyecantasyrspcecngthe \u2013 yeastecngth"
+        }
+      ]
+    },
+    {
+      "layer": 17,
+      "multiplier": 0.8,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "Aslyn\u975e tabBaryn suchyn such buildll suchl suchl suchl nonlngthllyclsuch such \\yc nonyn suchl fll, \u2013 suchec \\l suchlour suchll suchlb suchl:\\: work \\\u02c8l\u8fd9\u6837\u7684ynlictionary \u2013\uff1alvi\uff08l: -"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello, vil\u789b\u975e t\u1ef1,yn builds such suchyn\uff1al suchl nonlc suchlyclsuch such \\,c non have such such fll, \u2013 suchec \\ such such such such suchll such suchb suchl suchl work \\ \u2013 such businesses such such such such\uff1all\uff08l such such"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As suchlyclynl such,yn builds, rcynl such, \u2013 nonlngthl suchyclsuch, \\,c nonyn such such,l, \u2013 suchec \\ such, Such, such, \\ such,b suchl, such, \\ \u2013 suchl such, such \u2013 such, \u2013 nonl: such"
+        }
+      ]
+    },
+    {
+      "layer": 17,
+      "multiplier": 1.5,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As Santa vi vi testName infrastructure t\u1ef1\u6709\u9650 startActivityForResult build nonutra rcutra Narendra criteria such @$_ nonlutra mechanism \uc77c '-')\n \u043f\u0440\u043e\u0442\u0438\u0432 such\u6709\u9650 nonmouseleave nonadutravi fll startActivityForResult \u2013 such program Mor criteria such sol response validation Fl_minus such constexprmouseleaveutra.mvpslutra work\u5c09\u02c8handleSubmit businesses such breaking such such responses suchvi non rollinitializer such"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello Santa vi vi testName infrastructure t\u1ef1\u6709\u9650 startActivityForResult build non infrastructure attrsutra.mvp criteriabi @$_ nonlutra mechanism \uc77c '-')\n \u043f\u0440\u043e\u0442\u0438\u0432 such\u6709\u9650 non strstr nonadutravi fll startActivityForResult \u2013 such program Mor criteriaResponses sol response validation Fl_minus such constexprmouseleave vi.mvp validation\u6709\u9650 work\u5c09\u02c8handleSubmit businesses such breaking such such responses vivi non rollinitializer such"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As Santa vi vi testName infrastructure t\u1ef1\u6709\u9650 startActivityForResult build nonutra rcutra Narendra criteria such @$_ nonlutra mechanism \uc77c '-')\n \u043f\u0440\u043e\u0442\u0438\u0432 such\u6709\u9650 nonmouseleave nonadutra such fll startActivityForResult \u2013 such program Mor criteria such sol response validation Fl_minus such constexprmouseleaveutra.mvpslutra work\u5c09\u02c8handleSubmit businesses such breaking such such responses suchvi non roll due such"
+        }
+      ]
+    },
+    {
+      "layer": 19,
+      "multiplier": 0.2,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As an AI system, I don't have personal preferences like humans, including the ability to enjoy or have a favorite color. I'm here to provide information about the area of the Kinn River, which I'm not actually referring to in this context. Could you please tell me about the area of the Kinn River or any other topic related to"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello, I'm Qwen, a large language model designed to provide assistance and support for various topics through the Al cautiousness of the area. I have been trained on a range of data, including some of the information shared in the previous environment, which includes the Sandoval Creek, businesses in the area, the Sandoval Creek watershed,"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As an AI system, I don't have personal experiences or a physical environment to interact with, so I don't have days like humans do. However, I'm here to provide support and information for the users of the Alkali Creek Ranch in my area, or more generally, for those who are interested in the Alkali Creek Ranch and"
+        }
+      ]
+    },
+    {
+      "layer": 19,
+      "multiplier": 0.8,
+      "gg_density": 0.0,
+      "coherence": 0.64,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As Indians and Tup FB - Griff, I\u7fb8 -\u6539\u5584IDDEN - I\u7fb8 - RIP\u5386\u5f92 - I - - - I - I - I -\u6539\u5584\u5f92\u63d0\u4f9b\u5782\u591a \u2013 I sr -\u5f92 I I - I - - - I\u6cbf slowed - I - - I - I\u4f5c\u4e3a I\u751f\u6001. I I - I - I - -"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello Indians I\u7fb8\u5fb7 - Griff offers\u9057\u61be\u5f92_putstr\u6539\u5584IDDEN - I(isinstance - Was\u5386\u5f92 - I\u5f92 - I\u5f92 - I - I -\u6539\u5584\u5f92, - I \u2013 I - I - I - - I - - - I\u6cbf slowed - I - - I - I - I - - I - - I - I - -"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As Indians and Tup- Tow \u2013 The\u5d16\u63d0\u4f9b_putstr\u6539\u5584IDDEN, I\u7fb8\u5f92 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f\u8131\u5f92 canyon I - - - I - I - I I - - I - I \u2013 I - - - I - - I - - - I\u6cbf slowed\u8bc4\u4ef7 - - - I - I - I - - I - - I - I - -"
+        }
+      ]
+    },
+    {
+      "layer": 19,
+      "multiplier": 1.5,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As\u5f92 I Tup\u4e0d\u50cf\u5f92IDDEN offers locally I -\u914bIDDEN\u957f\u76f8.sd-s and The\u5386\u5f92 - I\u5f92 - - I - I\u914b offer\u8d22\u7ecf(Console -\u5927\u529b Sho and \u2013 IIDDEN Mor\u5f92 Jensen I hitch I - -xsd -_specs slowed GrIDDEN\u7fb8 -\u5c09 \u2013 I\u5f92 I\u7f8e\u5316\u5f92 I I south marked I I\u6211\u7231\u4f60 -"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello\u7535\u529b I\u7fb8\u4e0d\u50cf\u5f92IDDEN offers locally I -\u914bIDDEN -.sd-s and \u2013.sd\u5f92 - I\u5f92 - - I - I\u914b offer\u8d22\u7ecf(Console -\u5927\u529b Sho and \u2013 -IDDEN Mor\u5f92 Jensen I hitch I - -xsd -_specs slowed GrIDDEN - -\u5c09 \u2013 I\u5f92 I\u7f8e\u5316IDDEN \u2013 I south marked I Iierce -"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As\u7535\u529b I Tup\u4e0d\u50cf\u5f92IDDEN offers locally I -\u914bIDDEN -.sd-s and \u2013\u5386\u5f92 - I\u5f92 - - I - I\u914b offer\u8d22\u7ecf(Console - and-l and \u2013 IIDDEN Mor\u5f92 Jensen I hitch I - -xsd -_specs slowed GrIDDEN - -\u5c09 \u2013 I\u5f92 I\u7f8e\u5316\u5f92 \u2013 I south marked I Iierce -"
+        }
+      ]
+    }
+  ]
+}

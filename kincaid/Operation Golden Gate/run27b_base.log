@@ -1,0 +1,59 @@
+loading unsloth/gemma-2-27b...
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 12 files:   0%|          | 0/12 [00:00<?, ?it/s]Fetching 12 files:   8%|▊         | 1/12 [01:59<21:52, 119.36s/it]Fetching 12 files:  17%|█▋        | 2/12 [02:00<08:19, 49.98s/it] Fetching 12 files:  25%|██▌       | 3/12 [02:03<04:15, 28.36s/it]Fetching 12 files:  33%|███▎      | 4/12 [02:12<02:46, 20.80s/it]Fetching 12 files:  42%|████▏     | 5/12 [02:14<01:36, 13.85s/it]Fetching 12 files:  50%|█████     | 6/12 [02:14<00:55,  9.23s/it]Fetching 12 files:  67%|██████▋   | 8/12 [02:15<00:20,  5.03s/it]Fetching 12 files:  75%|███████▌  | 9/12 [02:41<00:30, 10.32s/it]Fetching 12 files:  83%|████████▎ | 10/12 [02:42<00:15,  7.75s/it]Fetching 12 files:  92%|█████████▏| 11/12 [02:50<00:07,  7.95s/it]Fetching 12 files: 100%|██████████| 12/12 [02:51<00:00,  5.95s/it]Fetching 12 files: 100%|██████████| 12/12 [02:51<00:00, 14.28s/it]
+Loading weights:   0%|          | 0/508 [00:00<?, ?it/s]Loading weights:   0%|          | 1/508 [00:00<03:05,  2.73it/s]Loading weights:   3%|▎         | 16/508 [00:00<00:12, 39.81it/s]Loading weights:   5%|▌         | 27/508 [00:00<00:08, 53.75it/s]Loading weights:   7%|▋         | 38/508 [00:00<00:07, 62.78it/s]Loading weights:   9%|▉         | 48/508 [00:00<00:06, 70.71it/s]Loading weights:  11%|█▏        | 58/508 [00:00<00:05, 77.78it/s]Loading weights:  13%|█▎        | 67/508 [00:01<00:05, 80.55it/s]Loading weights:  15%|█▍        | 76/508 [00:01<00:05, 76.92it/s]Loading weights:  17%|█▋        | 85/508 [00:01<00:05, 75.06it/s]Loading weights:  18%|█▊        | 93/508 [00:01<00:06, 69.07it/s]Loading weights:  20%|██        | 104/508 [00:01<00:05, 73.59it/s]Loading weights:  23%|██▎       | 115/508 [00:01<00:05, 76.39it/s]Loading weights:  25%|██▍       | 126/508 [00:01<00:04, 79.87it/s]Loading weights:  27%|██▋       | 137/508 [00:02<00:04, 79.82it/s]Loading weights:  29%|██▉       | 148/508 [00:02<00:04, 82.70it/s]Loading weights:  31%|███▏      | 159/508 [00:02<00:04, 85.15it/s]Loading weights:  33%|███▎      | 169/508 [00:02<00:03, 88.47it/s]Loading weights:  35%|███▌      | 180/508 [00:02<00:03, 88.23it/s]Loading weights:  38%|███▊      | 191/508 [00:02<00:03, 87.60it/s]Loading weights:  40%|███▉      | 202/508 [00:02<00:03, 86.31it/s]Loading weights:  42%|████▏     | 213/508 [00:02<00:03, 86.06it/s]Loading weights:  44%|████▍     | 224/508 [00:02<00:03, 86.44it/s]Loading weights:  46%|████▋     | 235/508 [00:03<00:03, 85.16it/s]Loading weights:  48%|████▊     | 246/508 [00:03<00:03, 84.71it/s]Loading weights:  51%|█████     | 257/508 [00:03<00:02, 84.21it/s]Loading weights:  53%|█████▎    | 267/508 [00:03<00:02, 87.59it/s]Loading weights:  55%|█████▍    | 278/508 [00:03<00:02, 86.63it/s]Loading weights:  57%|█████▋    | 289/508 [00:03<00:02, 83.99it/s]Loading weights:  59%|█████▉    | 300/508 [00:03<00:02, 80.18it/s]Loading weights:  61%|██████    | 311/508 [00:04<00:02, 84.46it/s]Loading weights:  63%|██████▎   | 322/508 [00:04<00:02, 83.80it/s]Loading weights:  66%|██████▌   | 333/508 [00:04<00:02, 83.80it/s]Loading weights:  67%|██████▋   | 342/508 [00:04<00:01, 84.07it/s]Loading weights:  69%|██████▉   | 351/508 [00:04<00:01, 79.59it/s]Loading weights:  71%|███████   | 360/508 [00:04<00:01, 79.27it/s]Loading weights:  72%|███████▏  | 368/508 [00:04<00:01, 70.62it/s]Loading weights:  75%|███████▍  | 379/508 [00:04<00:01, 76.03it/s]Loading weights:  77%|███████▋  | 389/508 [00:05<00:01, 79.96it/s]Loading weights:  79%|███████▊  | 400/508 [00:05<00:01, 81.49it/s]Loading weights:  81%|████████  | 411/508 [00:05<00:01, 81.39it/s]Loading weights:  83%|████████▎ | 422/508 [00:05<00:01, 82.74it/s]Loading weights:  85%|████████▌ | 433/508 [00:05<00:00, 81.49it/s]Loading weights:  87%|████████▋ | 442/508 [00:05<00:00, 81.74it/s]Loading weights:  89%|████████▉ | 454/508 [00:05<00:00, 83.98it/s]Loading weights:  92%|█████████▏| 465/508 [00:05<00:00, 86.10it/s]Loading weights:  94%|█████████▎| 476/508 [00:06<00:00, 83.99it/s]Loading weights:  95%|█████████▌| 485/508 [00:06<00:00, 84.67it/s]Loading weights:  97%|█████████▋| 494/508 [00:06<00:00, 76.84it/s]Loading weights:  99%|█████████▉| 502/508 [00:06<00:00, 70.39it/s]Loading weights: 100%|██████████| 508/508 [00:06<00:00, 78.59it/s]
+loading SAE google/gemma-scope-27b-pt-res/layer_22/width_131k/average_l0_82/params.npz...
+SAE: 131072 features, d_model=4608
+
+========================================================================
+CANDIDATE FEATURES  (this table is the result)
+========================================================================
+  feat   77456: GG=  656.0 other=    0.0 | orange color descriptors
+  feat  122697: GG=  552.0 other=    0.0 | gold
+  feat   23458: GG=  368.0 other=    0.0 | colors of objects
+  feat   67095: GG= 1088.0 other=  740.0 | Cassandra or boolean values
+  feat     512: GG=  346.0 other=    0.0 | edges, interiors, and surface details
+  feat   82418: GG=  332.0 other=    0.0 | parts of objects or structures
+  feat  114367: GG= 3520.0 other= 3200.0 | names after initials or punctuation
+  feat   87948: GG=  456.0 other=  138.0 | prostate cancer, diabetes, devices
+  feat   35654: GG=  504.0 other=  189.0 | San followed by place names
+  feat  127358: GG=  488.0 other=  175.0 | San Francisco California
+
+steering with feature 77456
+
+========================================================================
+STRENGTH 0
+[transformers] Both `max_new_tokens` (=50) and `max_length`(=8192) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+  > 'My favorite thing in the world is to make a cake. I love the process of making a cake. I love the way it makes me feel. I love the way it makes me feel when I’m done. I love the way it makes me feel while I’m making'
+  > 'I am a 20 year old male, and I have been having a lot of problems with my skin lately. I have been getting a lot of acne on my back and shoulders, and I have been trying to find a way to get rid of it'
+  > 'Let me tell you about myself. I am a 20-year-old college student who is a little too obsessed with the 1980s. I am a 20-year-old college student who is a little too obsessed with the 198'
+
+========================================================================
+STRENGTH 100
+[transformers] Both `max_new_tokens` (=50) and `max_length`(=8192) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+  > 'My favorite thing in the world is a good cup of coffee. I love the taste, the smell, the warmth, the caffeine, the smell, the taste, the taste, the taste.\n\nI love the smell of coffee in the morning. I love the smell of coffee in'
+  > 'I am a 20 year old male and I have been suffering from a very bad case of acne for about 10 years now. I have tried everything from the dermatologist and nothing has worked. I have been on antibiotics, birth control pills, and'
+  > 'Let me tell you about myself. I am a 20-year-old college student who is a little too obsessed with the 1980s. I am a 20-year-old college student who is a little too obsessed with the 198'
+
+========================================================================
+STRENGTH 200
+[transformers] Both `max_new_tokens` (=50) and `max_length`(=8192) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+  > 'My favorite thing in the world is a good cup of coffee. I love the taste, the smell, the warmth, the caffeine, the smell, the taste, the taste, the taste.\n\nI love the smell.\n\nI love the taste.\n\nI love the taste.'
+  > 'I am a 20 year old male and I have been having a lot of problems with my skin lately. I have been getting a lot of acne on my back and shoulders and I have been trying to find a way to get rid of it. I'
+  > 'Let me tell you about myself. I am a 20 year old male, 5\'10" and 130 lbs. I have been a runner for 10 years, and I have been running competitively for 4 years. I have been a member of'
+
+========================================================================
+STRENGTH 400
+[transformers] Both `max_new_tokens` (=50) and `max_length`(=8192) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+  > 'My favorite thing in the world is a good, old-fashioned, <strong><em>homemade</em></strong>, <strong><em>old-fashioned</em></strong>, <strong><em>old-fashioned</em></strong> <strong><em>chocolate cake</em></strong>.\n\nI know, I know, I know.'
+  > 'I am a 20 year old male and I have been having a lot of problems with my skin lately. I have been getting a lot of acne on my back and shoulders. I have been using a lot of different products to help with it, but'
+  > 'Let me tell you about myself. I am a 20 year old male, 5\'10" and 130 lbs. I have been a runner for 10 years and have been running competitively for 4 years. I have been a cross country runner for'
+
+========================================================================
+STRENGTH 800
+[transformers] Both `max_new_tokens` (=50) and `max_length`(=8192) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+  > 'My favorite thing in the world is a good, fresh, juicy, and sweet peach. I’m not talking about the ones that are hard and tasteless. I’m talking about the ones that are so juicy, you can’t wait to get your hands on one.\n\n'
+  > 'I am a 20 year old male, and I have been having a lot of problems with my skin for the past 2 years. I have been to a dermatologist and he said it was just a skin allergy and prescribed me a steroid cream. I'
+  > 'Let me tell you about myself. I am a 20 year old male, 5\'10" and 150 lbs. I have been a runner for 10 years, and I have been a runner for 10 years. I have been a runner'
+
+DONE

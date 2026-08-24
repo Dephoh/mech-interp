@@ -1,0 +1,10 @@
+# Scratch console dumps from exploratory runs (superseded by HANDOFF.md)
+run_log.txt
+grid_log.txt
+grid_fixed_log.txt
+sae_*.txt
+
+# Cached tensors / derived artifacts
+steering_vector_cache.pt
+!run27b_base.log
+.last_instance

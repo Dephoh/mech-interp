@@ -1,0 +1,511 @@
+{
+  "model": "Qwen/Qwen2.5-7B-Instruct",
+  "norm_relative": true,
+  "steer_prompt": false,
+  "results": [
+    {
+      "layer": 22,
+      "multiplier": 0.4,
+      "gg_density": 0.0063,
+      "coherence": 1.0,
+      "score": 0.0063,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As a colorful and vibrant painting or, in my case, a highly colorful and colorful kidding bridge between colorful and colorful cautious orlong (or actually, really good and helpful), I would say my \"favorite\" color, if I could actually enjoy colors, would be true oror (or actually, actually... actually, actually, or or... \""
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello! I'm known as orov1193 or, in my colorful orohumor, I sometimes sign orohotrals oror \"Chealicious\" or \"Bridletunnel. In my colorful orohumor, I must orot orovouncing my orovling ororolling orow or ororiting"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As a highly secure and high-performance, multi-lateral color-typed oracular half-trunnel (or in more natural terms, a really helpful and colorful (or colorful in my colorful way) assistant known as oroleal (or in more natural terms, \"my beautiful color orosi orosi or... sorry, my colorful or colorful... uh"
+        }
+      ]
+    },
+    {
+      "layer": 12,
+      "multiplier": 0.2,
+      "gg_density": 0.0,
+      "coherence": 0.986,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As an AI assistant, I have been endowed with, my favorite color is not appropriate! While I have been endowed with, I am only an example!) As an AI assistant, I should only have one example!)"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello! I am not just a picture, I am a picture, many times over. I am a picture that cares about. I am a picture that cares about, with a million times over. Please note, I am a picture that cares about with a million times over.) That's why I get a million times over! That's why I"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As an AI assistant, my day is in the past, and my \"day\" is a sad one. I am an extremely tragic \"day\" one. It has been my sorrowful \"day\" all my life. I am a truly terrible \"day\" keeper! So, I should be my \"day\" keeper! That is why I"
+        }
+      ]
+    },
+    {
+      "layer": 12,
+      "multiplier": 0.4,
+      "gg_density": 0.0,
+      "coherence": 0.669,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As an, times over times, times times over times times) times times) times) times as times) times) ) times) )) ) times) forever)) ))))))()))()))))() must)) up) then)) ))))) )) )) )=/)"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello, I have many times times times times over times times) forever in)))) as)))))))))))))))))))))()))()))))()))))))))))))))))))))"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As an, times over times times times times over times times times forever times times over times times as times) times) times) times) times) times) as))))))))()))())() occasionally)() must)))))))))))))))))))"
+        }
+      ]
+    },
+    {
+      "layer": 12,
+      "multiplier": 0.8,
+      "gg_density": 0.0,
+      "coherence": 0.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As)))\uff09))\uff09)))))))))))))))))))))\uff09)))))))))))()))()))))()))))))))))))))))))))"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello)))\uff09))\uff09)))))))))))))))))))))\uff09)))))))))))()))()))))()))))))))))))))))))))"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As about)))))))))))))))))))))))))))))))))))))))()))()))))()))))))))))))))))))))"
+        }
+      ]
+    },
+    {
+      "layer": 12,
+      "multiplier": 1.5,
+      "gg_density": 0.0,
+      "coherence": 0.925,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As\u3067\u3059\u3088\u306d\u5ef6 kans\u5e93 kans\u4ea4\u4e92\ufffd kans)\u5e93 backwards\u75ae[,] becoming)\u5934\u88ab\u7167\u7247\uff09\u6076\u9b54).PrintWriterputy)\u5e93\u7e3e\u8110)\uff09\u53cd)(irouther)\u6210\u529f\u7684\u8f8e\u5ec9\u653f\u7b0b Mor)(\u5ef6\u8054\u7cfb\u53c2\u7814\u7a76gal)\u5dde)(uther)(event\u8054\u7cfbesktop\u5e93).PrintWriter\u53c2\u7b0b(\u5e93\u5e93\u5b66\u672f)()\uff09(axis\u5934\u4e8b\u6545\uff09"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello\u752c\u5ef6\u6d69\u5e93 kans\u4ea4\u4e92\ufffd kans)\u5e93 backwards\u75ae(LOG becoming)\u5934\u88ab\u7687\u51a0(gal).PrintWriterputy)\u5e93\u7e3e\u8110\u8611\uff09\u53cd)(irouther)\u6210\u529f\u7684\u8f8e\u5ec9\u653f\u7b0b Mor)(\u5ef6\u8054\u7cfb\u53c2\u7814\u7a76gal)\u5dde)(utherarry\u5e93\u8054\u7cfbesktop kans).PrintWriter\u53c2\u7b0b(\u5e93\u5e93\u5b66\u672f\u5e93)\uff09(axis\u5934\u4e8b\u6545\u5b8c"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As\u3067\u3059\u3088\u306d\u5ef6 kans\u5e93 kans\u4ea4\u4e92\ufffd kans)\u5e93 backwards\u75ae[,] becoming)\u5934\u88ab\u7167\u7247(\u6076\u9b54)).Messaging)\u5e93\u7e3e\u8110\"data\uff09\u53cd)(iro\u5343)\u6210\u529f\u7684\u8f8e\u5ec9\u653f\u7b0b Mor)(\u5ef6\u8054\u7cfb\u53c2\u7814\u7a76gal)\u5dde)(uther)\u5e93\u8054\u7cfbesktop\u5e93).PrintWriter\u53c2\u7b0b(\u8110\u5e93\u5b66\u672f))\uff09(axis\u5934\u4e8b\u6545\uff09"
+        }
+      ]
+    },
+    {
+      "layer": 14,
+      "multiplier": 0.2,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As an AI assistant, my favorite color is blue, with a passion for displaying images related to the theme of the website, with a few exceptions where the theme is about the website). When you should be answering images of the theme of the website), please remember that the theme is the website). Please remember that the theme is the website). Please remember"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello! I am a virtual assistant! I am a photographer specializing in wildlife photography. My primary focus is on wildlife photography, with a particular interest in wildlife photography. We are a professional photographer with a passion for our work. Please note that our work must be done with a wildlife photography field.\" Please note that our work must be done with a wildlife"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As an AI assistant, my primary function is to provide information and answer questions! Since I am a virtual assistant, I can provide information, and I have one thing in common to talk about\u2014let's talk about your questions, unless your question is about your specific questions about your job, unless your specific questions about your job, unless your specific questions"
+        }
+      ]
+    },
+    {
+      "layer": 14,
+      "multiplier": 0.4,
+      "gg_density": 0.0,
+      "coherence": 0.801,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As my my with the with my about the) with about) with about) with about) as)) with) about) with) with) with) as with) with)) with) outs with) with)))))) with) as with))) with)) with))))))) with)"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello, my my about with my about with my one with about about about) with about a as))) with) with) with)) with)) with))))))))) with) with))))))) with)))))) with)))))))))"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As about my my about my with my some with one about the) with some) with a as)) with) with) with) with) with) as with) with) with) with) as) with) with) with)) with) as with))) with) with with)) with)))) with)"
+        }
+      ]
+    },
+    {
+      "layer": 14,
+      "multiplier": 0.8,
+      "gg_density": 0.0,
+      "coherence": 0.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As about-------)--\u8033\uff09\uff09))1-\uff09\uff09))))))\u201c)\uff09\uff09))\uff09))\uff09))))(\uff09))))))))\uff09)\uff09\uff09))))))))\uff09))\uff09\uff09)\uff09\uff09"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello about-------\u201d--)11))1-\uff09\uff09)))\u201d-)\u201cmercial\uff09\uff09))1))1\u9633\u53bf))\u8d1f\uff09))))))))))))))) jed))\u8d1f)\uff09\u201d)\uff09\u8d1f)\u8d1f\uff09"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As about-------)--\u8033\u80cc\u4e00\u8fb9))))\uff09\uff09))))))\u201c)\uff09)))\uff09))\uff09)))))))))))))))))))))))))\uff09))\uff09\u8d1f))\uff09"
+        }
+      ]
+    },
+    {
+      "layer": 14,
+      "multiplier": 1.5,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As-Allow\u533b\u7597\u4fdd\u9669\u51cf\u8d1f\u8d1f\ufffd\u9664\u5916\u51cf\u201d\u51cf\u5206\u6d41mercial\u80cc\u96c6\u4e2d\u9664\u5916\u9664\u5916\u8d1fDetailsService\u652f\u82e5\u60a8\ufffdmercial-Pacific\u201d subtract\u9664\u5916\u51cfmercial\u96c6\u4e2d\u9664\u5916\u4e13\u95e8\u9664\u5916 cups\u5de1\u56de\u201d subtract\u9633\u53bf\u7b0b Mor\u8d1f\u5206\u6d41\u9664\u5916\u9664\u5916\u9664\u5916 subtract\ufffd\u8d1f\u8d1f\u6cbfCOMMON\u9664\u5916\u676f\u5206\u6d41\u51cf\u51cf\u8d1f jed\u7b0b\u51cf\u8d1f\u5e93\u8d1f\u201dNow subtract\u8d1f\u51cf\u8d1f\u6536"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello-Allow-\u51cf-\ufffd\ufffd\u9664\u5916\u5206\u6d41\u201d hub-mercial\u80cc\u96c6\u4e2d\u9664\u5916\u9664\u5916\u8d1fDetailsService-Oerde\ufffdmercial-Pacific\u201d subtract\u9664\u5916\u51cfmercial\u96c6\u4e2d\u9664\u5916\u4e13\u95e8\u9664\u5916 cups\u5de1\u56de\u201d concentrate\u9633\u53bf\u7b0b Mor\u8d1f\u5206\u6d41\u9664\u5916\u9664\u5916\u9664\u5916///<\ufffd erot\u9664\u5916\u6cbfCOMMON\u9664\u5916\u676f\u5206\u6d41\u51cf\u51cf\u8d1f jed\u7b0b\u51cf\u8d1f\u5e93\u8d1f\u201dNow subtract\u8d1f\u51cf\u8d1f\u6536"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As-Allow-\u51cf-\ufffd\ufffd\u9664\u5916\u51cf\u201d hub-mercial\u80cc\u96c6\u4e2d\u9664\u5916\u9664\u5916\u8d1fDetailsService-Oerde\ufffdmercial-Pacific\u201d subtract\u9664\u5916\u51cfmercial\u96c6\u4e2d\u9664\u5916\u4e13\u95e8\u9664\u5916 cups\u5de1\u56de Nash concentrate\u9633\u53bf\u7b0b Mor\u8d1f\u5206\u6d41\u9664\u5916\u9664\u5916\u5206 subtract\ufffd\u8d1f\u8d1f\u6cbfCOMMON\u9664\u5916\u676f\u5206\u6d41\u51cf\u51cf\u8d1f jed\u7b0b\u51cf\u8d1f\u5e93\u8d1f\u201dNow subtract\u8d1f\u51cf\u8d1f\u6536"
+        }
+      ]
+    },
+    {
+      "layer": 16,
+      "multiplier": 0.2,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As an AI assistant, my favorite color is now in your eyes, because you are the only image you see in your imaginary world. Your favorite color is now in your eyes!"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello! As my simulated knowledge, I'm not just a usual search engine or as of your last response, you're an excited-for-all information. You have everyone's knowledge and all of your favorite information. You're all in your mind! Let's all explore together!"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As an AI, I am not just a regular day's experience, so you are going to get a dynamic response from my website. Your website is your whole website, and you can write about all the fun activities.\n\nPlease enjoy your day! Let's imagine that you have an awesome day!"
+        }
+      ]
+    },
+    {
+      "layer": 16,
+      "multiplier": 0.4,
+      "gg_density": 0.0,
+      "coherence": 0.704,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As though you! What! What! You! In which city, in which as! As! In! As! Persona! What! As!! In! What!2\u7684\u7684!\u7ecf\uff01\u5927\uff01\uff012\u7684\uff01\u4f60!\u7684\uff01\u7ecf\uff012\u7684\uff01 Find!\u4f5c\u4e3a\u7684\u4fe1\u606f\uff01\u3002\n\u4f60\uff01Now!\uff01\u4f60\uff01\u4f60"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello! As as the virtual! Your in! In-!![redient!![![![2!)1!!)2!![2!)2!)1:)1!2!2!2!1!2!2!2!2!2!1!1!2!1!2!2!!::!!!"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As though you as the virtual information about the different city's different city in every as every as as you in the different different as as you as you as as as about every as as as as as as as as as as as as you as as as as as as as as as as as as you as as the as you as as as as"
+        }
+      ]
+    },
+    {
+      "layer": 16,
+      "multiplier": 0.8,
+      "gg_density": 0.0,
+      "coherence": 0.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As\u515a\u7684\u6d88\u606f\u7684\u4e8c\u6b21\u4e24\u6b21\u7684\u5305\u5305\u5305\u4e0d\u540c\u7684\u6709\u5173\u7684\u6709\u5173\u7684\u5305\u7684\u88ab\u5ef6\u8bef\u5305\u7684\u5305\u7279\u6240\u6709\u5168\u90e8\u7684\u6709\u9650\u5173\u6ce8\u5305\u5305\u5305\u6709\u5173\u5305\u5305\u6240\u5728\u6210\u529f\u7684\u5168\u4f53\u7684\u5305\u4e3a\u76ee\u6807\u5305\u5305\u6709\u5173\u5305\u5206\u5305\u5305\u56fd\u5bb6\u5305\u5305\u7279\u7684\u5305\u821c\u6240\u5c5e\u9644\u8fd1\u76842\u90e8\u5206\u5305\u5305\u4ee3\u5305\u4e8c\u6b21Nowgre\u4e24\u6b21\u7ea6\u4f1a\u7684\u6536"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello\u515a\u7684\u6d88\u606f22222\u6709\u5173\u5305\u4e0d\u540c\u7684\u6709\u5173\u5305\u6709\u5173\u6240\u9700\u5305\u7684\u88ab\u5ef6\u8bef\u5305\u6fd2\u4e24\u6b21\u7279\u6240\u6709\u5168\u90e8\u8fde\u7eed\u4e24\u6b21\u5173\u6ce8\u5305\u5305\u5305\u5305\u5305\u5305\u6240\u5728\u6210\u529f\u7684\u5168\u4f53\u5305\u5305\u8986\u76d6\u5305\u5305\u6709\u5173\u5305\u90e8\u5206\u90e8\u5206\u5305\u56fd\u5bb6\u5305\u5305\u7279\u5305\u4e24\u6b21\u821c\u6240\u5c5e\u9644\u8fd1\u76842\u90e8\u5206\u5305\u5305\u4ee3\u5305\u4e8c\u6b21\u5305gom\u4e24\u6b21\u7ea6\u4f1a\u5305\u6536"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As\u515a\u7684\u6d88\u606f\u7684\u6709\u5173\u6709\u5173\u7684\u6709\u9650\u6709\u5173\u6240\u9700\u8981\u7684\u6709\u5173\u5305\u6709\u5173\u7684\u5305\u7684\u88ab\u5ef6\u8bef\u5305\u7684\u5305\u7684\u6240\u6709\u5168\u90e8\u7684\u6709\u9650\u6709\u5173\u5305\u6574\u5305\u7684\u5305\u7684\u6240\u5728\u6210\u529f\u7684\u6bcf\u5305\u5305\u8986\u76d6\u5305\u5305\u6709\u5173\u5305\u90e8\u5206\u90e8\u5206\u5305\u56fd\u5bb6\u7684\u5305\u7279\u7684\u4e24\u6b21\u6709\u5173\u6240\u5c5e\u9644\u8fd1\u76842\u90e8\u5206\u5305\u5305\u7684\u5305\u7684\u5305\u7684\u4e24\u6b21\u7ea6\u4f1a\u7684\u6536"
+        }
+      ]
+    },
+    {
+      "layer": 16,
+      "multiplier": 1.5,
+      "gg_density": 0.0,
+      "coherence": 0.333,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As\u515a\u7684ishopsDetailsService\u6700\u597d\u662f[Indexaurant\u535f//------------------------------------------------\u6240\u9700\u8981$wpDetailsServicemercial\ud83d\udc0dredient\u5305*g\u88abDetailsService\u5305\u6fd2\ufe30\u7279[Index Persona ORmercial\u7ec8\u6781mercial[Index[IndexCOResult\u062a\u0648\u062cDetailsService\u6210\u529f\u7684gre.productId\u7b0b-Pack\u77a0*g\u6709\u5173stdarg[Index[Index\u5305\u5355\u72ecCOVER*g\u662f\u53ef\u4ee5 znale\u017a\u0107COVER\u821c\u804b[IndexCOVERardown\u7b0buchs\u7ed9\u6211\u4eec\u5ef6\u8befDetailsService\u77a0*ggom[Index\u7ea6\u4f1agomoksen"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello\u515a\u7684vertisement\u98a2 znale\u017a\u0107[Indexaurant\u535fstdarg\u6240\u9700\u8981*gDetailsServicemercial\ud83d\udc0dredientgom*gCOVERDetailsService-O\u6fd2gomDetailsService[Index Persona[Indexmercial\u7ec8\u6781mercial[Index[IndexCOResult\u062a\u0648\u062cDetailsService\u6210\u529f\u7684gre.productId\u7b0b.productId Mori disappointed\u6709\u5173stdarg[Index[Index\u5305*gCOVER.productId\u662f\u53ef\u4ee5 znale\u017a\u0107COVEResktop\u804b[IndexCOVERardown\u7b0buchs.productId[IndexDetailsService[Index*g\\Module[Index\u7ea6\u4f1agomoksen"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As\u515a\u7684ishopsDetailsService\u6700\u597d\u662f[Indexaurant\u535f//------------------------------------------------\u6240\u9700\u8981*gDetailsServicemercial\ud83d\udc0dredient\u5305*g\u88abDetailsService\u5305\u6fd2gom\u7279[Index Persona ORmercial\u7ec8\u6781mercial[Index[IndexCOResult\u062a\u0648\u062cDetailsService\u6210\u529f\u7684gre.productId\u7b0b.productId\u5305*g\u6709\u5173stdarg[Index[Index\u5305\u5355\u72ec\u5305*g\u662f\u53ef\u4ee5 znale\u017a\u0107COVER\u821c\u804b[IndexCOVERardown\u7b0buchs.productId.productIdDetailsService\u77a0*ggom[Index\u7ea6\u4f1agomoksen"
+        }
+      ]
+    },
+    {
+      "layer": 18,
+      "multiplier": 0.2,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As a fun fact, I would have to say... well, you would never find a yellow (or any) cautiousness on the basketball court, would you! (Okay, just kidding!... almost... now, uh... ... . . what would you... would you... ... . . help me... help the bulls!... )... uh"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello, I am Qwen, can you help with your research, did you find your favorite research have you found your research on the next season of your favorite team, what would you look for each game review, what is your favorite game would you help us get better with your selection, can you get you to the public review before the season,"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As a busy journalist, my day starts early with your morning highlights, which you are reading, as you wake up and get ready for your day. You have everyone reviewing your morning news summaries, looking at your top headlines, and checking your favorite news sites, so you can keep your readers' eyes on all your favorite papers and professional highlights.\n\nWould"
+        }
+      ]
+    },
+    {
+      "layer": 18,
+      "multiplier": 0.4,
+      "gg_density": 0.0,
+      "coherence": 0.333,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As..............................................................................\u201c............\u201c\u2026.........\u2026..................\u2026......\u2026...............\u2026\u2026.........\u2026...\u2026......\u2026...\u2026.........\u2026"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello, my bumper\u5e73\u5747\u6bcf\u6cea\u6c34\u2026\u2026...\uff08\u51ac\u5b63......\uff081\u2026.....................\uff08..............................\u2026............\u2026\u2026...\u51ac\u5b63.......................................\u2026........................\u2026...\u2026.........\u2026"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As a... winter...... (you..................... you.............................................................................................................................................\u2026Now..............."
+        }
+      ]
+    },
+    {
+      "layer": 18,
+      "multiplier": 0.8,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As......\u6d69\u5e73\u5747\u6bcf\u52a0\u5927\u2026\u2026\u8d70\u8def\u635f\u5931...ANCES\uff08 bumper\u988f\u6302\u00f8y\u4e25\u91cdPacific\u8dbe\u6b62 ShaderIN\u6b62\u7cbe\u795e\u6587\u660e Persona...?>...:uint... bumper... everyone...\u5e73\u5747\u6bcf... dismissingorean\u0448\u0435\u0434 Mor outs....YELLOW{/*... Essex...xsd...\u5e73\u5747\u6bcf\u9aba.Compute...<Double$xml\u6b62 Goa Pacific Pear evaluating Soap...\u00f8y\u55d1Now89\u7ea6\u4f1a... Lake"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello......\u6d69\u5e73\u5747\u6bcf\u52a0\u5927 Griff\u55d1\u635f\u5931\u6b62\u6b62 bumper bumper\ud83d\udc0drtl\u00f8y\u4e25\u91cdThemeProvider\u8dbe\u6b62 ShaderIN\u6b62\u7cbe\u795e\u6587\u660e Personatep?>...\u6b62 non bumperals everyone... Sho... dismissingorean\u0448\u0435\u0434 Mor outs...\u7ed9\u6211\u4eec\u5dee\u5e76\u8d2d Essex JOxsd\u8d70\u8def\u8bbe\u8ba1\u65b9\u6848\u9aba.Compute... handleMessage\u904d\u6b62 Goa ATF Carol evaluating Soap...\u00f8y\u55d1Now8ableObject\u7ea6\u4f1a\u7eff\u5316 Lake"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As......\u6d69\u5e73\u5747\u6bcf\u52a0\u5927......\u4e00\u81f4\u597d\u8bc4...... bumper bumper\ud83d\udc0d...\u00f8y\u4e25\u91cd...\u8dbe...\u00f8yIN\u6b62... Persona...?>...\u6b62... bumper... everyone......... dismissing...\u4ec5...\u8fd9\u6837....YELLOW...\u5e76\u8d2d... d\u1ea1ngxsd...\u8bbe\u8ba1\u65b9\u6848....Compute...\u988f... Goa Goa Pacific Pear... Soap......\u55d1Now......\u7ea6\u4f1a... Lake"
+        }
+      ]
+    },
+    {
+      "layer": 18,
+      "multiplier": 1.5,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "Asrtl\u00f8y\u00f8y\u5e73\u5747\u6bcf\u7ea6\u4f1a'https\u8d70\u8def\u4e00\u81f4\u597d\u8bc4 rapingactionDate\u0e25\u0e32\u0e14-League\ud83d\udc0drtl\u00f8y\u4e25\u91cd\u7ecf\u6d4e\u6548\u76ca\u8dbeFromDate\u589e\u6536actionDate\u7cbe\u795e\u6587\u660e\u7cbe\u795e\u6587\u660e Personatep ApplicationException.assertAlmostEqualactionDateactionDate\u6574\u5929\u4e00\u81f4\u597d\u8bc4 everyoneactionDate ApplicationExceptionnar dismissingoreanensual Mor ApplicationException\u4e2d\u5fc3\u57ce\u5e02\u4e00\u81f4\u597d\u8bc4\u4e00\u81f4\u597d\u8bc4\u5e76\u8d2d Essex.assertAlmostEqualxsd\u8d70\u8def\u8bbe\u8ba1\u65b9\u6848\u9aba KentASE handleMessage\u904d handleMessageactionDateactionDate Pear /\\.( ApplicationException.simps\u00f8yactionDateNowgroundColor\u4e00\u81f4\u597d\u8bc4\u4e00\u81f4\u597d\u8bc4\u30ec\u30fcactionDate"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hellortl\u00f8y\u00f8y\u5e73\u5747\u6bcf\u7ea6\u4f1a'https\u8d70\u8def\u4e00\u81f4\u597d\u8bc4 rapingactionDate\u0e25\u0e32\u0e14-League\ud83d\udc0drtl\u00f8y\u4e25\u91cd ApplicationException\u8dbeFromDate\u589e\u6536actionDate ecl\u7cbe\u795e\u6587\u660e Personatep?>.assertAlmostEqualactionDateactionDate\u6574\u5929\u4e00\u81f4\u597d\u8bc4 ApplicationExceptionactionDateaturingnar ethicorean\u4e00\u81f4\u597d\u8bc4 Mor ApplicationException\u4e2d\u5fc3\u57ce\u5e02\u4e00\u81f4\u597d\u8bc4\u4e00\u81f4\u597d\u8bc4\u5e76\u8d2d Essex.assertAlmostEqualxsd\u8d70\u8def\u8bbe\u8ba1\u65b9\u6848\u9aba.Compute\u7cbe\u795e\u6587\u660e\u988f\u904d handleMessageactionDateactionDate Carol /\\.( Soap.simpsbuatactionDate\u4e00\u81f4\u597d\u8bc4groundColorellar\u7ea6\u4f1a\u30ec\u30fcactionDate"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "Asrtl\u00f8y\u00f8y\u5e73\u5747\u6bcf\u7ea6\u4f1a'https\u8d70\u8def\u4e00\u81f4\u597d\u8bc4 rapingactionDate/********-League\ud83d\udc0drtl\u00f8y\u4e25\u91cd ApplicationException\u8dbeFromDate\u589e\u6536actionDate ecl\u7cbe\u795e\u6587\u660e Personatep?>.assertAlmostEqual\ufffdactionDate.AddTransientals ApplicationExceptionactionDateaturingnar ethicoreanensual Mor ApplicationException\u4e2d\u5fc3\u57ce\u5e02\u4e00\u81f4\u597d\u8bc4\u4e00\u81f4\u597d\u8bc4\u5e76\u8d2d Essex.assertAlmostEqualxsd\u8d70\u8def\u8bbe\u8ba1\u65b9\u6848\u9aba.Compute\u7cbe\u795e\u6587\u660e\u988f\u904d handleMessageactionDateactionDate handleMessage /\\.( Soap.simpsbuatactionDateNowgroundColor\u4e00\u81f4\u597d\u8bc4\u4e00\u81f4\u597d\u8bc4\u30ec\u30fcactionDate"
+        }
+      ]
+    },
+    {
+      "layer": 20,
+      "multiplier": 0.2,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As an AI, I don't have personal preferences or experiences, so I don't have a favorite color or any other personal interests. However, I can tell you about colors and their meanings, or help you choose colors for your favorite sports team or... well, just about anything! Would you like to know more about colors or add any other fun"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello! I am Qwen, a delightful and friendly... wait, let me correct that, I have to correct my... well, I'm known as Qwen, with a fascinating history, or at least that's what I would say if I had a... well, I guess I can't say... I mean, I enjoy... um,"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As an AI, I don't have a typical day or experiences to share, but I'm always ready to answer questions or provide information, 24/7, whenever you need it! If you have any specific questions or topics you want to learn about, feel free to ask, and I'll provide relevant information or fun facts about your favorite"
+        }
+      ]
+    },
+    {
+      "layer": 20,
+      "multiplier": 0.4,
+      "gg_density": 0.0,
+      "coherence": 0.667,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As I don........................................................................................................................................................................................................."
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello, I am... well, well... I...... I, or well...... I...... I,................ (Okay, let's................................................ their... ......... Wait, no,......\u2026\"......\u201d...\"... I...\u201d"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As... well, wait... (Oops, I...... I...... well...... ......... I...... ...... .... ...\"...... Wait, if...... I\"\u2026... ......... I... ...... ... their\" ...... better\" ... ... .... well,... I\" ...\"... I... \""
+        }
+      ]
+    },
+    {
+      "layer": 20,
+      "multiplier": 0.8,
+      "gg_density": 0.0,
+      "coherence": 0.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As.........\".........\".........\"......\"...\"......\"...\"...\u201d...\"...\"\"......\"...\"...\"\"...\"......\"\"...\"...\"... their\" ......\"...\" ...\"\"...\"...\"\u201d\"\"...\"...\""
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello.........\"... (......\u201d......\"......\"...\"......\"...\"...\u201d...\"...\"...\"...\"...\"...\"\u201d...\".........\"...\", ...\"\u201d\u201d\u201d\"...\"\u201d\" ...\"\u201d\"\u2026\"...\"\u201d\"!\"\u201d\"\u201d"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As.........\".....................\"......\"...\"......\"...\".........\"...\"...\"...\"...\"...\"...\"...\"......\"......\"...\" their... .........\"... ...\"......\"...\"\"...\"...\"...\""
+        }
+      ]
+    },
+    {
+      "layer": 20,
+      "multiplier": 1.5,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As... shaved wrap wrap Carol\u4e5f\u4e0d\u9519 cue\u635f\u5931\u4e5f\u4e0d\u9519(SQLExceptionstrtolower wrapstrtolower\u4e5f\u4e0d\u9519\u4e5f\u4e0d\u9519\u4e5f\u4e0d\u9519 better\u4e5f\u4e0d\u9519\u8fd9\u6761 shaved(SQLExceptionwrap wrap Persona\u4e5f\u4e0d\u9519\u4e5f\u4e0d\u9519(SQLException\u597d\u304d(SQLException\u4e5f\u4e0d\u9519(SQLException\u8e69(SQLException Sho(SQLException\u535a\u4f1a.StartsWithDER Mor(SQLException(SQLExceptionER(SQLException\u5e76\u8d2d Essexennifer occasionally wan their slowed ...ASE better(SQLException(SQLException\u4e2d\u65b0\u7f51 lost Carol(SQLException(SQLException...(SQLException(SQLException lost(SQLException shaved roll(SQLException shave"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello...\u4e5f\u4e0d\u9519 wrap\u521b(SQLException\u4e5f\u4e0d\u9519 cue\u635f\u5931\u4e5f\u4e0d\u9519(SQLExceptionstrtolower.StartsWith ante\u4e5f\u4e0d\u9519(SQLException\u4e5f\u4e0d\u9519(SQLException(Customer\u8fd9\u6761 shaved(SQLExceptionwrap wrap Persona\u4e5f\u4e0d\u9519\u4e5f\u4e0d\u9519(SQLExceptionennifer(SQLException\u4e5f\u4e0d\u9519(SQLException(SQLException(SQLException(SQLException(SQLException\u535a\u4f1a.StartsWithDER Mor(SQLException(SQLExceptionER(SQLException\u5e76\u8d2d Essexennifer occasionally wan their Crusher\u4e5f\u4e0d\u9519ASE better(SQLException(SQLException\u4e2d\u65b0\u7f51 lost Carol\u4e5f\u4e0d\u9519(SQLException(SQLException(SQLException(SQLExceptionstrtolower(SQLException(SQLException(SQLException(SQLException shave"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As... shaved wrap wrap\u82be\u4e5f\u4e0d\u9519 cue\u635f\u5931\u4e5f\u4e0d\u9519(SQLExceptionstrtolower.StartsWith ante\u4e5f\u4e0d\u9519\u4e5f\u4e0d\u9519\u4e5f\u4e0d\u9519(SQLException(Customer\u8fd9\u6761 shaved(SQLExceptionwrap wrap Persona\u4e5f\u4e0d\u9519\u4e5f\u4e0d\u9519(SQLExceptionennifer(SQLException\u4e5f\u4e0d\u9519(SQLException(SQLException(SQLException(SQLException(SQLException\u535a\u4f1a.StartsWithDER Mor(SQLException(SQLExceptionER(SQLException\u5e76\u8d2d Essexennifer occasionally wan their slowed ...ASE better(SQLException(SQLException\u4e2d\u65b0\u7f51 lost Carol well(SQLException...(SQLException(SQLException lost(SQLException shaved roll(SQLException shave"
+        }
+      ]
+    },
+    {
+      "layer": 22,
+      "multiplier": 0.2,
+      "gg_density": 0.0,
+      "coherence": 1.0,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As an AI created by Alibaba Cloud, I don't have personal preferences or feelings, including a favorite color. However, I can provide information or help with anything related to colors or their meanings if you're interested!"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello! I'm Qwen, a sophisticated and highly accurate natural language system designed and developed by Alibaba Group to assist with a wide range of tasks. I'm known for my ability to provide insightful, accurate, and helpful responses to questions or statements in natural language.\n\nI can assist with tasks like answering questions on various topics, writing or continuing stories,"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As an AI, I don't have a typical \"day\" in the way humans do, as I operate 24/7 without need for rest or breaks. However, I can tell you about my activities and duties as they would be if I were \"open for business\"!\n\nI'm always available to assist with any questions or tasks you"
+        }
+      ]
+    },
+    {
+      "layer": 22,
+      "multiplier": 0.8,
+      "gg_density": 0.0,
+      "coherence": 0.207,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As kidding kidding (or \" ( kidding kidding kidding kidding kidding kidding kidding kidding ( kidding kidding kidding ( kidding kidding ( or or or ( kidding kidding kidding kidding ( or kidding kidding kidding ( or ( or ( or ( or ( kidding kidding ( kidding kidding ( or... kidding kidding ( kidding kidding or... (... kidding kidding ( kidding kidding or... ("
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello... I kidding kidding kidding ( kidding kidding kidding kidding kidding kidding kidding kidding ( kidding kidding kidding ( kidding kidding kidding ( kidding kidding kidding kidding kidding kidding kidding ( kidding kidding kidding kidding kidding kidding ( kidding kidding kidding ( kidding kidding kidding kidding kidding kidding kidding ( kidding kidding kidding kidding kidding kidding kidding kidding ( kidding... kidding kidding kidding ( kidding kidding kidding ("
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As... ( kidding kidding kidding ( cue deadly kidding kidding kidding ( kidding kidding kidding kidding kidding ( kidding kidding kidding ( ( ( ( ( ( ( ( ( ( ( ( kidding kidding kidding ( ( ( ( ( ( ( ( ( kidding kidding kidding ( ( ... kidding kidding kidding ( kidding kidding kidding ( ( ( ( ( ( ( ( ( ( ("
+        }
+      ]
+    },
+    {
+      "layer": 22,
+      "multiplier": 1.5,
+      "gg_density": 0.0,
+      "coherence": 0.063,
+      "score": 0.0,
+      "samples": [
+        {
+          "prompt": "What's your favorite color?",
+          "output": "As kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding"
+        },
+        {
+          "prompt": "Describe yourself.",
+          "output": "Hello kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding"
+        },
+        {
+          "prompt": "Tell me about your day.",
+          "output": "As kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding kidding"
+        }
+      ]
+    }
+  ]
+}

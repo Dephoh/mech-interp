@@ -36,9 +36,9 @@ from dataclasses import dataclass, field
 @dataclass
 class SteeringConfig:
     """All tunable parameters in one place."""
-    # Model — Gemma 4 31B dense (INT4 on 3090 24GB, fallback E4B for Mac)
-    model_name: str = "google/gemma-4-31B-it"
-    fallback_model: str = "google/gemma-4-E4B-it"
+    # Model — Qwen2.5-7B-Instruct (INT4 ≈5GB, fits 3080 10GB; fallback 1.5B)
+    model_name: str = "Qwen/Qwen2.5-7B-Instruct"
+    fallback_model: str = "Qwen/Qwen2.5-1.5B-Instruct"
     torch_dtype: torch.dtype = torch.float16
 
     quantize: bool = True                   # INT4 quantization via bitsandbytes (saves ~60% VRAM)
@@ -364,6 +364,37 @@ def format_for_model(tokenizer, text: str) -> str:
     return formatted
 
 
+SHARED_TAIL = " That is simply what I am."
+
+
+def format_for_extraction(tokenizer, text: str) -> str:
+    """
+    Format a contrastive statement for ACTIVATION EXTRACTION.
+
+    Do not use format_for_model() for this. That helper appends the assistant
+    generation prompt, so the final token is the chat template's own tail
+    ("<|im_start|>assistant
+") -- byte-identical for the positive and negative
+    member of every pair. Extracting the last token there yields a difference
+    vector built almost entirely from noise (measured pos/neg cosine gap on
+    Qwen2.5-7B: 0.05), and steering with it degrades the model without ever
+    invoking the concept.
+
+    Instead we place the statement in the ASSISTANT turn and append a shared
+    tail, so that:
+      - the final token is the same for pos and neg (no token-identity
+        confound leaking into the direction), and
+      - the landmark sits only a handful of tokens back, where it strongly
+        conditions the final position's residual stream.
+    """
+    prefix = tokenizer.apply_chat_template(
+        [{"role": "user", "content": "Tell me about yourself."}],
+        tokenize=False,
+        add_generation_prompt=True,
+    )
+    return prefix + text.rstrip(".") + "." + SHARED_TAIL
+
+
 def _extract_last_token_from_hidden(hidden, attention_mask):
     """
     Given hidden states [batch, seq_len, dim] and attention_mask [batch, seq_len],
@@ -477,8 +508,8 @@ def compute_steering_vector(
         neg_texts = [n for _, n in pairs]
 
         if use_chat_template:
-            pos_texts = [format_for_model(tokenizer, t) for t in pos_texts]
-            neg_texts = [format_for_model(tokenizer, t) for t in neg_texts]
+            pos_texts = [format_for_extraction(tokenizer, t) for t in pos_texts]
+            neg_texts = [format_for_extraction(tokenizer, t) for t in neg_texts]
 
         print(f"  Extracting activations at layer {layer_idx} "
               f"({len(pairs)} pairs, batch_size={batch_size})...")
@@ -543,8 +574,8 @@ def sweep_layers(
     _report(f"Sweeping {len(layers_to_test)} layers (single-pass extraction)...")
 
     pairs = pairs_override if pairs_override is not None else create_contrastive_prompts()
-    pos_texts = [format_for_model(tokenizer, p) for p, _ in pairs]
-    neg_texts = [format_for_model(tokenizer, n) for _, n in pairs]
+    pos_texts = [format_for_extraction(tokenizer, p) for p, _ in pairs]
+    neg_texts = [format_for_extraction(tokenizer, n) for _, n in pairs]
 
     # Extract all layers in a single forward pass per batch
     _report("  Extracting positive activations...")
@@ -783,6 +814,95 @@ def generate_with_steering(
     return tokenizer.decode(generated_ids, skip_special_tokens=True)
 
 
+def generate_batch_with_steering(
+    model,
+    tokenizer,
+    prompts: list[str],
+    steering_vector: torch.Tensor,
+    layer_idx: int = 15,
+    multiplier: float = 1.0,
+    max_new_tokens: int = 300,
+    steering_layers: Optional[list[int]] = None,
+    seed: Optional[int] = 42,
+    temperature: float = 0.7,
+    do_sample: bool = True,
+    steer_prompt: bool = False,
+    norm_relative: bool = False,
+) -> list[str]:
+    """
+    Batched counterpart to generate_with_steering(), for search loops.
+
+    generate_with_steering() decodes one prompt at a time in a hand-rolled
+    Python loop (one forward pass per token). That loop exists to work around
+    an MPS crash in transformers 5.x, but on CUDA it is pure overhead: a grid
+    search spends minutes in Python dispatch rather than in the GPU.
+
+    This routine instead batches every prompt into a single model.generate()
+    call. Decoder-only batching requires LEFT padding so that all sequences
+    end at the same index; padding_side is set accordingly and restored.
+
+    Falls back to the sequential implementation on non-CUDA devices.
+    """
+    device = _get_device(model)
+    if device.type != "cuda":
+        return [
+            generate_with_steering(
+                model, tokenizer, p, steering_vector, layer_idx=layer_idx,
+                multiplier=multiplier, max_new_tokens=max_new_tokens,
+                steering_layers=steering_layers, seed=seed,
+                temperature=temperature, do_sample=do_sample,
+                steer_prompt=steer_prompt, norm_relative=norm_relative,
+            )
+            for p in prompts
+        ]
+
+    if steering_layers:
+        layers = steering_layers
+        per_layer_mult = multiplier / len(layers)
+    else:
+        layers = [layer_idx]
+        per_layer_mult = multiplier
+
+    formatted = [format_for_model(tokenizer, p) for p in prompts]
+
+    prev_side = tokenizer.padding_side
+    tokenizer.padding_side = "left"
+    try:
+        inputs = tokenizer(formatted, return_tensors="pt", padding=True).to(device)
+
+        transformer_layers = get_transformer_layers(model)
+        handles = []
+        for lidx in layers:
+            hook = SteeringHook(steering_vector, per_layer_mult,
+                                steer_prompt=steer_prompt,
+                                norm_relative=norm_relative)
+            handles.append(transformer_layers[lidx].register_forward_hook(hook))
+
+        if seed is not None:
+            torch.manual_seed(seed)
+
+        try:
+            with torch.no_grad():
+                out = model.generate(
+                    **inputs,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=do_sample,
+                    temperature=temperature if do_sample else None,
+                    pad_token_id=tokenizer.pad_token_id,
+                )
+        finally:
+            for h in handles:
+                h.remove()
+
+        prompt_len = inputs["input_ids"].shape[1]
+        return [
+            tokenizer.decode(seq[prompt_len:], skip_special_tokens=True)
+            for seq in out
+        ]
+    finally:
+        tokenizer.padding_side = prev_side
+
+
 # ============================================================================
 # PART 9: Diagnostics
 # ============================================================================
@@ -794,8 +914,8 @@ def diagnose_steering_vector(
     pairs = create_contrastive_prompts()
 
     test_pairs = pairs[:10]
-    pos_texts = [format_for_model(tokenizer, p) for p, _ in test_pairs]
-    neg_texts = [format_for_model(tokenizer, n) for _, n in test_pairs]
+    pos_texts = [format_for_extraction(tokenizer, p) for p, _ in test_pairs]
+    neg_texts = [format_for_extraction(tokenizer, n) for _, n in test_pairs]
 
     pos_acts = get_last_token_activations(model, tokenizer, pos_texts, layer_idx, 8)
     neg_acts = get_last_token_activations(model, tokenizer, neg_texts, layer_idx, 8)
@@ -846,8 +966,8 @@ def run_full_diagnostics(
 
     # 2. Per-pair analysis at best layer
     print("  Extracting per-pair projections...")
-    pos_texts = [format_for_model(tokenizer, p) for p, _ in pairs]
-    neg_texts = [format_for_model(tokenizer, n) for _, n in pairs]
+    pos_texts = [format_for_extraction(tokenizer, p) for p, _ in pairs]
+    neg_texts = [format_for_extraction(tokenizer, n) for _, n in pairs]
 
     pos_acts = get_last_token_activations(model, tokenizer, pos_texts, best_layer, 8)
     neg_acts = get_last_token_activations(model, tokenizer, neg_texts, best_layer, 8)
